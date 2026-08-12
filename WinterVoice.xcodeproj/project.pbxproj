@@ -1,0 +1,552 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 46;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		01DE7F3B8B01218B9D03C83587C0BC09 /* AppShellDestination.swift in Sources */ = {isa = PBXBuildFile; fileRef = 396222B0925483DE6A7B4CD153F9D122 /* AppShellDestination.swift */; };
+		04BD97D2C8EC8F39CB45212967F5FE04 /* Cocoa.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 20981E0C896AEDD712600FDB592C1218 /* Cocoa.framework */; };
+		09176BAEF6C29696F296E5CE843790B8 /* Cocoa.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 20981E0C896AEDD712600FDB592C1218 /* Cocoa.framework */; };
+		0C401630CEB97E772D336549D3C5FB80 /* AppShellView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B8F6A5F8F39D9DEBAC450175F3D7742 /* AppShellView.swift */; };
+		120F502D7586A86507C76CB800BF16EA /* RecordingPanelController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 833A612425A812E065C676BCF77B6D6B /* RecordingPanelController.swift */; };
+		125C9D90E5F97C7285BF9B82D0DDC5A0 /* DictationPresenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = D54810988CDC1B2A645852431FC23D3F /* DictationPresenter.swift */; };
+		299BE86E2CEC9176F4E40A1F88896D4F /* DictationStateMachineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DF8E83D256EA412E7FA8F082AFB65D17 /* DictationStateMachineTests.swift */; };
+		2D0E4B94E162C43BE9F1677B96CA8768 /* PermissionsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A186BE4612E842416B67B631A9520F9 /* PermissionsView.swift */; };
+		49CBB7A89E064A117989A2A41BFAAE42 /* AppContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0E5B2D1D5DBE56F9B2A1710F7FBCE3A1 /* AppContainer.swift */; };
+		5318F860C6B008907297AC13084E164B /* WinterVoiceApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60D8DCF368DCD23651595337D64F8E9A /* WinterVoiceApp.swift */; };
+		60662F5201542211F73043F2063E238B /* OperationalViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD904A4B3E15EBB932CDDEE8DDB079F4 /* OperationalViews.swift */; };
+		6AD799796D5F921DC493DE5307155BFA /* HotkeyHealth.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2ADB186799160ED2793824752F77C5E /* HotkeyHealth.swift */; };
+		6D8704374A821785F3BFA0DD4692896C /* HotkeyHealthRelay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 92F7455DD424E3B3DFDBCB5D0747420A /* HotkeyHealthRelay.swift */; };
+		6E802C33D0695122B70BAFC75E75781A /* DictationInterfaces.swift in Sources */ = {isa = PBXBuildFile; fileRef = D01EC8E15CECF77DABA99D2B5AC7FD7C /* DictationInterfaces.swift */; };
+		849355E407F5A568F537B50411E85DA6 /* DictationStateRelay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 62FC4BF55A58F3A82F1C9025BED369F4 /* DictationStateRelay.swift */; };
+		84F522807A85B73502C50E4BC7B8B3FA /* DictationInteractor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 09C40E4204A3214AE83ABED755064AD3 /* DictationInteractor.swift */; };
+		87CD8F65B52C3637D3D16720B16AA867 /* RightOptionEventTap.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F7B93B3804A2E980F31AE962A53D211 /* RightOptionEventTap.swift */; };
+		9CD392A91CEC2894091837EFDE48F3B9 /* MenuBarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A5122BC1BF0907FF1FFAD3D48B6C859E /* MenuBarView.swift */; };
+		A03F2FE6A90D636508EAE94B1F22757A /* RightOptionEventTapTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D70BB7532B60A707EBA043EB64B4AE33 /* RightOptionEventTapTests.swift */; };
+		AE432EDC92B50D4E3044C19957BA8C33 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B79EA1E3370A066AB051B381A15017B9 /* SettingsView.swift */; };
+		B012A8C52CACE714227EC782A11DCEE8 /* SystemPermissionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B784AB18140C5BEDB3F59EC174B8DB0 /* SystemPermissionManager.swift */; };
+		B22C5EF89A402539472610D3C75A0FF6 /* RecordingPanelView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 76BC788829C9E54DA20A05E41226E392 /* RecordingPanelView.swift */; };
+		B22DE0F409268F83CE775DA358274E2C /* DictationState.swift in Sources */ = {isa = PBXBuildFile; fileRef = C94817C4B3A704690FA2B6846DC5162F /* DictationState.swift */; };
+		BD9B39DE055C6F9BC8816FB1D02F37AE /* AppShellPresenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD56563FE6F4E5C76D892D32E0A78B33 /* AppShellPresenter.swift */; };
+		C2A5A9E0EE9C381BD5568F4E2C926870 /* AppShellSemanticsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF577219082F725AA27E09E9D36EDF91 /* AppShellSemanticsTests.swift */; };
+		C40422D784905DF29CB578472280AAEE /* PermissionState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B6D25EAFC0761BAA86CA48511856CEE /* PermissionState.swift */; };
+		CD53D85C674CD17D44429E66A6FB61AA /* AppleSpeechTranscriber.swift in Sources */ = {isa = PBXBuildFile; fileRef = E45CD68459D0D9EC385A7903BFD6F2C5 /* AppleSpeechTranscriber.swift */; };
+		CF9AC323C872B5ADDFEA35661D3F4074 /* AppLifecycleController.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB56F3DE2E7C4404A8514C1F221EFD54 /* AppLifecycleController.swift */; };
+		D3A12C376356496204D2AFC2AA6D51E9 /* SystemTextInjector.swift in Sources */ = {isa = PBXBuildFile; fileRef = E35331B4CAB6E067FBCED18F82929A31 /* SystemTextInjector.swift */; };
+		E3341DC7D1BD8F6A391EEDD96FD47557 /* AppShellInteractor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 952FAA27BCC85A6AA81820195B1940D2 /* AppShellInteractor.swift */; };
+		FFAE714F47EC00AA31A457493ADC4505 /* AppRouter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23805EEFB25CD07A049347B45AA02677 /* AppRouter.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		746E85E45A2BAA7A2036456D8BCA2944 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 667D958920306F5D80AD200BE87BEB74 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = F863762F673C6B555098FE71F532D452;
+			remoteInfo = WinterVoice;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		09C40E4204A3214AE83ABED755064AD3 /* DictationInteractor.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = DictationInteractor.swift; path = Features/Dictation/DictationInteractor.swift; sourceTree = "<group>"; };
+		0E5B2D1D5DBE56F9B2A1710F7FBCE3A1 /* AppContainer.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = AppContainer.swift; path = App/AppContainer.swift; sourceTree = "<group>"; };
+		20981E0C896AEDD712600FDB592C1218 /* Cocoa.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Cocoa.framework; path = Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.0.sdk/System/Library/Frameworks/Cocoa.framework; sourceTree = DEVELOPER_DIR; };
+		23805EEFB25CD07A049347B45AA02677 /* AppRouter.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = AppRouter.swift; path = App/AppRouter.swift; sourceTree = "<group>"; };
+		396222B0925483DE6A7B4CD153F9D122 /* AppShellDestination.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = AppShellDestination.swift; path = Entities/AppShellDestination.swift; sourceTree = "<group>"; };
+		3AE66AA18FB0BD88DF457423030F1BA3 /* WinterVoiceTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = WinterVoiceTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		49B8AC2248DC1A31F33B49CBFF71CD97 /* Info.plist */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		5A36D6AB27A20A1931B30CF1FC7D8DD4 /* WinterVoice.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = WinterVoice.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		5F7B93B3804A2E980F31AE962A53D211 /* RightOptionEventTap.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = RightOptionEventTap.swift; path = Platform/Hotkeys/RightOptionEventTap.swift; sourceTree = "<group>"; };
+		60D8DCF368DCD23651595337D64F8E9A /* WinterVoiceApp.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = WinterVoiceApp.swift; path = App/WinterVoiceApp.swift; sourceTree = "<group>"; };
+		62FC4BF55A58F3A82F1C9025BED369F4 /* DictationStateRelay.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = DictationStateRelay.swift; path = Features/Dictation/DictationStateRelay.swift; sourceTree = "<group>"; };
+		76BC788829C9E54DA20A05E41226E392 /* RecordingPanelView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = RecordingPanelView.swift; path = Features/RecordingPanel/RecordingPanelView.swift; sourceTree = "<group>"; };
+		7B6D25EAFC0761BAA86CA48511856CEE /* PermissionState.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = PermissionState.swift; path = Entities/PermissionState.swift; sourceTree = "<group>"; };
+		833A612425A812E065C676BCF77B6D6B /* RecordingPanelController.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = RecordingPanelController.swift; path = Features/RecordingPanel/RecordingPanelController.swift; sourceTree = "<group>"; };
+		8B784AB18140C5BEDB3F59EC174B8DB0 /* SystemPermissionManager.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = SystemPermissionManager.swift; path = Platform/Permissions/SystemPermissionManager.swift; sourceTree = "<group>"; };
+		92F7455DD424E3B3DFDBCB5D0747420A /* HotkeyHealthRelay.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = HotkeyHealthRelay.swift; path = Features/Dictation/HotkeyHealthRelay.swift; sourceTree = "<group>"; };
+		952FAA27BCC85A6AA81820195B1940D2 /* AppShellInteractor.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = AppShellInteractor.swift; path = Features/AppShell/AppShellInteractor.swift; sourceTree = "<group>"; };
+		9A186BE4612E842416B67B631A9520F9 /* PermissionsView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = PermissionsView.swift; path = Features/Settings/PermissionsView.swift; sourceTree = "<group>"; };
+		9B8F6A5F8F39D9DEBAC450175F3D7742 /* AppShellView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = AppShellView.swift; path = Features/AppShell/AppShellView.swift; sourceTree = "<group>"; };
+		A5122BC1BF0907FF1FFAD3D48B6C859E /* MenuBarView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = MenuBarView.swift; path = Features/MenuBar/MenuBarView.swift; sourceTree = "<group>"; };
+		B79EA1E3370A066AB051B381A15017B9 /* SettingsView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = SettingsView.swift; path = Features/Settings/SettingsView.swift; sourceTree = "<group>"; };
+		C94817C4B3A704690FA2B6846DC5162F /* DictationState.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = DictationState.swift; path = Entities/DictationState.swift; sourceTree = "<group>"; };
+		CB56F3DE2E7C4404A8514C1F221EFD54 /* AppLifecycleController.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = AppLifecycleController.swift; path = App/AppLifecycleController.swift; sourceTree = "<group>"; };
+		CF577219082F725AA27E09E9D36EDF91 /* AppShellSemanticsTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AppShellSemanticsTests.swift; sourceTree = "<group>"; };
+		D01EC8E15CECF77DABA99D2B5AC7FD7C /* DictationInterfaces.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = DictationInterfaces.swift; path = Features/Dictation/DictationInterfaces.swift; sourceTree = "<group>"; };
+		D54810988CDC1B2A645852431FC23D3F /* DictationPresenter.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = DictationPresenter.swift; path = Features/Dictation/DictationPresenter.swift; sourceTree = "<group>"; };
+		D70BB7532B60A707EBA043EB64B4AE33 /* RightOptionEventTapTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RightOptionEventTapTests.swift; sourceTree = "<group>"; };
+		DD904A4B3E15EBB932CDDEE8DDB079F4 /* OperationalViews.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = OperationalViews.swift; path = Features/AppShell/OperationalViews.swift; sourceTree = "<group>"; };
+		DF8E83D256EA412E7FA8F082AFB65D17 /* DictationStateMachineTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DictationStateMachineTests.swift; sourceTree = "<group>"; };
+		E2ADB186799160ED2793824752F77C5E /* HotkeyHealth.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = HotkeyHealth.swift; path = Entities/HotkeyHealth.swift; sourceTree = "<group>"; };
+		E35331B4CAB6E067FBCED18F82929A31 /* SystemTextInjector.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = SystemTextInjector.swift; path = Platform/TextInjection/SystemTextInjector.swift; sourceTree = "<group>"; };
+		E45CD68459D0D9EC385A7903BFD6F2C5 /* AppleSpeechTranscriber.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = AppleSpeechTranscriber.swift; path = Platform/Speech/AppleSpeechTranscriber.swift; sourceTree = "<group>"; };
+		FD56563FE6F4E5C76D892D32E0A78B33 /* AppShellPresenter.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = AppShellPresenter.swift; path = Features/AppShell/AppShellPresenter.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		5E0572947E3B94707692B2F7EF8A4C85 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				09176BAEF6C29696F296E5CE843790B8 /* Cocoa.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		AB94B53A3502B003D010C2F03703108D /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				04BD97D2C8EC8F39CB45212967F5FE04 /* Cocoa.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		1AFEF27AFB947024BF5BB56CC5C4BE4A = {
+			isa = PBXGroup;
+			children = (
+				675D63EF000E969F068B3B015F8CE735 /* Frameworks */,
+				A6FE7F4A245B78738F4B832360DEF86F /* Products */,
+				4A9746FD38E5E1F54C62C89FE585B244 /* WinterVoice */,
+				7F4836D73E253CB309F205EE387A8523 /* WinterVoiceTests */,
+			);
+			sourceTree = "<group>";
+		};
+		4A9746FD38E5E1F54C62C89FE585B244 /* WinterVoice */ = {
+			isa = PBXGroup;
+			children = (
+				0E5B2D1D5DBE56F9B2A1710F7FBCE3A1 /* AppContainer.swift */,
+				E45CD68459D0D9EC385A7903BFD6F2C5 /* AppleSpeechTranscriber.swift */,
+				CB56F3DE2E7C4404A8514C1F221EFD54 /* AppLifecycleController.swift */,
+				23805EEFB25CD07A049347B45AA02677 /* AppRouter.swift */,
+				396222B0925483DE6A7B4CD153F9D122 /* AppShellDestination.swift */,
+				952FAA27BCC85A6AA81820195B1940D2 /* AppShellInteractor.swift */,
+				FD56563FE6F4E5C76D892D32E0A78B33 /* AppShellPresenter.swift */,
+				9B8F6A5F8F39D9DEBAC450175F3D7742 /* AppShellView.swift */,
+				09C40E4204A3214AE83ABED755064AD3 /* DictationInteractor.swift */,
+				D01EC8E15CECF77DABA99D2B5AC7FD7C /* DictationInterfaces.swift */,
+				D54810988CDC1B2A645852431FC23D3F /* DictationPresenter.swift */,
+				C94817C4B3A704690FA2B6846DC5162F /* DictationState.swift */,
+				62FC4BF55A58F3A82F1C9025BED369F4 /* DictationStateRelay.swift */,
+				E2ADB186799160ED2793824752F77C5E /* HotkeyHealth.swift */,
+				92F7455DD424E3B3DFDBCB5D0747420A /* HotkeyHealthRelay.swift */,
+				A5122BC1BF0907FF1FFAD3D48B6C859E /* MenuBarView.swift */,
+				DD904A4B3E15EBB932CDDEE8DDB079F4 /* OperationalViews.swift */,
+				7B6D25EAFC0761BAA86CA48511856CEE /* PermissionState.swift */,
+				9A186BE4612E842416B67B631A9520F9 /* PermissionsView.swift */,
+				833A612425A812E065C676BCF77B6D6B /* RecordingPanelController.swift */,
+				76BC788829C9E54DA20A05E41226E392 /* RecordingPanelView.swift */,
+				647BC8A202447FCF77C63A6D78CD265A /* Resources */,
+				5F7B93B3804A2E980F31AE962A53D211 /* RightOptionEventTap.swift */,
+				B79EA1E3370A066AB051B381A15017B9 /* SettingsView.swift */,
+				8B784AB18140C5BEDB3F59EC174B8DB0 /* SystemPermissionManager.swift */,
+				E35331B4CAB6E067FBCED18F82929A31 /* SystemTextInjector.swift */,
+				60D8DCF368DCD23651595337D64F8E9A /* WinterVoiceApp.swift */,
+			);
+			name = WinterVoice;
+			path = WinterVoice;
+			sourceTree = "<group>";
+		};
+		647BC8A202447FCF77C63A6D78CD265A /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				49B8AC2248DC1A31F33B49CBFF71CD97 /* Info.plist */,
+			);
+			name = Resources;
+			path = Resources;
+			sourceTree = "<group>";
+		};
+		675D63EF000E969F068B3B015F8CE735 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				7B33CDB5F2008A179D87D0BF5A3DED15 /* OS X */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		7B33CDB5F2008A179D87D0BF5A3DED15 /* OS X */ = {
+			isa = PBXGroup;
+			children = (
+				20981E0C896AEDD712600FDB592C1218 /* Cocoa.framework */,
+			);
+			name = "OS X";
+			sourceTree = "<group>";
+		};
+		7F4836D73E253CB309F205EE387A8523 /* WinterVoiceTests */ = {
+			isa = PBXGroup;
+			children = (
+				CF577219082F725AA27E09E9D36EDF91 /* AppShellSemanticsTests.swift */,
+				DF8E83D256EA412E7FA8F082AFB65D17 /* DictationStateMachineTests.swift */,
+				D70BB7532B60A707EBA043EB64B4AE33 /* RightOptionEventTapTests.swift */,
+			);
+			name = WinterVoiceTests;
+			path = WinterVoiceTests;
+			sourceTree = "<group>";
+		};
+		A6FE7F4A245B78738F4B832360DEF86F /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				5A36D6AB27A20A1931B30CF1FC7D8DD4 /* WinterVoice.app */,
+				3AE66AA18FB0BD88DF457423030F1BA3 /* WinterVoiceTests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		02CEE05F743DDBF39FE662EA2A5E479E /* WinterVoiceTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 58C601F76E40220140EA3E03F81AA40D /* Build configuration list for PBXNativeTarget "WinterVoiceTests" */;
+			buildPhases = (
+				56035233869432E748DC4574B76CFB4B /* Sources */,
+				5E0572947E3B94707692B2F7EF8A4C85 /* Frameworks */,
+				71A2AE21BE015246B5879B42D3A79B4B /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				0FB455148A8EEDBE984D3C625ABF0C99 /* PBXTargetDependency */,
+			);
+			name = WinterVoiceTests;
+			productName = WinterVoiceTests;
+			productReference = 3AE66AA18FB0BD88DF457423030F1BA3 /* WinterVoiceTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		F863762F673C6B555098FE71F532D452 /* WinterVoice */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 5D0AA461988BE60397E91EF1D498EEE9 /* Build configuration list for PBXNativeTarget "WinterVoice" */;
+			buildPhases = (
+				4109FCA5265DEF7F97048B606F4C356A /* Sources */,
+				AB94B53A3502B003D010C2F03703108D /* Frameworks */,
+				2A93729E61A3909BEDCAD33535E89C53 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = WinterVoice;
+			productName = WinterVoice;
+			productReference = 5A36D6AB27A20A1931B30CF1FC7D8DD4 /* WinterVoice.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		667D958920306F5D80AD200BE87BEB74 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				LastSwiftUpdateCheck = 2650;
+				LastUpgradeCheck = 2650;
+			};
+			buildConfigurationList = 0776F94EA1D7C09CB477DCA76DBC256D /* Build configuration list for PBXProject "WinterVoice" */;
+			compatibilityVersion = "Xcode 3.2";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = 1AFEF27AFB947024BF5BB56CC5C4BE4A;
+			minimizedProjectReferenceProxies = 0;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = A6FE7F4A245B78738F4B832360DEF86F /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				F863762F673C6B555098FE71F532D452 /* WinterVoice */,
+				02CEE05F743DDBF39FE662EA2A5E479E /* WinterVoiceTests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		2A93729E61A3909BEDCAD33535E89C53 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		71A2AE21BE015246B5879B42D3A79B4B /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		4109FCA5265DEF7F97048B606F4C356A /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				49CBB7A89E064A117989A2A41BFAAE42 /* AppContainer.swift in Sources */,
+				CD53D85C674CD17D44429E66A6FB61AA /* AppleSpeechTranscriber.swift in Sources */,
+				CF9AC323C872B5ADDFEA35661D3F4074 /* AppLifecycleController.swift in Sources */,
+				FFAE714F47EC00AA31A457493ADC4505 /* AppRouter.swift in Sources */,
+				01DE7F3B8B01218B9D03C83587C0BC09 /* AppShellDestination.swift in Sources */,
+				E3341DC7D1BD8F6A391EEDD96FD47557 /* AppShellInteractor.swift in Sources */,
+				BD9B39DE055C6F9BC8816FB1D02F37AE /* AppShellPresenter.swift in Sources */,
+				0C401630CEB97E772D336549D3C5FB80 /* AppShellView.swift in Sources */,
+				84F522807A85B73502C50E4BC7B8B3FA /* DictationInteractor.swift in Sources */,
+				6E802C33D0695122B70BAFC75E75781A /* DictationInterfaces.swift in Sources */,
+				125C9D90E5F97C7285BF9B82D0DDC5A0 /* DictationPresenter.swift in Sources */,
+				B22DE0F409268F83CE775DA358274E2C /* DictationState.swift in Sources */,
+				849355E407F5A568F537B50411E85DA6 /* DictationStateRelay.swift in Sources */,
+				6AD799796D5F921DC493DE5307155BFA /* HotkeyHealth.swift in Sources */,
+				6D8704374A821785F3BFA0DD4692896C /* HotkeyHealthRelay.swift in Sources */,
+				9CD392A91CEC2894091837EFDE48F3B9 /* MenuBarView.swift in Sources */,
+				60662F5201542211F73043F2063E238B /* OperationalViews.swift in Sources */,
+				C40422D784905DF29CB578472280AAEE /* PermissionState.swift in Sources */,
+				2D0E4B94E162C43BE9F1677B96CA8768 /* PermissionsView.swift in Sources */,
+				120F502D7586A86507C76CB800BF16EA /* RecordingPanelController.swift in Sources */,
+				B22C5EF89A402539472610D3C75A0FF6 /* RecordingPanelView.swift in Sources */,
+				87CD8F65B52C3637D3D16720B16AA867 /* RightOptionEventTap.swift in Sources */,
+				AE432EDC92B50D4E3044C19957BA8C33 /* SettingsView.swift in Sources */,
+				B012A8C52CACE714227EC782A11DCEE8 /* SystemPermissionManager.swift in Sources */,
+				D3A12C376356496204D2AFC2AA6D51E9 /* SystemTextInjector.swift in Sources */,
+				5318F860C6B008907297AC13084E164B /* WinterVoiceApp.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		56035233869432E748DC4574B76CFB4B /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				C2A5A9E0EE9C381BD5568F4E2C926870 /* AppShellSemanticsTests.swift in Sources */,
+				299BE86E2CEC9176F4E40A1F88896D4F /* DictationStateMachineTests.swift in Sources */,
+				A03F2FE6A90D636508EAE94B1F22757A /* RightOptionEventTapTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		0FB455148A8EEDBE984D3C625ABF0C99 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = WinterVoice;
+			target = F863762F673C6B555098FE71F532D452 /* WinterVoice */;
+			targetProxy = 746E85E45A2BAA7A2036456D8BCA2944 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		543C77C9274AD7940C2CE203FC53F323 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		59518A79AC5D7956D55407302E47B96E /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		B4960330E51F07AF8E9920C4D4B24BD1 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.winterzxzz.WinterVoiceTests;
+				SDKROOT = macosx;
+				SWIFT_VERSION = 6.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/WinterVoice.app/Contents/MacOS/WinterVoice";
+			};
+			name = Debug;
+		};
+		B9C4C1A0DBC08FE6275F56D22B05EC75 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = WinterVoice/Resources/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.winterzxzz.WinterVoice;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_STRICT_CONCURRENCY = complete;
+				SWIFT_VERSION = 6.0;
+			};
+			name = Release;
+		};
+		BED293FD1D125E3A588C7ABD8BA7E65E /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.winterzxzz.WinterVoiceTests;
+				SDKROOT = macosx;
+				SWIFT_VERSION = 6.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/WinterVoice.app/Contents/MacOS/WinterVoice";
+			};
+			name = Release;
+		};
+		ED1A501A7EFACD9A8F33619B2AE7E7F6 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = WinterVoice/Resources/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.winterzxzz.WinterVoice;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_STRICT_CONCURRENCY = complete;
+				SWIFT_VERSION = 6.0;
+			};
+			name = Debug;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		0776F94EA1D7C09CB477DCA76DBC256D /* Build configuration list for PBXProject "WinterVoice" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				543C77C9274AD7940C2CE203FC53F323 /* Debug */,
+				59518A79AC5D7956D55407302E47B96E /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		58C601F76E40220140EA3E03F81AA40D /* Build configuration list for PBXNativeTarget "WinterVoiceTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				B4960330E51F07AF8E9920C4D4B24BD1 /* Debug */,
+				BED293FD1D125E3A588C7ABD8BA7E65E /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		5D0AA461988BE60397E91EF1D498EEE9 /* Build configuration list for PBXNativeTarget "WinterVoice" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				ED1A501A7EFACD9A8F33619B2AE7E7F6 /* Debug */,
+				B9C4C1A0DBC08FE6275F56D22B05EC75 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 667D958920306F5D80AD200BE87BEB74 /* Project object */;
+}
