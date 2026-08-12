@@ -3,24 +3,30 @@ import Combine
 @MainActor
 final class AppShellPresenter: ObservableObject {
     @Published private(set) var selection: AppShellDestination
-    @Published private(set) var transcription: TranscriptionCapability
-
     let dictationPresenter: DictationPresenter
-    private let interactor: AppShellInteracting
+    let providerConfiguration: ProviderConfigurationStore
+    let modelManager: ModelManager
     private let router: AppRouter
     private var cancellables = Set<AnyCancellable>()
 
     init(
         dictationPresenter: DictationPresenter,
-        interactor: AppShellInteracting,
-        router: AppRouter
+        router: AppRouter,
+        providerConfiguration: ProviderConfigurationStore,
+        modelManager: ModelManager
     ) {
         self.dictationPresenter = dictationPresenter
-        self.interactor = interactor
         self.router = router
+        self.providerConfiguration = providerConfiguration
+        self.modelManager = modelManager
         selection = router.selection
-        transcription = interactor.transcriptionCapability()
         router.$selection.assign(to: &$selection)
+        providerConfiguration.objectWillChange
+            .sink { [weak self] _ in self?.objectWillChange.send() }
+            .store(in: &cancellables)
+        modelManager.objectWillChange
+            .sink { [weak self] _ in self?.objectWillChange.send() }
+            .store(in: &cancellables)
     }
 
     func navigate(to destination: AppShellDestination) {
@@ -29,10 +35,13 @@ final class AppShellPresenter: ObservableObject {
 
     func refresh() {
         dictationPresenter.refreshPermissions()
-        transcription = interactor.transcriptionCapability()
     }
 
     func activateApplication() {
         router.activateApplication()
+    }
+
+    var providerStatus: ProviderStatus {
+        providerConfiguration.status(localModels: modelManager)
     }
 }

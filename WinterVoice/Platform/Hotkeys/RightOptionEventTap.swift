@@ -28,7 +28,12 @@ protocol RightOptionEventTapBacking: AnyObject {
 }
 
 @MainActor
-final class RightOptionEventTap {
+protocol HotkeyReconciling: AnyObject {
+    func reconcile()
+}
+
+@MainActor
+final class RightOptionEventTap: HotkeyReconciling {
     private weak var interactor: DictationInteracting?
     private let relay: HotkeyHealthRelay
     private let listenAccessGranted: () -> Bool

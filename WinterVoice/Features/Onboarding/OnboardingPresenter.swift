@@ -3,6 +3,7 @@ import Combine
 @MainActor
 final class OnboardingPresenter: ObservableObject {
     @Published private(set) var isPresented: Bool
+    @Published private var wizard = OnboardingWizard()
 
     let dictationPresenter: DictationPresenter
     private let interactor: OnboardingInteractor
@@ -23,6 +24,21 @@ final class OnboardingPresenter: ObservableObject {
     var nextPermission: AppPermission? {
         guard case .needsPermission(let permission) = progress else { return nil }
         return permission
+    }
+
+    var pageIndex: Int { wizard.pageIndex }
+    var currentPermission: AppPermission { wizard.currentPermission }
+    var canGoBack: Bool { wizard.canGoBack }
+    var isLastPage: Bool { wizard.isLastPage }
+
+    func back() { wizard.back() }
+
+    func next() {
+        if isLastPage {
+            complete()
+        } else {
+            wizard.next()
+        }
     }
 
     func performNextAction() {
@@ -55,6 +71,7 @@ final class OnboardingPresenter: ObservableObject {
     func restart() {
         interactor.resetCompletion()
         dictationPresenter.refreshPermissions()
+        wizard.reset()
         isPresented = true
     }
 }

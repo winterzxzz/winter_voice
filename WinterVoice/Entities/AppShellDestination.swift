@@ -20,19 +20,10 @@ enum AppShellDestination: String, CaseIterable, Identifiable, Sendable {
 
     var availability: FeatureAvailability {
         switch self {
-        case .overview, .permissions, .transcription, .hotkey, .privacy:
+        case .overview, .permissions, .transcription, .hotkey, .privacy, .models, .remoteProviders:
             .available
-        case .models, .remoteProviders, .history, .dictionary:
+        case .history, .dictionary:
             .planned
         }
     }
-}
-
-struct TranscriptionCapability: Equatable, Sendable {
-    let providerName: String
-    let modeName: String
-    let localeIdentifier: String
-    let localeDisplayName: String
-    let isRecognizerAvailable: Bool
-    let supportsOnDeviceRecognition: Bool
 }

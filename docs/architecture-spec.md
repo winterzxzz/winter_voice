@@ -1,14 +1,14 @@
 # Future Platform Architecture Specification
 
-> This is the original owner-authored WinterVoice architecture specification. It describes the future platform beyond the implemented Apple Speech MVP; see the repository README for current behavior and build instructions.
+> This is the owner-authored future-platform specification. Current implementation provides generic Remote configuration/transcription and catalog-blocked Local lifecycle; see the repository README for exact behavior. WinterVoice has no platform recognition-framework dependency.
 
 # WinterVoice
 
 A native macOS voice dictation app. Hold a global hotkey, speak, release — the transcription is inserted into whatever app you are focused on.
 
-Built as a **voice transcription platform**, not a Whisper wrapper: speech recognition is an extensible provider system with local (on-device) and remote (OpenAI-compatible HTTP) backends behind the same domain protocol.
+Built as a **voice transcription platform**, not a Whisper wrapper: audio transcription is an extensible provider system with local (on-device) and remote (OpenAI-compatible HTTP) backends behind the same domain protocol.
 
-> **Status: pre-implementation.** This README is the architecture specification. No code has been written yet. See [Roadmap](#roadmap) for the phased plan.
+> **Status:** future-platform specification. Generic Remote transcription and the catalog-blocked Local lifecycle are implemented; see the repository README for the exact current state. See [Roadmap](#roadmap) for remaining work.
 
 ---
 
@@ -443,6 +443,8 @@ Remote catalog  →  Local cached catalog  →  Bundled fallback catalog
 
 New models can therefore ship without an app release, and the app still works fully offline.
 
+The following descriptor is illustrative schema only. Its host and checksum are deliberately unusable and it is not product catalog data:
+
 ```json
 {
   "id": "whisper-large-v3-turbo-q5",
@@ -673,7 +675,7 @@ Implementation is incremental. The project compiles and runs at the end of every
 
 ### Phase 5 — Remote provider
 - Base URL / model / language configuration
-- API key in Keychain
+- Optional API key in Keychain for endpoints that require Bearer authentication; blank saves preserve an existing key, while an explicit removal action switches to unauthenticated requests with no Authorization header
 - OpenAI-compatible transcription, Test Connection
 
 ### Phase 6 — Polish

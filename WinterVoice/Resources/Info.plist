@@ -2,13 +2,13 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+    <key>CFBundleIdentifier</key>
+    <string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
     <key>CFBundleDisplayName</key>
     <string>WinterVoice</string>
     <key>LSUIElement</key>
     <true/>
     <key>NSMicrophoneUsageDescription</key>
-    <string>WinterVoice records audio while you hold Right Option so it can transcribe your speech.</string>
-    <key>NSSpeechRecognitionUsageDescription</key>
-    <string>WinterVoice uses Apple's on-device speech recognition to convert your voice into text.</string>
+    <string>WinterVoice captures audio while you hold Right Option for the transcription provider you configure.</string>
 </dict>
 </plist>

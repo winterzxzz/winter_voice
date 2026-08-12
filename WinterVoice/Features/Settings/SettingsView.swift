@@ -7,7 +7,7 @@ struct SettingsView: View {
         VStack(alignment: .leading, spacing: 20) {
             VStack(alignment: .leading, spacing: 6) {
                 Text("WinterVoice").font(.title2.bold())
-                Text("Hold the Right Option key to record. Recognition stays on this Mac; unsupported languages fail instead of using a network service.")
+                Text("Configure permissions here. Transcription provider mode and credentials are managed in the main WinterVoice window.")
                     .foregroundStyle(.secondary)
             }
 

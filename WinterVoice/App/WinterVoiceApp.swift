@@ -25,13 +25,14 @@ struct WinterVoiceApp: App {
             WinterVoiceCommands()
         }
 
-        MenuBarExtra("WinterVoice", systemImage: "mic.fill") {
+        MenuBarExtra("WinterVoice", systemImage: "waveform.and.mic") {
             MenuBarView(
                 presenter: container.presenter,
-                shellPresenter: container.shellPresenter
+                shellPresenter: container.shellPresenter,
+                onboardingPresenter: container.onboardingPresenter
             )
         }
-        .menuBarExtraStyle(.window)
+        .menuBarExtraStyle(.menu)
 
         Settings {
             SettingsView(presenter: container.presenter)

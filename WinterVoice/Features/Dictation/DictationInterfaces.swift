@@ -8,8 +8,21 @@ protocol DictationInteracting: AnyObject {
 
 @MainActor
 protocol SpeechTranscribing: AnyObject {
+    func validateConfiguration() throws
     func start() async throws
     func stop() async throws -> String
+    func cancel()
+}
+
+struct RecordedAudio: Sendable {
+    let samples: [Float]
+    let sampleRate: Double
+}
+
+@MainActor
+protocol AudioRecording: AnyObject {
+    func start() throws
+    func stop() throws -> RecordedAudio
     func cancel()
 }
 

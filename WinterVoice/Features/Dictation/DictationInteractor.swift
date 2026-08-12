@@ -45,8 +45,8 @@ final class DictationInteractor: DictationInteracting {
 
     private func prepareAndRecord() async {
         do {
+            try transcriber.validateConfiguration()
             try await requirePermission(.microphone)
-            try await requirePermission(.speechRecognition)
             try await requirePermission(.inputMonitoring)
             guard permissions.snapshot().accessibility == .authorized else {
                 throw DictationFailure(

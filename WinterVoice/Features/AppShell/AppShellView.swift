@@ -25,9 +25,12 @@ struct AppShellView: View {
                     sidebarRow(.privacy)
                 }
 
-                Section("Coming Later") {
+                Section("Providers") {
                     sidebarRow(.models)
                     sidebarRow(.remoteProviders)
+                }
+
+                Section("Coming Later") {
                     sidebarRow(.history)
                     sidebarRow(.dictionary)
                 }
@@ -76,12 +79,16 @@ struct AppShellView: View {
                 reopenOnboarding: onboardingPresenter.restart
             )
         case .transcription:
-            TranscriptionView(capability: presenter.transcription)
+            TranscriptionView(presenter: presenter)
         case .hotkey:
             HotkeyView(presenter: presenter.dictationPresenter)
         case .privacy:
-            PrivacyView()
-        case .models, .remoteProviders, .history, .dictionary:
+            PrivacyView(presenter: presenter)
+        case .models:
+            ModelsView(manager: presenter.modelManager)
+        case .remoteProviders:
+            RemoteProvidersView(store: presenter.providerConfiguration)
+        case .history, .dictionary:
             PlannedFeatureView(destination: destination)
         }
     }
@@ -118,8 +125,6 @@ extension AppShellDestination {
 
     var plannedDescription: String {
         switch self {
-        case .models: "Downloadable model management is not available in this MVP. WinterVoice currently uses Apple Speech built into macOS."
-        case .remoteProviders: "Network transcription providers are not available. WinterVoice has no remote transcription fallback."
         case .history: "WinterVoice does not save transcripts. A local history surface is planned for a later release."
         case .dictionary: "Custom words and replacements are not available in this MVP."
         default: ""

@@ -16,7 +16,6 @@ final class AppRouter: ObservableObject {
         let anchor: String
         switch permission {
         case .microphone: anchor = "Privacy_Microphone"
-        case .speechRecognition: anchor = "Privacy_SpeechRecognition"
         case .inputMonitoring: anchor = "Privacy_ListenEvent"
         case .accessibility: anchor = "Privacy_Accessibility"
         }

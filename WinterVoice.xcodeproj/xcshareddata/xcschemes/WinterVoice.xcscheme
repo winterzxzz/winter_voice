@@ -14,7 +14,7 @@
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "D6163CF792EAB1CBBE6711018EAE6F21"
+               BlueprintIdentifier = "1F84F8D8BB6FF8E84C146EF880CF0D36"
                BuildableName = "WinterVoice.app"
                BlueprintName = "WinterVoice"
                ReferencedContainer = "container:WinterVoice.xcodeproj">
@@ -28,7 +28,7 @@
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "BFA160877241E8FFBB9C84AF94C579C9"
+               BlueprintIdentifier = "92BF08DEFA8C1D62F52D5CB9F867E4D3"
                BuildableName = "WinterVoiceTests.xctest"
                BlueprintName = "WinterVoiceTests"
                ReferencedContainer = "container:WinterVoice.xcodeproj">
@@ -44,7 +44,7 @@
       <MacroExpansion>
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "D6163CF792EAB1CBBE6711018EAE6F21"
+            BlueprintIdentifier = "1F84F8D8BB6FF8E84C146EF880CF0D36"
             BuildableName = "WinterVoice.app"
             BlueprintName = "WinterVoice"
             ReferencedContainer = "container:WinterVoice.xcodeproj">
@@ -55,7 +55,7 @@
             skipped = "NO">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "BFA160877241E8FFBB9C84AF94C579C9"
+               BlueprintIdentifier = "92BF08DEFA8C1D62F52D5CB9F867E4D3"
                BuildableName = "WinterVoiceTests.xctest"
                BlueprintName = "WinterVoiceTests"
                ReferencedContainer = "container:WinterVoice.xcodeproj">
@@ -77,7 +77,7 @@
          runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "D6163CF792EAB1CBBE6711018EAE6F21"
+            BlueprintIdentifier = "1F84F8D8BB6FF8E84C146EF880CF0D36"
             BuildableName = "WinterVoice.app"
             BlueprintName = "WinterVoice"
             ReferencedContainer = "container:WinterVoice.xcodeproj">
@@ -94,7 +94,7 @@
          runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "D6163CF792EAB1CBBE6711018EAE6F21"
+            BlueprintIdentifier = "1F84F8D8BB6FF8E84C146EF880CF0D36"
             BuildableName = "WinterVoice.app"
             BlueprintName = "WinterVoice"
             ReferencedContainer = "container:WinterVoice.xcodeproj">

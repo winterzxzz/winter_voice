@@ -154,3 +154,99 @@ then compile as soon as the module boundary exists.
 **Scope:** This project — its framework-light SwiftUI VIPER presenter files.
 
 **Proposed amendment:** None.
+
+## 2026-08-12 — Invoke the Ruby project generator through Ruby
+
+**Workspace and episode:** `winter_voice`; regenerating the Xcode project for
+the application icon asset catalog.
+
+**What was expected and what happened:** The first attempt invoked
+`scripts/generate-project.rb` directly, but the repository does not mark that
+file executable. The generation step stopped before changing project output.
+
+**Cost paid:** One interrupted generator invocation and retry.
+
+**What would have avoided it:** Use the repository's documented command,
+`ruby scripts/generate-project.rb`, rather than relying on executable mode.
+
+**Scope:** This project — its Ruby/xcodeproj generation workflow.
+
+**Proposed amendment:** None. The README now records the exact invocation.
+
+## 2026-08-12 — Validate asset-catalog JSON as JSON
+
+**Workspace and episode:** `winter_voice`; validating the new macOS AppIcon
+catalog.
+
+**What was expected and what happened:** `plutil -lint` was tried against the
+asset catalog's `Contents.json`, but that tool expected plist syntax and
+rejected otherwise valid JSON. Validation had to be repeated with `jq`, then
+confirmed by the successful asset-catalog compiler build.
+
+**Cost paid:** One inconclusive validation attempt and replacement check.
+
+**What would have avoided it:** Validate `Contents.json` structure with a JSON
+parser and use `actool`/the Xcode build plus compiled-product inspection for
+the platform contract.
+
+**Scope:** This project — its Xcode asset-catalog validation workflow.
+
+**Proposed amendment:** None.
+
+## 2026-08-12 — Provider and model lifecycles need one truth owner and transactional storage
+
+**Workspace and episode:** `winter_voice`; replacing Apple Speech with configurable
+Remote transcription and a downloadable Local-model lifecycle.
+
+**What was expected and what happened:** The first integration duplicated provider
+readiness between static shell copy and dynamic configuration, replaced Keychain
+credentials destructively, fabricated download progress, and left descriptor,
+cancellation, and rollback invariants incomplete. Later review also found that an
+optional API key could not be explicitly removed, size-dependent model work still
+ran on the main actor, and model deletion could leave files and registry state out
+of sync when persistence failed.
+
+**Cost paid:** Three bounded rejection/rework loops, a storage-ownership redesign,
+and repeated focused plus full validation runs.
+
+**What would have avoided it:** Derive provider readiness and user-facing status
+from one owner; model optional credentials across enable, preserve-on-blank,
+explicit disable, and disable failure; validate external descriptors before side
+effects; report measured cancellable transfer progress; isolate large file work in
+an actor; and make file-plus-registry mutations transactional with recoverable
+backups and rollback.
+
+**Scope:** This project — its provider configuration, Keychain adapter, and local
+model storage lifecycle.
+
+**Proposed amendment:** Preserve these invariants in the repository architecture
+specification and provider/model regression coverage.
+
+## 2026-08-12 — TCC verification must identify one signed app path before permission testing
+
+**Workspace and episode:** `winter_voice`; onboarding Input Monitoring and
+Accessibility registration/refresh diagnosis.
+
+**What was expected and what happened:** The stable bundle identifier was expected
+to identify the app for local permission testing, but two ad-hoc-signed WinterVoice
+copies were running from different build directories. They shared the bundle ID yet
+had different CDHashes and no Team ID, so macOS could treat them as distinct TCC
+clients. Separately, a delayed permission snapshot could become Allowed after the
+one startup hotkey reconciliation had already run.
+
+**Cost paid:** Runtime evidence was ambiguous until both process paths and signing
+requirements were inspected, and one additional integration regression/rework loop
+was needed to bind delayed permission changes to hotkey reconciliation.
+
+**What would have avoided it:** Before manual TCC verification, close duplicate app
+copies, identify the exact running bundle path, and inspect its bundle/signing
+identity. For repeat local testing, select the owner's Personal Team after project
+generation and keep one build path. Subscribe runtime capability reconciliation to
+the shared permission snapshot rather than assuming the first activation read is
+final.
+
+**Scope:** This project — its generated Xcode signing workflow, onboarding, and
+Right Option event-tap lifecycle.
+
+**Proposed amendment:** Keep the exact-path Personal Team procedure and delayed
+permission-to-hotkey invariant in the README and regression suite.

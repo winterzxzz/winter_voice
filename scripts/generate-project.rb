@@ -19,6 +19,8 @@ end
 
 resources = app_group.new_group('Resources', 'Resources')
 resources.new_file('Info.plist')
+asset_catalog = resources.new_file('Assets.xcassets')
+app.add_resources([asset_catalog])
 
 test_group = project.main_group.new_group('WinterVoiceTests', 'WinterVoiceTests')
 Dir.glob(File.join(root, 'WinterVoiceTests', '**', '*.swift')).sort.each do |path|
@@ -30,10 +32,13 @@ app.build_configurations.each do |config|
   config.build_settings['PRODUCT_NAME'] = '$(TARGET_NAME)'
   config.build_settings['GENERATE_INFOPLIST_FILE'] = 'NO'
   config.build_settings['INFOPLIST_FILE'] = 'WinterVoice/Resources/Info.plist'
+  config.build_settings['ASSETCATALOG_COMPILER_APPICON_NAME'] = 'AppIcon'
   config.build_settings['MACOSX_DEPLOYMENT_TARGET'] = '14.0'
   config.build_settings['SWIFT_VERSION'] = '6.0'
   config.build_settings['SWIFT_STRICT_CONCURRENCY'] = 'complete'
   config.build_settings['CODE_SIGN_STYLE'] = 'Automatic'
+  config.build_settings.delete('DEVELOPMENT_TEAM')
+  config.build_settings.delete('CODE_SIGN_ENTITLEMENTS')
 end
 
 tests.build_configurations.each do |config|
@@ -53,6 +58,10 @@ project.predictabilize_uuids
 tests.add_dependency(app)
 project.sort
 project.predictabilize_uuids
+# Keep local signing selectable in Xcode. The owner chooses a Personal Team
+# locally; this generated project must not persist a particular team or
+# entitlement file.
+project.root_object.attributes.delete('TargetAttributes')
 project.save
 
 scheme = Xcodeproj::XCScheme.new

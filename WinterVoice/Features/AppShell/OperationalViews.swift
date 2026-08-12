@@ -14,6 +14,7 @@ struct OverviewView: View {
             dictationPresenter.permissions[$0] == .authorized
         }
     }
+    private var providerStatus: ProviderStatus { presenter.providerStatus }
 
     var body: some View {
         ScrollView {
@@ -21,7 +22,7 @@ struct OverviewView: View {
                 VStack(alignment: .leading, spacing: 8) {
                     Text("WinterVoice")
                         .font(.largeTitle)
-                    Text("Hold Right Option, speak, then release to insert text into the field that was focused when you began.")
+                    Text(providerStatus.overviewSummary)
                         .font(.title3)
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
@@ -56,20 +57,20 @@ struct OverviewView: View {
                 VStack(alignment: .leading, spacing: 10) {
                     Label("Private by design", systemImage: "lock.shield")
                         .font(.headline)
-                    Text("Audio is sent only to Apple Speech on this Mac. WinterVoice has no network transcription fallback and does not save audio or transcripts.")
+                    Text(providerStatus.privacySummary)
                         .foregroundStyle(.secondary)
                 }
 
                 VStack(alignment: .leading, spacing: 10) {
                     Label(
-                        permissionsReady ? "Ready to dictate" : "Permissions need attention",
+                        permissionsReady ? "Permissions ready" : "Permissions need attention",
                         systemImage: permissionsReady ? "checkmark.circle.fill" : "exclamationmark.triangle.fill"
                     )
                     .font(.headline)
                     .foregroundStyle(permissionsReady ? .green : .orange)
                     Text(permissionsReady
-                        ? "Microphone, Speech Recognition, Input Monitoring, and Accessibility access are allowed."
-                        : "WinterVoice needs all four permissions for push-to-talk and safe insertion.")
+                        ? "Microphone, Input Monitoring, and Accessibility access are allowed. Provider: \(providerStatus.title) — \(providerStatus.stateLabel)."
+                        : "WinterVoice needs all three permissions for audio capture, the global hotkey, and safe insertion.")
                         .foregroundStyle(.secondary)
                     Button(permissionsReady ? "Review Permissions" : "Fix Permission Issues") {
                         presenter.navigate(to: .permissions)
@@ -84,40 +85,186 @@ struct OverviewView: View {
 }
 
 struct TranscriptionView: View {
-    let capability: TranscriptionCapability
+    @ObservedObject var presenter: AppShellPresenter
+
+    private var status: ProviderStatus { presenter.providerStatus }
 
     var body: some View {
         Form {
             Section("Active Provider") {
-                LabeledContent("Provider", value: capability.providerName)
-                LabeledContent("Processing", value: capability.modeName)
-                LabeledContent("Network fallback", value: "None")
-            }
-
-            Section("System Language") {
-                LabeledContent("Locale") {
-                    VStack(alignment: .trailing) {
-                        Text(capability.localeDisplayName)
-                        Text(capability.localeIdentifier)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
+                Picker("Mode", selection: Binding(
+                    get: { presenter.providerConfiguration.mode },
+                    set: { presenter.providerConfiguration.mode = $0 }
+                )) {
+                    ForEach(ProviderMode.allCases, id: \.self) { Text($0.title).tag($0) }
                 }
-                LabeledContent("Recognizer") {
-                    Text(capability.isRecognizerAvailable ? "Available" : "Unavailable")
-                }
-                LabeledContent("On-device support") {
-                    Text(capability.supportsOnDeviceRecognition ? "Supported" : "Not currently supported")
-                }
+                LabeledContent("Provider", value: status.title)
+                LabeledContent("Status", value: status.stateLabel)
             }
 
             Section {
-                Text("Support depends on the current macOS language and downloaded system assets. WinterVoice checks again when recording begins and fails visibly if on-device recognition is unavailable; it never sends audio to a server.")
+                Text(status.readiness.detail)
                     .foregroundStyle(.secondary)
             }
         }
         .formStyle(.grouped)
         .navigationTitle("Transcription")
+    }
+}
+
+struct ModelsView: View {
+    @ObservedObject var manager: ModelManager
+
+    var body: some View {
+        Form {
+            Section("Downloadable Models") {
+                if manager.catalog.isEmpty {
+                    ContentUnavailableView(
+                        "No Published Models",
+                        systemImage: "shippingbox",
+                        description: Text(manager.catalogMessage)
+                    )
+                }
+                ForEach(manager.catalog) { descriptor in
+                    VStack(alignment: .leading) {
+                        HStack {
+                            Text(descriptor.displayName)
+                            Spacer()
+                            if manager.downloadingModelIDs.contains(descriptor.id)
+                                || manager.installingModelIDs.contains(descriptor.id) {
+                                Button("Cancel") { manager.cancelInstall(descriptor.id) }
+                            } else {
+                                Button("Download") { manager.install(descriptor) }
+                            }
+                        }
+                        if let progress = manager.downloadProgress[descriptor.id] {
+                            ProgressView(value: progress)
+                        } else if manager.downloadingModelIDs.contains(descriptor.id) {
+                            ProgressView()
+                        } else if manager.installingModelIDs.contains(descriptor.id) {
+                            ProgressView("Installing and verifying…")
+                        }
+                    }
+                }
+                if let error = manager.lastError { Text(error).foregroundStyle(.red) }
+            }
+            Section("Installed Models") {
+                if manager.installed.isEmpty {
+                    Text("No local models are installed.").foregroundStyle(.secondary)
+                }
+                ForEach(manager.installed) { model in
+                    HStack {
+                        VStack(alignment: .leading) {
+                            Text(model.displayName)
+                            Text(model.runtime).font(.caption).foregroundStyle(.secondary)
+                        }
+                        Spacer()
+                        if manager.activeModelID == model.id { Text("Active").foregroundStyle(.green) }
+                        Button("Select") { Task { try? await manager.select(model.id) } }
+                        Button("Delete", role: .destructive) { Task { try? await manager.delete(model) } }
+                    }
+                }
+            }
+            Section {
+                Text("A real local catalog requires an owner-approved model artifact, authoritative download URL, SHA-256, and suitable license. WinterVoice does not expose a fake download.")
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .formStyle(.grouped)
+        .navigationTitle("Models")
+    }
+}
+
+struct RemoteProvidersView: View {
+    @ObservedObject var store: ProviderConfigurationStore
+    @State private var baseURL = ""
+    @State private var model = ""
+    @State private var language = ""
+    @State private var apiKey = ""
+    @State private var result: String?
+
+    var body: some View {
+        Form {
+            Section("OpenAI-Compatible Endpoint") {
+                TextField("Base URL", text: $baseURL, prompt: Text("https://host.example/v1"))
+                TextField("Model", text: $model)
+                TextField("Language (optional)", text: $language)
+                SecureField(store.hasAPIKey ? "API key (optional, saved in Keychain)" : "API key (optional)", text: $apiKey)
+            }
+            Section {
+                HStack {
+                    Button("Save Configuration") { save() }
+                        .buttonStyle(.borderedProminent)
+                    Button("Test Connection") { testConnection() }
+                    if store.hasAPIKey {
+                        Button("Use Without Authentication", role: .destructive) { removeAPIKey() }
+                    }
+                }
+                if let result { Text(result).foregroundStyle(.secondary) }
+            }
+            Section {
+                Text("HTTPS is required except for an explicitly entered localhost or private LAN HTTP endpoint. Authentication is optional; when supplied, the API key is stored only in macOS Keychain and sent as Bearer authentication. WinterVoice does not log keys or transcript text.")
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .formStyle(.grouped)
+        .navigationTitle("Remote Providers")
+        .onAppear {
+            baseURL = store.remote.baseURL
+            model = store.remote.model
+            language = store.remote.language
+        }
+    }
+
+    private var draft: RemoteProviderConfiguration {
+        .init(baseURL: baseURL, model: model, language: language)
+    }
+
+    private func save() {
+        do {
+            _ = try RemoteTranscriptionProvider.endpoint(for: draft)
+            guard !model.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+                throw DictationFailure(message: "Enter a model name.", recovery: "")
+            }
+            try store.saveRemote(draft, apiKey: apiKey.isEmpty ? nil : apiKey)
+            apiKey = ""
+            result = "Configuration saved."
+        } catch let failure as DictationFailure { result = failure.message }
+        catch { result = "Could not save the configuration." }
+    }
+
+    private func testConnection() {
+        do {
+            _ = try RemoteTranscriptionProvider.endpoint(for: draft)
+            guard !model.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+                return result = "Enter a model name."
+            }
+            try store.saveRemote(draft, apiKey: apiKey.isEmpty ? nil : apiKey)
+            apiKey = ""
+            result = "Testing connection…"
+            Task {
+                do {
+                    let key = try store.apiKey()
+                    _ = try await RemoteTranscriptionProvider().transcribe(
+                        audio: RecordedAudio(samples: [0], sampleRate: 16_000),
+                        configuration: store.remote,
+                        apiKey: key
+                    )
+                    result = "Connected successfully."
+                } catch let failure as DictationFailure { result = failure.message }
+                catch { result = "Connection test failed." }
+            }
+        } catch let failure as DictationFailure { result = failure.message }
+        catch { result = "Configuration is invalid." }
+    }
+
+    private func removeAPIKey() {
+        do {
+            try store.removeAPIKey()
+            apiKey = ""
+            result = "API key removed. Remote requests will use no authentication."
+        } catch let failure as DictationFailure { result = failure.message }
+        catch { result = "Could not remove the API key." }
     }
 }
 
@@ -135,7 +282,7 @@ struct HotkeyView: View {
                         .background(.quaternary, in: RoundedRectangle(cornerRadius: 6))
                         .accessibilityLabel("Right Option key")
                 }
-                LabeledContent("Behavior", value: "Hold to record, release to transcribe")
+                LabeledContent("Behavior", value: "Reserved for push to talk; provider required")
                 LabeledContent("Listener status") {
                     Text(presenter.hotkeyHealth.title)
                         .foregroundStyle(presenter.hotkeyHealth == .listening ? .green : .orange)
@@ -155,12 +302,14 @@ struct HotkeyView: View {
 }
 
 struct PrivacyView: View {
+    @ObservedObject var presenter: AppShellPresenter
+
     var body: some View {
         Form {
             Section("Audio and Transcripts") {
-                privacyRow("Audio stays in the local Apple Speech pipeline.", icon: "waveform.badge.mic")
+                privacyRow(presenter.providerStatus.privacySummary, icon: "waveform.badge.mic")
                 privacyRow("No audio or transcription text is persisted or logged.", icon: "internaldrive")
-                privacyRow("There is no network transcription path or fallback.", icon: "network.slash")
+                privacyRow("Local models remain blocked on an approved artifact and runtime; generic Remote is operational when configured.", icon: "network.slash")
             }
 
             Section("Safe Insertion") {

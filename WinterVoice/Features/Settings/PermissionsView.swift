@@ -12,7 +12,7 @@ struct PermissionsView: View {
                     VStack(alignment: .leading, spacing: 6) {
                         Text("Permissions")
                             .font(.largeTitle)
-                        Text("All four permissions are required for push-to-talk, local transcription, and safe insertion into another app.")
+                        Text("Microphone, Input Monitoring, and Accessibility are required for audio capture, the global hotkey, and safe insertion into another app.")
                             .foregroundStyle(.secondary)
                     }
                 }
@@ -57,20 +57,31 @@ struct PermissionsView: View {
                     .foregroundStyle(.secondary)
             }
             Spacer(minLength: 16)
-            permissionAction(permission)
+            VStack(alignment: .trailing, spacing: 6) {
+                permissionAction(permission)
+                if let requestMessage = presenter.permissionRequestMessage(for: permission) {
+                    Text(requestMessage)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.trailing)
+                }
+            }
         }
     }
 
     @ViewBuilder
     private func permissionAction(_ permission: AppPermission) -> some View {
         let status = presenter.permissions[permission]
-        if status == .notDetermined || ((permission == .inputMonitoring || permission == .accessibility) && status != .authorized) {
-            Button(permission == .inputMonitoring || permission == .accessibility ? "Request Access" : "Request") {
-                presenter.request(permission)
-            }
-        } else if status != .authorized {
-            Button("Open System Settings") {
-                presenter.openSystemSettings(for: permission)
+        if status != .authorized {
+            HStack {
+                if status == .notDetermined || permission == .inputMonitoring || permission == .accessibility {
+                    Button("Request") { presenter.request(permission) }
+                }
+                if status != .notDetermined || permission == .inputMonitoring || permission == .accessibility {
+                    Button("Open Settings") {
+                        presenter.openSystemSettings(for: permission)
+                    }
+                }
             }
         }
     }
@@ -78,7 +89,6 @@ struct PermissionsView: View {
     private func icon(for permission: AppPermission) -> String {
         switch permission {
         case .microphone: "mic"
-        case .speechRecognition: "waveform"
         case .inputMonitoring: "keyboard.badge.eye"
         case .accessibility: "accessibility"
         }
