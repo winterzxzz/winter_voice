@@ -3,6 +3,7 @@ import SwiftUI
 struct PermissionsView: View {
     @ObservedObject var presenter: DictationPresenter
     var showsIntroduction = true
+    var reopenOnboarding: (() -> Void)?
 
     var body: some View {
         ScrollView {
@@ -19,6 +20,17 @@ struct PermissionsView: View {
                 ForEach(AppPermission.allCases) { permission in
                     permissionRow(permission)
                     if permission != AppPermission.allCases.last { Divider() }
+                }
+
+                if let reopenOnboarding {
+                    Divider()
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Permission Guide")
+                            .font(.headline)
+                        Text("Reopen the guided setup at any time. This resets the saved onboarding completion marker, but does not change macOS permissions.")
+                            .foregroundStyle(.secondary)
+                        Button("Open Permission Guide") { reopenOnboarding() }
+                    }
                 }
             }
             .frame(maxWidth: 680, alignment: .leading)

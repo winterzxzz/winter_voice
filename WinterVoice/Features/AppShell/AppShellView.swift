@@ -2,6 +2,7 @@ import SwiftUI
 
 struct AppShellView: View {
     @ObservedObject var presenter: AppShellPresenter
+    let onboardingPresenter: OnboardingPresenter
     @Environment(\.scenePhase) private var scenePhase
 
     private var selection: Binding<AppShellDestination?> {
@@ -70,7 +71,10 @@ struct AppShellView: View {
         case .overview:
             OverviewView(presenter: presenter)
         case .permissions:
-            PermissionsView(presenter: presenter.dictationPresenter)
+            PermissionsView(
+                presenter: presenter.dictationPresenter,
+                reopenOnboarding: onboardingPresenter.restart
+            )
         case .transcription:
             TranscriptionView(capability: presenter.transcription)
         case .hotkey:

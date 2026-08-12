@@ -4,6 +4,7 @@ import Foundation
 final class AppContainer {
     let presenter: DictationPresenter
     let shellPresenter: AppShellPresenter
+    let onboardingPresenter: OnboardingPresenter
     private let hotkey: RightOptionEventTap
     private let panelController: RecordingPanelController
 
@@ -30,6 +31,12 @@ final class AppContainer {
             dictationPresenter: presenter,
             interactor: AppShellInteractor(),
             router: router
+        )
+        onboardingPresenter = OnboardingPresenter(
+            dictationPresenter: presenter,
+            interactor: OnboardingInteractor(
+                completionStore: UserDefaultsOnboardingCompletionStore()
+            )
         )
         hotkey = RightOptionEventTap(interactor: interactor, relay: hotkeyRelay)
         panelController = RecordingPanelController(presenter: presenter)

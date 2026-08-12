@@ -134,3 +134,23 @@ extensions for consumers contained in the same file.
 **Scope:** This project — its SwiftUI AppShell file boundaries.
 
 **Proposed amendment:** None.
+
+## 2026-08-12 — Observable presenters must import their owning framework
+
+**Workspace and episode:** `winter_voice`; adding the first-launch onboarding
+presenter.
+
+**What was expected and what happened:** The new presenter declared
+`ObservableObject` and `@Published`, but its initial source skeleton omitted
+`import Combine`. The first focused compile failed before behavioral tests could
+run.
+
+**Cost paid:** One compile failure and a narrow import correction.
+
+**What would have avoided it:** When adding a standalone observable presenter,
+import the framework that owns its property wrappers in the initial skeleton,
+then compile as soon as the module boundary exists.
+
+**Scope:** This project — its framework-light SwiftUI VIPER presenter files.
+
+**Proposed amendment:** None.

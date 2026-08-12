@@ -14,7 +14,10 @@ struct WinterVoiceApp: App {
 
     var body: some Scene {
         Window("WinterVoice", id: "main") {
-            AppShellView(presenter: container.shellPresenter)
+            LaunchGateView(
+                onboardingPresenter: container.onboardingPresenter,
+                shellPresenter: container.shellPresenter
+            )
         }
         .defaultSize(width: 920, height: 640)
         .windowResizability(.contentMinSize)
