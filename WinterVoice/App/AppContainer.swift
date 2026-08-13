@@ -19,6 +19,8 @@ final class AppContainer {
     let onboardingPresenter: OnboardingPresenter
     let providerConfiguration: ProviderConfigurationStore
     let modelManager: ModelManager
+    let history: HistoryStore
+    let dictionary: DictionaryStore
     private let hotkey: RightOptionEventTap
     private let permissionHotkeyReconciler: PermissionHotkeyReconciler
     private let panelController: RecordingPanelController
@@ -29,8 +31,12 @@ final class AppContainer {
         let permissionManager = SystemPermissionManager()
         let providerConfiguration = ProviderConfigurationStore()
         let modelManager = ModelManager()
+        let history = HistoryStore()
+        let dictionary = DictionaryStore()
         self.providerConfiguration = providerConfiguration
         self.modelManager = modelManager
+        self.history = history
+        self.dictionary = dictionary
         let interactor = DictationInteractor(
             relay: relay,
             transcriber: ConfiguredTranscriber(
@@ -39,7 +45,9 @@ final class AppContainer {
                 models: modelManager
             ),
             injector: SystemTextInjector(),
-            permissions: permissionManager
+            permissions: permissionManager,
+            textProcessor: dictionary,
+            history: history
         )
         let router = AppRouter()
         let presenter = DictationPresenter(
@@ -54,7 +62,9 @@ final class AppContainer {
             dictationPresenter: presenter,
             router: router,
             providerConfiguration: providerConfiguration,
-            modelManager: modelManager
+            modelManager: modelManager,
+            history: history,
+            dictionary: dictionary
         )
         onboardingPresenter = OnboardingPresenter(
             dictationPresenter: presenter,

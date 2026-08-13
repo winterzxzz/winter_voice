@@ -308,7 +308,7 @@ struct PrivacyView: View {
         Form {
             Section("Audio and Transcripts") {
                 privacyRow(presenter.providerStatus.privacySummary, icon: "waveform.badge.mic")
-                privacyRow("No audio or transcription text is persisted or logged.", icon: "internaldrive")
+                privacyRow("Audio is held in memory only. Successfully inserted transcription text is saved locally in History; audio and API keys are never logged.", icon: "internaldrive")
                 privacyRow("Local models remain blocked on an approved artifact and runtime; generic Remote is operational when configured.", icon: "network.slash")
             }
 
@@ -326,26 +326,5 @@ struct PrivacyView: View {
 
     private func privacyRow(_ text: String, icon: String) -> some View {
         Label(text, systemImage: icon)
-    }
-}
-
-struct PlannedFeatureView: View {
-    let destination: AppShellDestination
-
-    var body: some View {
-        ContentUnavailableView {
-            Label(destination.title, systemImage: destination.icon)
-        } description: {
-            VStack(spacing: 10) {
-                Text("Planned")
-                    .font(.caption.bold())
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 3)
-                    .background(.quaternary, in: Capsule())
-                Text(destination.plannedDescription)
-            }
-        }
-        .navigationTitle(destination.title)
-        .accessibilityLabel("\(destination.title). Planned and not available in this MVP.")
     }
 }

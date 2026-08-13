@@ -6,6 +6,8 @@ final class DictationInteractor: DictationInteracting {
     private let transcriber: SpeechTranscribing
     private let injector: TextInjecting
     private let permissions: PermissionManaging
+    private let textProcessor: TextProcessing
+    private let history: HistoryRecording
     private var machine = DictationStateMachine()
     private var target: TextInsertionTarget?
     private var preparationTask: Task<Void, Never>?
@@ -15,12 +17,16 @@ final class DictationInteractor: DictationInteracting {
         relay: DictationStateRelay,
         transcriber: SpeechTranscribing,
         injector: TextInjecting,
-        permissions: PermissionManaging
+        permissions: PermissionManaging,
+        textProcessor: TextProcessing = IdentityTextProcessor(),
+        history: HistoryRecording = NoopHistoryRecorder()
     ) {
         self.relay = relay
         self.transcriber = transcriber
         self.injector = injector
         self.permissions = permissions
+        self.textProcessor = textProcessor
+        self.history = history
     }
 
     func beginPushToTalk() {
@@ -67,12 +73,15 @@ final class DictationInteractor: DictationInteracting {
         guard machine.state == .recording, let target else { return }
         move(to: .processing)
         do {
-            let text = try await transcriber.stop().trimmingCharacters(in: .whitespacesAndNewlines)
+            let rawText = try await transcriber.stop()
+            let text = textProcessor.process(rawText)
+                .trimmingCharacters(in: .whitespacesAndNewlines)
             guard !text.isEmpty else {
                 throw DictationFailure(message: "No speech was recognized.", recovery: "Hold Right Option and try speaking again.")
             }
             move(to: .inserting)
             try await injector.insert(text, into: target)
+            history.record(text: text)
             injector.discard(target)
             self.target = nil
             move(to: .idle)

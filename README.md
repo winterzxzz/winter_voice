@@ -2,7 +2,7 @@
 
 WinterVoice is a native macOS dictation app with a primary window, menu-bar utility, and non-activating recording overlay. It supports a generic OpenAI-compatible remote transcription endpoint and retains owner-clean local-model lifecycle boundaries; local inference is blocked until an approved model artifact and whisper.cpp dependency are selected.
 
-> **Status:** working provider/capture MVP. Remote transcription is operational after configuration; Local mode is truthfully unavailable because no supported model is published. Global hotkeys, privacy prompts, microphone capture, remote endpoint interoperability, and cross-app insertion require manual verification in a signed local run.
+> **Status:** working provider/capture MVP with local History and Dictionary. Remote transcription is operational after configuration; Local mode is truthfully unavailable because no supported model is published. Global hotkeys, privacy prompts, microphone capture, remote endpoint interoperability, cross-app insertion, and the new History/Dictionary UX require manual verification in a signed local run.
 
 The original future-platform architecture, domain, roadmap, and security specification is preserved in [docs/architecture-spec.md](docs/architecture-spec.md). This README describes the implemented MVP.
 
@@ -11,6 +11,8 @@ The original future-platform architecture, domain, roadmap, and security specifi
 - Native primary window with a `NavigationSplitView` sidebar for Overview, Permissions, Transcription, Hotkey, and Privacy. The window opens at launch and can be reopened from the menu bar or with Command-0.
 - First-launch page wizard for Microphone, Input Monitoring, and Accessibility. Each page shows live shared status and explicit request/settings actions; deferral never marks setup complete.
 - Local vs Remote provider mode is persisted. Remote Providers configures a generic OpenAI-compatible base URL, model, optional language, and optional Keychain API key for endpoints that require Bearer authentication. Blank key input leaves an existing key unchanged; **Use Without Authentication** explicitly removes it. Models exposes installed/active lifecycle but no fake download while the approved catalog is empty.
+- Successfully inserted dictations are stored locally in a bounded History list with search, deletion, and clear-all actions. History stores text and timestamps only; audio is never persisted.
+- Dictionary stores enabled source/replacement pairs locally, rejects duplicate source phrases, applies longer matches first without replacement cascades, and runs before insertion and History recording.
 - Native menu-bar menu with a monochrome microphone/waveform template symbol, live dictation and hotkey-health rows, the Right Option instruction, and actions to open WinterVoice, reopen the permission guide, open Settings, or quit. The app has no persistent Dock icon (`LSUIElement`).
 - The macOS application icon is derived at standard 16–1024 pixel representations from the exact artwork stored at `WinterVoice/Resources/AppIconSource/WinterVoiceAppIcon.png`; run `scripts/generate-app-icons.sh` after intentionally replacing that source.
 - Right Option push-to-talk via a listen-only Quartz event tap. The physical key is identified by key code 61, transitions are edge-deduplicated, and disabled event taps are re-enabled or surfaced as unavailable.
@@ -94,7 +96,7 @@ The identifier must be `com.winterzxzz.WinterVoice`. If the output says `TeamIde
 
 8. With fewer than three Allowed statuses, confirm **Start Using WinterVoice** is unavailable. Once all three are Allowed, complete setup and confirm relaunch skips the wizard.
 9. From the completed app, choose **Permissions → Open Permission Guide**. Confirm setup reappears with live Allowed statuses, the saved completion marker is reset, and completing it again restores direct-to-main launches. Also close and reopen the main window from the menu bar and with Command-0.
-10. Confirm Transcription switches persisted Local/Remote mode. Remote Providers must accept a generic endpoint with no vendor default and store its key in Keychain. Models must state that no supported downloadable model is published and expose no fake download. History and Dictionary remain Planned.
+10. Confirm Transcription switches persisted Local/Remote mode. Remote Providers must accept a generic endpoint with no vendor default and store its key in Keychain. Models must state that no supported downloadable model is published and expose no fake download. Add a Dictionary entry, verify it is applied before insertion, then confirm the processed text appears in History and survives relaunch.
 11. Before Input Monitoring is enabled, confirm Overview, Hotkey, Permissions, and the menu bar do not claim the hotkey is listening even if the process can create a listen-only event tap. After enabling it and returning to the app, confirm the status changes to “Listening for Right Option” when macOS applies trust; the shared permission snapshot and hotkey reconciliation run automatically on activation. Otherwise follow macOS’s quit/relaunch requirement.
 12. With no ready provider, press Right Option and confirm the panel reports **No transcription provider is configured** without requesting Microphone, recording, or capturing a target. With a compatible Remote configured, verify Preparing → Recording → Processing → Inserting into TextEdit.
 13. Repeat dictation at least five times to exercise audio/event-tap cleanup. Also press Left Option and verify it never starts dictation. Leave both Option keys released when returning from System Settings so no modifier edge is ambiguous.
@@ -107,11 +109,11 @@ The identifier must be `com.winterzxzz.WinterVoice`. If the output says `TeamIde
 
 ## Scope and roadmap
 
-Remote transcription is generic and operational; no vendor is named or defaulted. Local model download/install/verification/registry mechanics exist, but Local inference and a real catalog remain blocked. History, custom dictionaries, LLM processing, Screen Recording, login items, configurable hotkeys, and live waveform visualization remain roadmap work.
+Remote transcription is generic and operational; no vendor is named or defaulted. Local model download/install/verification/registry mechanics exist, but Local inference and a real catalog remain blocked. LLM processing, Screen Recording, login items, configurable hotkeys, and live waveform visualization remain roadmap work.
 
 ## Privacy and limitations
 
-Audio is captured only when the selected provider is ready. Remote multipart encoding is created in memory; optional API keys live in Keychain and keys/transcripts are never logged. Unauthenticated compatible endpoints receive no Authorization header. HTTPS is required except for explicitly configured localhost/private-LAN HTTP endpoints.
+Audio is captured only when the selected provider is ready. Remote multipart encoding is created in memory; optional API keys live in Keychain and keys are never logged. Successfully inserted transcript text is stored locally in History; audio is not persisted and transcript text is not logged. Unauthenticated compatible endpoints receive no Authorization header. HTTPS is required except for explicitly configured localhost/private-LAN HTTP endpoints.
 
 The narrow owner decision still required for a real Local catalog is: exact first model artifact, authoritative download URL, SHA-256, and license/redistribution suitability, plus approval of the whisper.cpp source/revision. The illustrative `example.com` descriptor is not functional product data.
 

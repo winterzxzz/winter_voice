@@ -9,18 +9,15 @@ final class AppShellSemanticsTests: XCTestCase {
         XCTAssertTrue(destinations.allSatisfy { $0.availability == .available })
     }
 
-    func testRoadmapDestinationsArePlanned() {
+    func testDataDestinationsAreAvailable() {
         let destinations: [AppShellDestination] = [
             .history, .dictionary
         ]
-        XCTAssertTrue(destinations.allSatisfy { $0.availability == .planned })
+        XCTAssertTrue(destinations.allSatisfy { $0.availability == .available })
     }
 
     func testEveryDestinationHasExactlyOneAvailability() {
         XCTAssertEqual(AppShellDestination.allCases.count, 9)
-        XCTAssertEqual(
-            AppShellDestination.allCases.filter { $0.availability == .planned }.count,
-            2
-        )
+        XCTAssertTrue(AppShellDestination.allCases.allSatisfy { $0.availability == .available })
     }
 }

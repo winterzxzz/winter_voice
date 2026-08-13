@@ -20,10 +20,8 @@ enum AppShellDestination: String, CaseIterable, Identifiable, Sendable {
 
     var availability: FeatureAvailability {
         switch self {
-        case .overview, .permissions, .transcription, .hotkey, .privacy, .models, .remoteProviders:
+        case .overview, .permissions, .transcription, .hotkey, .privacy, .models, .remoteProviders, .history, .dictionary:
             .available
-        case .history, .dictionary:
-            .planned
         }
     }
 }

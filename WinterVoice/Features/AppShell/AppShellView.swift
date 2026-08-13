@@ -30,7 +30,7 @@ struct AppShellView: View {
                     sidebarRow(.remoteProviders)
                 }
 
-                Section("Coming Later") {
+                Section("Data") {
                     sidebarRow(.history)
                     sidebarRow(.dictionary)
                 }
@@ -53,19 +53,12 @@ struct AppShellView: View {
             HStack {
                 Text(destination.title)
                 Spacer()
-                if destination.availability == .planned {
-                    Text("Planned")
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                }
             }
         } icon: {
             Image(systemName: destination.icon)
         }
         .tag(destination)
-        .accessibilityLabel(destination.availability == .planned
-            ? "\(destination.title), planned"
-            : destination.title)
+        .accessibilityLabel(destination.title)
     }
 
     @ViewBuilder
@@ -88,8 +81,10 @@ struct AppShellView: View {
             ModelsView(manager: presenter.modelManager)
         case .remoteProviders:
             RemoteProvidersView(store: presenter.providerConfiguration)
-        case .history, .dictionary:
-            PlannedFeatureView(destination: destination)
+        case .history:
+            HistoryView(store: presenter.history)
+        case .dictionary:
+            DictionaryView(store: presenter.dictionary)
         }
     }
 }
@@ -123,11 +118,4 @@ extension AppShellDestination {
         }
     }
 
-    var plannedDescription: String {
-        switch self {
-        case .history: "WinterVoice does not save transcripts. A local history surface is planned for a later release."
-        case .dictionary: "Custom words and replacements are not available in this MVP."
-        default: ""
-        }
-    }
 }

@@ -7,6 +7,26 @@ protocol DictationInteracting: AnyObject {
 }
 
 @MainActor
+protocol TextProcessing: AnyObject {
+    func process(_ text: String) -> String
+}
+
+@MainActor
+protocol HistoryRecording: AnyObject {
+    func record(text: String)
+}
+
+@MainActor
+final class IdentityTextProcessor: TextProcessing {
+    func process(_ text: String) -> String { text }
+}
+
+@MainActor
+final class NoopHistoryRecorder: HistoryRecording {
+    func record(text: String) {}
+}
+
+@MainActor
 protocol SpeechTranscribing: AnyObject {
     func validateConfiguration() throws
     func start() async throws
