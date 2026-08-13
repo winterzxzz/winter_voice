@@ -151,6 +151,30 @@ final class HistoryDictionaryTests: XCTestCase {
         XCTAssertTrue(history.texts.isEmpty)
     }
 
+    func testDictationPipelineRecordsUsageTotalsOnSuccess() async throws {
+        let relay = DictationStateRelay()
+        let transcriber = PipelineTranscriberSpy()
+        let injector = PipelineInjectorSpy()
+        let usage = UsageRecorderSpy()
+        let permissions = PipelinePermissionSpy()
+        let subject = DictationInteractor(
+            relay: relay,
+            transcriber: transcriber,
+            injector: injector,
+            permissions: permissions,
+            usage: usage
+        )
+
+        subject.beginPushToTalk()
+        await waitUntil { relay.state == .recording }
+        subject.endPushToTalk()
+        await waitUntil { relay.state == .idle }
+
+        XCTAssertEqual(usage.sessions.count, 1)
+        XCTAssertEqual(usage.sessions.first?.words, 3, "\"teh quick fox\" is three words")
+        XCTAssertGreaterThanOrEqual(usage.sessions.first?.speakingSeconds ?? -1, 0)
+    }
+
     private func temporaryRoot(_ name: String) -> URL {
         FileManager.default.temporaryDirectory
             .appendingPathComponent("WinterVoice-\(name)-\(UUID().uuidString)", isDirectory: true)
@@ -171,6 +195,14 @@ private actor DictionaryPersistenceSpy: DictionaryPersisting {
 private final class HistoryRecorderSpy: HistoryRecording {
     private(set) var texts: [String] = []
     func record(text: String) { texts.append(text) }
+}
+
+@MainActor
+private final class UsageRecorderSpy: UsageRecording {
+    private(set) var sessions: [(words: Int, speakingSeconds: Double)] = []
+    func recordSession(words: Int, speakingSeconds: Double) {
+        sessions.append((words, speakingSeconds))
+    }
 }
 
 @MainActor

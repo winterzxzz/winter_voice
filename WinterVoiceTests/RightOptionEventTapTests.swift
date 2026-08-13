@@ -141,6 +141,76 @@ final class RightOptionEventTapTests: XCTestCase {
         return store
     }
 
+    func testToggleModeActsOnKeyDownEdgesOnly() {
+        let binding = makeBinding()
+        binding.recordingMode = .toggle
+        let backend = EventTapBackendSpy(installResult: true)
+        let interactor = DictationInteractorSpy()
+        let subject = RightOptionEventTap(
+            interactor: interactor,
+            relay: HotkeyHealthRelay(),
+            binding: binding,
+            listenAccessGranted: { true },
+            backend: backend
+        )
+        subject.reconcile()
+
+        backend.send(.modifierChanged(keyCode: 61, flags: [.maskAlternate]))
+        XCTAssertEqual(interactor.toggleCallCount, 1, "First key-down starts the session")
+        backend.send(.modifierChanged(keyCode: 61, flags: []))
+        XCTAssertEqual(interactor.toggleCallCount, 1, "Releases are ignored in toggle mode")
+        backend.send(.modifierChanged(keyCode: 61, flags: [.maskAlternate]))
+        XCTAssertEqual(interactor.toggleCallCount, 2, "Second key-down stops the session")
+        XCTAssertEqual(interactor.beginCallCount, 0)
+        XCTAssertEqual(interactor.endCallCount, 0)
+    }
+
+    func testToggleModeTearDownEndsLiveSessionWithNoKeyHeld() {
+        let binding = makeBinding()
+        binding.recordingMode = .toggle
+        var listenAccessGranted = true
+        let backend = EventTapBackendSpy(installResult: true)
+        let interactor = DictationInteractorSpy()
+        let subject = RightOptionEventTap(
+            interactor: interactor,
+            relay: HotkeyHealthRelay(),
+            binding: binding,
+            listenAccessGranted: { listenAccessGranted },
+            backend: backend
+        )
+        subject.reconcile()
+        backend.send(.modifierChanged(keyCode: 61, flags: [.maskAlternate]))
+        backend.send(.modifierChanged(keyCode: 61, flags: []))
+
+        listenAccessGranted = false
+        subject.reconcile()
+
+        XCTAssertEqual(interactor.endCallCount, 1, "Tap teardown must end a toggled session even though no key is held")
+    }
+
+    func testToggleModeSuspendEndsLiveSession() {
+        let binding = makeBinding()
+        binding.recordingMode = .toggle
+        let backend = EventTapBackendSpy(installResult: true)
+        let interactor = DictationInteractorSpy()
+        let subject = RightOptionEventTap(
+            interactor: interactor,
+            relay: HotkeyHealthRelay(),
+            binding: binding,
+            listenAccessGranted: { true },
+            backend: backend
+        )
+        subject.reconcile()
+        backend.send(.modifierChanged(keyCode: 61, flags: [.maskAlternate]))
+        backend.send(.modifierChanged(keyCode: 61, flags: []))
+
+        subject.suspendMatching()
+
+        XCTAssertEqual(interactor.endCallCount, 1)
+        backend.send(.modifierChanged(keyCode: 61, flags: [.maskAlternate]))
+        XCTAssertEqual(interactor.toggleCallCount, 1, "Suspended tap must not act on presses")
+    }
+
     func testNewBindingDefaultsToFunctionAndSupportsRecordedCombination() {
         let suite = "HotkeyDefaultTests.\(UUID().uuidString)"
         let defaults = UserDefaults(suiteName: suite)!
@@ -370,7 +440,9 @@ private final class EventTapBackendSpy: RightOptionEventTapBacking {
 private final class DictationInteractorSpy: DictationInteracting {
     private(set) var beginCallCount = 0
     private(set) var endCallCount = 0
+    private(set) var toggleCallCount = 0
 
     func beginPushToTalk() { beginCallCount += 1 }
     func endPushToTalk() { endCallCount += 1 }
+    func togglePushToTalk() { toggleCallCount += 1 }
 }

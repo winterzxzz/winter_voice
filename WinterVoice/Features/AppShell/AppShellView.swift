@@ -28,6 +28,7 @@ struct AppShellView: View {
                 Section("Data") {
                     sidebarRow(.history)
                     sidebarRow(.dictionary)
+                    sidebarRow(.statistics)
                 }
             }
             .navigationTitle("WinterVoice")
@@ -80,6 +81,8 @@ struct AppShellView: View {
             HistoryView(store: presenter.history)
         case .dictionary:
             DictionaryView(store: presenter.dictionary)
+        case .statistics:
+            StatisticsView(store: presenter.usageStats)
         }
     }
 }
@@ -94,6 +97,7 @@ extension AppShellDestination {
         case .privacy: "Privacy"
         case .history: "History"
         case .dictionary: "Dictionary"
+        case .statistics: "Statistics"
         }
     }
 
@@ -106,6 +110,7 @@ extension AppShellDestination {
         case .privacy: "hand.raised"
         case .history: "clock.arrow.circlepath"
         case .dictionary: "character.book.closed"
+        case .statistics: "chart.bar.xaxis"
         }
     }
 

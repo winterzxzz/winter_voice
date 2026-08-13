@@ -3,23 +3,41 @@ import SwiftUI
 struct RecordingPanelView: View {
     @ObservedObject var presenter: DictationPresenter
     let levelMeter: AudioLevelMeter
+    var onToggle: () -> Void = {}
+    var onDragDelta: (CGSize) -> Void = { _ in }
+    var onDragEnded: () -> Void = {}
+
+    @State private var lastDragTranslation: CGSize = .zero
 
     var body: some View {
-        ZStack(alignment: .bottom) {
-            Color.clear
-            content
-                .transition(.scale(scale: 0.9).combined(with: .opacity))
-        }
-        .animation(.spring(response: 0.32, dampingFraction: 0.82), value: presenter.state)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
-        .padding(.bottom, 28)
+        content
+            .transition(.scale(scale: 0.9).combined(with: .opacity))
+            .animation(.spring(response: 0.32, dampingFraction: 0.82), value: presenter.state)
+            .padding(24)
+            .contentShape(Rectangle())
+            .onTapGesture(count: 2) { onToggle() }
+            .gesture(
+                DragGesture(minimumDistance: 2)
+                    .onChanged { value in
+                        let delta = CGSize(
+                            width: value.translation.width - lastDragTranslation.width,
+                            height: value.translation.height - lastDragTranslation.height
+                        )
+                        lastDragTranslation = value.translation
+                        onDragDelta(delta)
+                    }
+                    .onEnded { _ in
+                        lastDragTranslation = .zero
+                        onDragEnded()
+                    }
+            )
     }
 
     @ViewBuilder
     private var content: some View {
         switch presenter.state {
         case .idle:
-            EmptyView()
+            idlePill
         case .preparing:
             pill {
                 ProgressView()
@@ -51,6 +69,22 @@ struct RecordingPanelView: View {
         case .failed(let failure):
             failureCard(failure)
         }
+    }
+
+    /// BridgeVoice-style resting state: a small always-on-top pill.
+    /// Double-click starts a dictation; drag moves the widget.
+    private var idlePill: some View {
+        HStack(spacing: 7) {
+            Image(systemName: "waveform")
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(.white.opacity(0.85))
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 8)
+        .frame(minHeight: 30)
+        .background(panelBackground(in: Capsule()))
+        .opacity(0.92)
+        .help("Double-click to start dictation. \(presenter.hotkeyInstruction).")
     }
 
     private func pill(@ViewBuilder body: () -> some View) -> some View {

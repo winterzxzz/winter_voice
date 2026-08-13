@@ -175,6 +175,20 @@ extension CGEventFlags {
     ]
 }
 
+enum RecordingMode: String, CaseIterable, Codable, Sendable {
+    case holdToTalk
+    case toggle
+
+    var title: String { self == .holdToTalk ? "Hold to Talk" : "Toggle" }
+
+    func instruction(binding: HotkeyBinding) -> String {
+        switch self {
+        case .holdToTalk: "Hold \(binding.title) to record and release it to transcribe."
+        case .toggle: "Press \(binding.title) to start recording and press it again to transcribe."
+        }
+    }
+}
+
 enum HotkeyHealth: Equatable, Sendable {
     case permissionRequired
     case listening
@@ -188,12 +202,12 @@ enum HotkeyHealth: Equatable, Sendable {
         }
     }
 
-    func detail(binding: HotkeyBinding) -> String {
+    func detail(binding: HotkeyBinding, mode: RecordingMode = .holdToTalk) -> String {
         switch self {
         case .permissionRequired:
             "Allow WinterVoice in Privacy & Security → Input Monitoring, then return to WinterVoice."
         case .listening:
-            "Hold \(binding.title) to record and release it to transcribe."
+            mode.instruction(binding: binding)
         case .installationFailed:
             "WinterVoice could not install or recover its global hotkey listener. Return to the app to retry."
         }

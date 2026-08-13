@@ -62,6 +62,8 @@ final class RightOptionEventTap: HotkeyReconciling, HotkeyCaptureSuspending {
         guard !isSuspended else { return }
         isSuspended = true
         if isPressed { updatePressed(false) }
+        // In toggle mode a session can be live with no key held.
+        if binding.recordingMode == .toggle { interactor?.endPushToTalk() }
     }
 
     func resumeMatching() {
@@ -91,9 +93,11 @@ final class RightOptionEventTap: HotkeyReconciling, HotkeyCaptureSuspending {
         backend.uninstall()
         isInstalled = false
         // A dictation held open by this tap must end with the tap: once the
-        // tap is gone no release event can ever arrive to stop the recorder.
+        // tap is gone no press or release can ever arrive to stop the recorder.
         if isPressed {
             isPressed = false
+            interactor?.endPushToTalk()
+        } else if binding.recordingMode == .toggle {
             interactor?.endPushToTalk()
         }
     }
@@ -109,7 +113,8 @@ final class RightOptionEventTap: HotkeyReconciling, HotkeyCaptureSuspending {
                 relay.publish(.listening)
                 // A release delivered while the tap was disabled was never
                 // observed; trust the physical key state over our last event.
-                if isPressed, !physicallyPressed(binding.selection) {
+                // Toggle mode has no held-key invariant to re-sync.
+                if binding.recordingMode == .holdToTalk, isPressed, !physicallyPressed(binding.selection) {
                     updatePressed(false)
                 }
             }
@@ -128,9 +133,16 @@ final class RightOptionEventTap: HotkeyReconciling, HotkeyCaptureSuspending {
     }
 
     private func updatePressed(_ pressed: Bool) {
-            guard pressed != isPressed else { return }
-            isPressed = pressed
+        guard pressed != isPressed else { return }
+        isPressed = pressed
+        switch binding.recordingMode {
+        case .holdToTalk:
             pressed ? interactor?.beginPushToTalk() : interactor?.endPushToTalk()
+        case .toggle:
+            // Only key-down edges act; the interactor decides from its own
+            // state whether this press starts or stops the session.
+            if pressed { interactor?.togglePushToTalk() }
+        }
     }
 
     nonisolated static func systemPhysicalPressState(for binding: HotkeyBinding) -> Bool {

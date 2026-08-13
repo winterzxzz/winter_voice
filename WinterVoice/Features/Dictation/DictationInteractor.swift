@@ -8,6 +8,7 @@ final class DictationInteractor: DictationInteracting {
     private let permissions: PermissionManaging
     private let textProcessor: TextProcessing
     private let history: HistoryRecording
+    private let usage: UsageRecording
     private let failureResetDelay: Duration
     private var machine = DictationStateMachine()
     private var target: TextInsertionTarget?
@@ -15,6 +16,7 @@ final class DictationInteractor: DictationInteracting {
     private var finishTask: Task<Void, Never>?
     private var failureResetTask: Task<Void, Never>?
     private var releasePending = false
+    private var recordingStartedAt: Date?
 
     init(
         relay: DictationStateRelay,
@@ -23,6 +25,7 @@ final class DictationInteractor: DictationInteracting {
         permissions: PermissionManaging,
         textProcessor: TextProcessing = IdentityTextProcessor(),
         history: HistoryRecording = NoopHistoryRecorder(),
+        usage: UsageRecording = NoopUsageRecorder(),
         failureResetDelay: Duration = .seconds(4)
     ) {
         self.relay = relay
@@ -31,6 +34,7 @@ final class DictationInteractor: DictationInteracting {
         self.permissions = permissions
         self.textProcessor = textProcessor
         self.history = history
+        self.usage = usage
         self.failureResetDelay = failureResetDelay
     }
 
@@ -77,6 +81,20 @@ final class DictationInteractor: DictationInteracting {
         }
     }
 
+    /// Toggle-mode key-down: starts a session when none is active, otherwise
+    /// finishes it. During processing this falls through to the abort branch
+    /// in beginPushToTalk; during inserting the press is meaningless.
+    func togglePushToTalk() {
+        switch machine.state {
+        case .idle, .failed, .processing:
+            beginPushToTalk()
+        case .preparing, .recording:
+            endPushToTalk()
+        case .inserting:
+            break
+        }
+    }
+
     private func prepareAndRecord() async {
         do {
             // Capture the focused field as close to the key press as possible,
@@ -99,6 +117,7 @@ final class DictationInteractor: DictationInteracting {
             if target == nil { target = try injector.captureTarget() }
             try await transcriber.start()
             move(to: .recording)
+            recordingStartedAt = Date()
             if releasePending { await finishDictation() }
         } catch {
             fail(error)
@@ -107,6 +126,8 @@ final class DictationInteractor: DictationInteracting {
 
     private func finishDictation() async {
         guard machine.state == .recording, let target else { return }
+        let speakingSeconds = recordingStartedAt.map { Date().timeIntervalSince($0) } ?? 0
+        recordingStartedAt = nil
         move(to: .processing)
         do {
             let rawText = try await transcriber.stop()
@@ -121,6 +142,10 @@ final class DictationInteractor: DictationInteracting {
             if !outcome.landedInSecureField {
                 history.record(text: text)
             }
+            usage.recordSession(
+                words: text.split(whereSeparator: \.isWhitespace).count,
+                speakingSeconds: speakingSeconds
+            )
             injector.discard(target)
             self.target = nil
             move(to: .idle)

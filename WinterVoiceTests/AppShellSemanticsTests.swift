@@ -11,13 +11,13 @@ final class AppShellSemanticsTests: XCTestCase {
 
     func testDataDestinationsAreAvailable() {
         let destinations: [AppShellDestination] = [
-            .history, .dictionary
+            .history, .dictionary, .statistics
         ]
         XCTAssertTrue(destinations.allSatisfy { $0.availability == .available })
     }
 
     func testEveryDestinationHasExactlyOneAvailability() {
-        XCTAssertEqual(AppShellDestination.allCases.count, 7)
+        XCTAssertEqual(AppShellDestination.allCases.count, 8)
         XCTAssertTrue(AppShellDestination.allCases.allSatisfy { $0.availability == .available })
     }
 }

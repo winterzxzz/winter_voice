@@ -223,7 +223,12 @@ struct HotkeyView: View {
                         .disabled(binding.selection == .function)
                     }
                 }
-                LabeledContent("Behavior", value: "Reserved for push to talk; provider required")
+                Picker("Recording mode", selection: $binding.recordingMode) {
+                    ForEach(RecordingMode.allCases, id: \.self) { Text($0.title).tag($0) }
+                }
+                .pickerStyle(.segmented)
+                Text(binding.recordingMode.instruction(binding: binding.selection))
+                    .foregroundStyle(.secondary)
                 LabeledContent("Listener status") {
                     Text(presenter.hotkeyHealthTitle)
                         .foregroundStyle(presenter.hotkeyHealth == .listening ? .green : .orange)
@@ -233,7 +238,7 @@ struct HotkeyView: View {
             }
 
             Section {
-                Text("Click Record Hotkey, then press a key, key combination, or hold multiple modifiers such as ⌥⇧ and release them together. Fn / Globe is the default. The change applies immediately and is saved for future launches.")
+                Text("Click Record Hotkey, then press a key, key combination, or hold multiple modifiers such as ⌥⇧ and release them together. Fn / Globe is the default. Hold to Talk records while the key is held; Toggle starts on one press and stops on the next. Changes apply immediately and are saved for future launches.")
                     .foregroundStyle(.secondary)
             }
         }

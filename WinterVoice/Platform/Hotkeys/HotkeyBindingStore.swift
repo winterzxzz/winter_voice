@@ -7,7 +7,12 @@ final class HotkeyBindingStore: ObservableObject {
         didSet { defaults.set(try? JSONEncoder().encode(selection), forKey: Self.key) }
     }
 
+    @Published var recordingMode: RecordingMode {
+        didSet { defaults.set(recordingMode.rawValue, forKey: Self.modeKey) }
+    }
+
     private static let key = "hotkey.binding"
+    private static let modeKey = "hotkey.recordingMode"
     private let defaults: UserDefaults
 
     init(defaults: UserDefaults = .standard) {
@@ -20,5 +25,7 @@ final class HotkeyBindingStore: ObservableObject {
         selection = defaults.data(forKey: Self.key)
             .flatMap { try? JSONDecoder().decode(HotkeyBinding.self, from: $0) }
             ?? .function
+        recordingMode = defaults.string(forKey: Self.modeKey)
+            .flatMap(RecordingMode.init(rawValue:)) ?? .holdToTalk
     }
 }

@@ -68,11 +68,14 @@ final class DictationPresenter: ObservableObject {
     }
 
     var hotkeyHealthDetail: String {
-        hotkeyHealth.detail(binding: hotkeyBinding.selection)
+        hotkeyHealth.detail(binding: hotkeyBinding.selection, mode: hotkeyBinding.recordingMode)
     }
 
     var hotkeyInstruction: String {
-        "Hold \(hotkeyBinding.selection.title) to dictate"
+        switch hotkeyBinding.recordingMode {
+        case .holdToTalk: "Hold \(hotkeyBinding.selection.title) to dictate"
+        case .toggle: "Press \(hotkeyBinding.selection.title) to start/stop dictation"
+        }
     }
 
     var permissionRequestMessage: String? {
@@ -98,6 +101,7 @@ final class DictationPresenter: ObservableObject {
 
     func beginPushToTalk() { interactor.beginPushToTalk() }
     func endPushToTalk() { interactor.endPushToTalk() }
+    func toggleDictation() { interactor.togglePushToTalk() }
     func refreshPermissions() { permissions = permissionManager.snapshot() }
 
     func reconcilePermissionsAfterActivation() {

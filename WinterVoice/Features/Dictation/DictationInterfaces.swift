@@ -4,6 +4,7 @@ import Foundation
 protocol DictationInteracting: AnyObject {
     func beginPushToTalk()
     func endPushToTalk()
+    func togglePushToTalk()
 }
 
 @MainActor
@@ -24,6 +25,16 @@ final class IdentityTextProcessor: TextProcessing {
 @MainActor
 final class NoopHistoryRecorder: HistoryRecording {
     func record(text: String) {}
+}
+
+@MainActor
+protocol UsageRecording: AnyObject {
+    func recordSession(words: Int, speakingSeconds: Double)
+}
+
+@MainActor
+final class NoopUsageRecorder: UsageRecording {
+    func recordSession(words: Int, speakingSeconds: Double) {}
 }
 
 @MainActor

@@ -49,6 +49,7 @@ final class AppContainer {
             Task { await whisperRuntime.unloadContext() }
         }
         let audioRecorder = SystemAudioRecorder()
+        let usageStats = UsageStatsStore()
         let interactor = DictationInteractor(
             relay: relay,
             transcriber: ConfiguredTranscriber(
@@ -60,7 +61,8 @@ final class AppContainer {
             injector: SystemTextInjector(),
             permissions: permissionManager,
             textProcessor: dictionary,
-            history: history
+            history: history,
+            usage: usageStats
         )
         let router = AppRouter()
         let presenter = DictationPresenter(
@@ -86,6 +88,7 @@ final class AppContainer {
             history: history,
             dictionary: dictionary,
             hotkeyBinding: hotkeyBinding,
+            usageStats: usageStats,
             hotkeyCaptureSuspender: hotkey
         )
         onboardingPresenter = OnboardingPresenter(

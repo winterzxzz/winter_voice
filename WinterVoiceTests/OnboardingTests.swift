@@ -327,4 +327,5 @@ private final class HotkeyReconciliationSpy: HotkeyReconciling {
 private final class LifecycleDictationInteractorSpy: DictationInteracting {
     func beginPushToTalk() {}
     func endPushToTalk() {}
+    func togglePushToTalk() {}
 }

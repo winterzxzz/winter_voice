@@ -13,12 +13,13 @@ enum AppShellDestination: String, CaseIterable, Identifiable, Sendable {
     case privacy
     case history
     case dictionary
+    case statistics
 
     var id: Self { self }
 
     var availability: FeatureAvailability {
         switch self {
-        case .overview, .permissions, .transcription, .hotkey, .privacy, .history, .dictionary:
+        case .overview, .permissions, .transcription, .hotkey, .privacy, .history, .dictionary, .statistics:
             .available
         }
     }
