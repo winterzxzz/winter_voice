@@ -49,7 +49,8 @@ protocol AudioRecording: AnyObject {
 @MainActor
 protocol TextInjecting: AnyObject {
     func captureTarget() throws -> TextInsertionTarget
-    func insert(_ text: String, into target: TextInsertionTarget) async throws
+    @discardableResult
+    func insert(_ text: String, into target: TextInsertionTarget) async throws -> InsertionOutcome
     func discard(_ target: TextInsertionTarget)
 }
 
@@ -57,4 +58,10 @@ protocol TextInjecting: AnyObject {
 protocol PermissionManaging: AnyObject {
     func snapshot() -> PermissionSnapshot
     func request(_ permission: AppPermission) async -> PermissionStatus
+}
+
+@MainActor
+protocol HotkeyCaptureSuspending: AnyObject {
+    func suspendMatching()
+    func resumeMatching()
 }

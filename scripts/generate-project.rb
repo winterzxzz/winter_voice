@@ -12,6 +12,18 @@ project.root_object.attributes['LastUpgradeCheck'] = '2650'
 app = project.new_target(:application, 'WinterVoice', :osx, '14.0')
 tests = project.new_target(:unit_test_bundle, 'WinterVoiceTests', :osx, '14.0')
 
+# Pinned upstream whisper.cpp XCFramework wrapped as a local Swift package.
+whisper_package = project.new(Xcodeproj::Project::Object::XCLocalSwiftPackageReference)
+whisper_package.relative_path = 'Vendor/WhisperBinary'
+project.root_object.package_references << whisper_package
+whisper_product = project.new(Xcodeproj::Project::Object::XCSwiftPackageProductDependency)
+whisper_product.package = whisper_package
+whisper_product.product_name = 'WhisperBinary'
+app.package_product_dependencies << whisper_product
+whisper_build_file = project.new(Xcodeproj::Project::Object::PBXBuildFile)
+whisper_build_file.product_ref = whisper_product
+app.frameworks_build_phase.files << whisper_build_file
+
 app_group = project.main_group.new_group('WinterVoice', 'WinterVoice')
 Dir.glob(File.join(root, 'WinterVoice', '**', '*.swift')).sort.each do |path|
   app.add_file_references([app_group.new_file(path.delete_prefix(File.join(root, 'WinterVoice') + '/'))])
@@ -37,6 +49,9 @@ app.build_configurations.each do |config|
   config.build_settings['SWIFT_VERSION'] = '6.0'
   config.build_settings['SWIFT_STRICT_CONCURRENCY'] = 'complete'
   config.build_settings['CODE_SIGN_STYLE'] = 'Automatic'
+  # Hardened Runtime blocks DYLD_INSERT_LIBRARIES-style injection into a
+  # process holding Microphone, Accessibility, and Input Monitoring grants.
+  config.build_settings['ENABLE_HARDENED_RUNTIME'] = 'YES'
   config.build_settings.delete('DEVELOPMENT_TEAM')
   config.build_settings.delete('CODE_SIGN_ENTITLEMENTS')
 end

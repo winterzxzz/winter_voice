@@ -8,9 +8,12 @@ final class DictationInteractor: DictationInteracting {
     private let permissions: PermissionManaging
     private let textProcessor: TextProcessing
     private let history: HistoryRecording
+    private let failureResetDelay: Duration
     private var machine = DictationStateMachine()
     private var target: TextInsertionTarget?
     private var preparationTask: Task<Void, Never>?
+    private var finishTask: Task<Void, Never>?
+    private var failureResetTask: Task<Void, Never>?
     private var releasePending = false
 
     init(
@@ -19,7 +22,8 @@ final class DictationInteractor: DictationInteracting {
         injector: TextInjecting,
         permissions: PermissionManaging,
         textProcessor: TextProcessing = IdentityTextProcessor(),
-        history: HistoryRecording = NoopHistoryRecorder()
+        history: HistoryRecording = NoopHistoryRecorder(),
+        failureResetDelay: Duration = .seconds(4)
     ) {
         self.relay = relay
         self.transcriber = transcriber
@@ -27,11 +31,35 @@ final class DictationInteractor: DictationInteracting {
         self.permissions = permissions
         self.textProcessor = textProcessor
         self.history = history
+        self.failureResetDelay = failureResetDelay
     }
 
     func beginPushToTalk() {
+        // A new press dismisses a lingering failure banner instead of being
+        // silently swallowed for the rest of the auto-reset window.
+        if case .failed = machine.state {
+            failureResetTask?.cancel()
+            failureResetTask = nil
+            move(to: .idle)
+        }
+        // A press while transcribing is the only escape from a long
+        // transcription: abort it instead of silently swallowing the press.
+        // cancel() aborts a local whisper run; cancelling the tasks propagates
+        // Swift task cancellation into an in-flight remote URLSession request.
+        if machine.state == .processing {
+            transcriber.cancel()
+            preparationTask?.cancel()
+            finishTask?.cancel()
+            return
+        }
         guard machine.state == .idle else { return }
         releasePending = false
+        do {
+            try transcriber.validateConfiguration()
+        } catch {
+            fail(error)
+            return
+        }
         move(to: .preparing)
         preparationTask = Task { [weak self] in
             await self?.prepareAndRecord()
@@ -43,7 +71,7 @@ final class DictationInteractor: DictationInteracting {
         case .preparing:
             releasePending = true
         case .recording:
-            Task { [weak self] in await self?.finishDictation() }
+            finishTask = Task { [weak self] in await self?.finishDictation() }
         default:
             break
         }
@@ -51,7 +79,15 @@ final class DictationInteractor: DictationInteracting {
 
     private func prepareAndRecord() async {
         do {
-            try transcriber.validateConfiguration()
+            // Capture the focused field as close to the key press as possible,
+            // but never synchronously inside the event-tap callback: AX lookups
+            // are IPC into the focused app and can stall past the tap watchdog.
+            let snapshot = permissions.snapshot()
+            if snapshot.microphone == .authorized,
+               snapshot.inputMonitoring == .authorized,
+               snapshot.accessibility == .authorized {
+                target = try injector.captureTarget()
+            }
             try await requirePermission(.microphone)
             try await requirePermission(.inputMonitoring)
             guard permissions.snapshot().accessibility == .authorized else {
@@ -60,7 +96,7 @@ final class DictationInteractor: DictationInteracting {
                     recovery: "Open Settings and allow WinterVoice in Privacy & Security → Accessibility."
                 )
             }
-            target = try injector.captureTarget()
+            if target == nil { target = try injector.captureTarget() }
             try await transcriber.start()
             move(to: .recording)
             if releasePending { await finishDictation() }
@@ -80,11 +116,19 @@ final class DictationInteractor: DictationInteracting {
                 throw DictationFailure(message: "No speech was recognized.", recovery: "Hold the configured push-to-talk key and try speaking again.")
             }
             move(to: .inserting)
-            try await injector.insert(text, into: target)
-            history.record(text: text)
+            let outcome = try await injector.insert(text, into: target)
+            // Text dictated into a password field must never reach History.
+            if !outcome.landedInSecureField {
+                history.record(text: text)
+            }
             injector.discard(target)
             self.target = nil
             move(to: .idle)
+        } catch is CancellationError {
+            fail(DictationFailure(
+                message: "Transcription canceled.",
+                recovery: "Hold the push-to-talk key and dictate again."
+            ))
         } catch {
             fail(error)
         }
@@ -110,9 +154,11 @@ final class DictationInteractor: DictationInteracting {
             recovery: error.localizedDescription
         )
         move(to: .failed(failure))
-        Task { [weak self] in
-            try? await Task.sleep(for: .seconds(4))
-            guard let self, case .failed = self.machine.state else { return }
+        failureResetTask?.cancel()
+        let delay = failureResetDelay
+        failureResetTask = Task { [weak self] in
+            try? await Task.sleep(for: delay)
+            guard !Task.isCancelled, let self, case .failed = self.machine.state else { return }
             self.move(to: .idle)
         }
     }

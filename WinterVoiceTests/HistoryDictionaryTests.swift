@@ -1,8 +1,41 @@
 import XCTest
+import AppKit
 @testable import WinterVoice
 
 @MainActor
 final class HistoryDictionaryTests: XCTestCase {
+    func testFocusedTargetFallsBackToSystemWideAccessibilityWhenFrontmostLookupMisses() throws {
+        let app = try XCTUnwrap(NSWorkspace.shared.runningApplications.first)
+        let expected = FocusedAccessibilityTarget(
+            application: app,
+            element: AXUIElementCreateApplication(app.processIdentifier)
+        )
+        let subject = SystemFocusedAccessibilityTargetLocator(
+            frontmostTarget: { nil },
+            systemWideTarget: { expected }
+        )
+
+        let result = try XCTUnwrap(subject.focusedTarget())
+
+        XCTAssertEqual(result.application.processIdentifier, expected.application.processIdentifier)
+        XCTAssertTrue(CFEqual(try XCTUnwrap(result.element), try XCTUnwrap(expected.element)))
+    }
+
+    func testFocusedTargetFallsBackToFrontmostApplicationWhenCodexExposesNoAXElement() throws {
+        let app = try XCTUnwrap(NSWorkspace.shared.runningApplications.first)
+        let subject = SystemFocusedAccessibilityTargetLocator(
+            frontmostTarget: { nil },
+            systemWideTarget: { nil },
+            frontmostApplication: { app }
+        )
+
+        let result = try XCTUnwrap(subject.focusedTarget())
+
+        XCTAssertEqual(result.application.processIdentifier, app.processIdentifier)
+        XCTAssertNil(result.element)
+        XCTAssertFalse(result.isSecureField)
+    }
+
     func testDictionaryReplacesLongerPhrasesBeforeShorterPhrases() {
         let store = DictionaryStore(persistence: DictionaryPersistenceSpy())
         try? store.add(source: "Winter Voice", replacement: "WinterVoice")
@@ -92,9 +125,35 @@ final class HistoryDictionaryTests: XCTestCase {
         XCTAssertEqual(history.texts, ["the quick fox"])
     }
 
+    func testDictationPipelineInsertsIntoSecureFieldWithoutRecordingHistory() async throws {
+        let relay = DictationStateRelay()
+        let transcriber = PipelineTranscriberSpy()
+        let injector = PipelineInjectorSpy(landsInSecureField: true)
+        let history = HistoryRecorderSpy()
+        let permissions = PipelinePermissionSpy()
+        let dictionary = DictionaryStore(persistence: DictionaryPersistenceSpy())
+        try dictionary.add(source: "teh", replacement: "the")
+        let subject = DictationInteractor(
+            relay: relay,
+            transcriber: transcriber,
+            injector: injector,
+            permissions: permissions,
+            textProcessor: dictionary,
+            history: history
+        )
+
+        subject.beginPushToTalk()
+        await waitUntil { relay.state == .recording }
+        subject.endPushToTalk()
+        await waitUntil { relay.state == .idle }
+
+        XCTAssertEqual(injector.insertedText, "the quick fox")
+        XCTAssertTrue(history.texts.isEmpty)
+    }
+
     private func temporaryRoot(_ name: String) -> URL {
         FileManager.default.temporaryDirectory
-            .appendingPathComponent("WinterVoice-(name)-(UUID().uuidString)", isDirectory: true)
+            .appendingPathComponent("WinterVoice-\(name)-\(UUID().uuidString)", isDirectory: true)
     }
 }
 
@@ -125,8 +184,17 @@ private final class PipelineTranscriberSpy: SpeechTranscribing {
 @MainActor
 private final class PipelineInjectorSpy: TextInjecting {
     private(set) var insertedText: String?
+    private let landsInSecureField: Bool
+
+    init(landsInSecureField: Bool = false) {
+        self.landsInSecureField = landsInSecureField
+    }
+
     func captureTarget() throws -> TextInsertionTarget { TextInsertionTarget(id: UUID()) }
-    func insert(_ text: String, into target: TextInsertionTarget) async throws { insertedText = text }
+    func insert(_ text: String, into target: TextInsertionTarget) async throws -> InsertionOutcome {
+        insertedText = text
+        return InsertionOutcome(landedInSecureField: landsInSecureField)
+    }
     func discard(_ target: TextInsertionTarget) {}
 }
 

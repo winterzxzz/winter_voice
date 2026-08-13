@@ -12,9 +12,7 @@ struct OverviewView: View {
     }
 
     private var permissionsReady: Bool {
-        AppPermission.allCases.allSatisfy {
-            dictationPresenter.permissions[$0] == .authorized
-        }
+        OnboardingProgress(permissions: dictationPresenter.permissions) == .ready
     }
     private var providerStatus: ProviderStatus { presenter.providerStatus }
 
@@ -88,198 +86,137 @@ struct OverviewView: View {
 
 struct TranscriptionView: View {
     @ObservedObject var presenter: AppShellPresenter
+    @ObservedObject private var controller: TranscriptionSettingsController
+
+    init(presenter: AppShellPresenter) {
+        self.presenter = presenter
+        _controller = ObservedObject(wrappedValue: presenter.transcriptionSettings)
+    }
 
     private var status: ProviderStatus { presenter.providerStatus }
+    private var configuration: ProviderConfigurationStore { presenter.providerConfiguration }
+    private var models: ModelManager { presenter.modelManager }
 
     var body: some View {
         Form {
-            Section("Active Provider") {
+            Section("Transcription Provider") {
                 Picker("Mode", selection: Binding(
-                    get: { presenter.providerConfiguration.mode },
-                    set: { presenter.providerConfiguration.mode = $0 }
+                    get: { configuration.mode },
+                    set: { configuration.mode = $0 }
                 )) {
                     ForEach(ProviderMode.allCases, id: \.self) { Text($0.title).tag($0) }
                 }
+                .pickerStyle(.segmented)
                 LabeledContent("Provider", value: status.title)
                 LabeledContent("Status", value: status.stateLabel)
+                Text(status.readiness.detail).foregroundStyle(.secondary)
             }
 
-            Section {
-                Text(status.readiness.detail)
-                    .foregroundStyle(.secondary)
+            switch configuration.mode {
+            case .local:
+                localSections
+            case .remote:
+                remoteSections
             }
         }
         .formStyle(.grouped)
         .navigationTitle("Transcription")
+        .onAppear { controller.loadRemoteDraft() }
     }
-}
 
-struct ModelsView: View {
-    @ObservedObject var manager: ModelManager
-
-    var body: some View {
-        Form {
-            Section("Downloadable Models") {
-                if manager.catalog.isEmpty {
-                    ContentUnavailableView(
-                        "No Published Models",
-                        systemImage: "shippingbox",
-                        description: Text(manager.catalogMessage)
-                    )
-                }
-                ForEach(manager.catalog) { descriptor in
-                    VStack(alignment: .leading) {
-                        HStack {
-                            Text(descriptor.displayName)
-                            Spacer()
-                            if manager.downloadingModelIDs.contains(descriptor.id)
-                                || manager.installingModelIDs.contains(descriptor.id) {
-                                Button("Cancel") { manager.cancelInstall(descriptor.id) }
-                            } else {
-                                Button("Download") { manager.install(descriptor) }
-                            }
-                        }
-                        if let progress = manager.downloadProgress[descriptor.id] {
-                            ProgressView(value: progress)
-                        } else if manager.downloadingModelIDs.contains(descriptor.id) {
-                            ProgressView()
-                        } else if manager.installingModelIDs.contains(descriptor.id) {
-                            ProgressView("Installing and verifying…")
-                        }
-                    }
-                }
-                if let error = manager.lastError { Text(error).foregroundStyle(.red) }
-            }
-            Section("Installed Models") {
-                if manager.installed.isEmpty {
-                    Text("No local models are installed.").foregroundStyle(.secondary)
-                }
-                ForEach(manager.installed) { model in
-                    HStack {
-                        VStack(alignment: .leading) {
-                            Text(model.displayName)
-                            Text(model.runtime).font(.caption).foregroundStyle(.secondary)
-                        }
-                        Spacer()
-                        if manager.activeModelID == model.id { Text("Active").foregroundStyle(.green) }
-                        Button("Select") { Task { try? await manager.select(model.id) } }
-                        Button("Delete", role: .destructive) { Task { try? await manager.delete(model) } }
-                    }
-                }
-            }
-            Section {
-                Text("A real local catalog requires an owner-approved model artifact, authoritative download URL, SHA-256, and suitable license. WinterVoice does not expose a fake download.")
-                    .foregroundStyle(.secondary)
-            }
+    @ViewBuilder
+    private var localSections: some View {
+        Section("Vietnamese and Multilingual") {
+            ForEach(models.catalog.filter { !$0.isEnglishOnly }) { modelRow($0) }
         }
-        .formStyle(.grouped)
-        .navigationTitle("Models")
-    }
-}
-
-struct RemoteProvidersView: View {
-    @ObservedObject var store: ProviderConfigurationStore
-    @State private var baseURL = ""
-    @State private var model = ""
-    @State private var language = ""
-    @State private var apiKey = ""
-    @State private var result: String?
-
-    var body: some View {
-        Form {
-            Section("OpenAI-Compatible Endpoint") {
-                TextField("Base URL", text: $baseURL, prompt: Text("https://host.example/v1"))
-                TextField("Model", text: $model)
-                TextField("Language (optional)", text: $language)
-                SecureField(store.hasAPIKey ? "API key (optional, saved in Keychain)" : "API key (optional)", text: $apiKey)
-            }
-            Section {
-                HStack {
-                    Button("Save Configuration") { save() }
-                        .buttonStyle(.borderedProminent)
-                    Button("Test Connection") { testConnection() }
-                    if store.hasAPIKey {
-                        Button("Use Without Authentication", role: .destructive) { removeAPIKey() }
-                    }
-                }
-                if let result { Text(result).foregroundStyle(.secondary) }
-            }
-            Section {
-                Text("HTTPS is required except for an explicitly entered localhost or private LAN HTTP endpoint. Authentication is optional; when supplied, the API key is stored only in macOS Keychain and sent as Bearer authentication. WinterVoice does not log keys or transcript text.")
-                    .foregroundStyle(.secondary)
-            }
+        Section("English Only") {
+            ForEach(models.catalog.filter(\.isEnglishOnly)) { modelRow($0) }
         }
-        .formStyle(.grouped)
-        .navigationTitle("Remote Providers")
-        .onAppear {
-            baseURL = store.remote.baseURL
-            model = store.remote.model
-            language = store.remote.language
+        if let error = models.lastError {
+            Section { Text(error).foregroundStyle(.red) }
+        }
+        Section("Local Runtime Status") {
+            Text("Selected models run privately on this Mac with whisper.cpp. Multilingual models automatically detect Vietnamese, English, and other supported languages.")
+                .foregroundStyle(.secondary)
         }
     }
 
-    private var draft: RemoteProviderConfiguration {
-        .init(baseURL: baseURL, model: model, language: language)
+    @ViewBuilder
+    private var remoteSections: some View {
+        Section("OpenAI-Compatible Endpoint") {
+            TextField("Base URL", text: $controller.baseURL, prompt: Text("https://host.example/v1"))
+            TextField("Model", text: $controller.remoteModel)
+            TextField("Language (optional)", text: $controller.language)
+            SecureField(
+                configuration.hasAPIKey ? "API key (optional, saved in Keychain)" : "API key (optional)",
+                text: $controller.apiKey
+            )
+        }
+        Section {
+            HStack {
+                Button("Save Configuration") { controller.saveRemote() }.buttonStyle(.borderedProminent)
+                Button("Test Connection") { controller.testRemoteConnection() }
+                if configuration.hasAPIKey {
+                    Button("Use Without Authentication", role: .destructive) { controller.removeAPIKey() }
+                }
+            }
+            if let remoteResult = controller.remoteResult { Text(remoteResult).foregroundStyle(.secondary) }
+        }
+        Section {
+            Text("HTTPS is required except for localhost or a private LAN endpoint. API keys are stored in Keychain. Test Connection probes the draft above without saving it.")
+                .foregroundStyle(.secondary)
+        }
     }
 
-    private func save() {
-        do {
-            _ = try RemoteTranscriptionProvider.endpoint(for: draft)
-            guard !model.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-                throw DictationFailure(message: "Enter a model name.", recovery: "")
+    private func modelRow(_ descriptor: ModelDescriptor) -> some View {
+        let installed = models.installed.first { $0.id == descriptor.id }
+        return VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(descriptor.displayName)
+                    Text("\(descriptor.languageLabel) · \(descriptor.formattedFileSize)")
+                        .font(.caption).foregroundStyle(.secondary)
+                }
+                Spacer()
+                if models.activeModelID == descriptor.id {
+                    Text("Selected").foregroundStyle(.green)
+                }
+                if models.downloadingModelIDs.contains(descriptor.id)
+                    || models.installingModelIDs.contains(descriptor.id) {
+                    Button("Cancel") { models.cancelInstall(descriptor.id) }
+                } else if installed != nil {
+                    Button("Select") { Task { await models.select(descriptor.id) } }
+                        .disabled(models.activeModelID == descriptor.id)
+                    Button("Delete", role: .destructive) {
+                        if let installed { Task { await models.delete(installed) } }
+                    }
+                } else {
+                    Button("Download") { models.install(descriptor) }
+                }
             }
-            try store.saveRemote(draft, apiKey: apiKey.isEmpty ? nil : apiKey)
-            apiKey = ""
-            result = "Configuration saved."
-        } catch let failure as DictationFailure { result = failure.message }
-        catch { result = "Could not save the configuration." }
+            if let progress = models.downloadProgress[descriptor.id] {
+                ProgressView(value: progress)
+            } else if models.downloadingModelIDs.contains(descriptor.id) {
+                ProgressView()
+            } else if models.installingModelIDs.contains(descriptor.id) {
+                ProgressView("Installing and verifying…")
+            }
+        }
     }
 
-    private func testConnection() {
-        do {
-            _ = try RemoteTranscriptionProvider.endpoint(for: draft)
-            guard !model.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-                return result = "Enter a model name."
-            }
-            try store.saveRemote(draft, apiKey: apiKey.isEmpty ? nil : apiKey)
-            apiKey = ""
-            result = "Testing connection…"
-            Task {
-                do {
-                    let key = try store.apiKey()
-                    _ = try await RemoteTranscriptionProvider().transcribe(
-                        audio: RecordedAudio(samples: [0], sampleRate: 16_000),
-                        configuration: store.remote,
-                        apiKey: key
-                    )
-                    result = "Connected successfully."
-                } catch let failure as DictationFailure { result = failure.message }
-                catch { result = "Connection test failed." }
-            }
-        } catch let failure as DictationFailure { result = failure.message }
-        catch { result = "Configuration is invalid." }
-    }
-
-    private func removeAPIKey() {
-        do {
-            try store.removeAPIKey()
-            apiKey = ""
-            result = "API key removed. Remote requests will use no authentication."
-        } catch let failure as DictationFailure { result = failure.message }
-        catch { result = "Could not remove the API key." }
-    }
 }
 
 struct HotkeyView: View {
     @ObservedObject var presenter: DictationPresenter
     @ObservedObject var binding: HotkeyBindingStore
+    var captureSuspender: HotkeyCaptureSuspending?
 
     var body: some View {
         Form {
             Section("Push to Talk") {
                 LabeledContent("Current hotkey") {
                     HStack {
-                        HotkeyRecorder(binding: $binding.selection)
+                        HotkeyRecorder(binding: $binding.selection, captureSuspender: captureSuspender)
                         Button("Reset to Fn / Globe") {
                             binding.selection = .function
                         }
@@ -307,23 +244,27 @@ struct HotkeyView: View {
 
 private struct HotkeyRecorder: NSViewRepresentable {
     @Binding var binding: HotkeyBinding
+    var captureSuspender: HotkeyCaptureSuspending?
 
     func makeNSView(context: Context) -> HotkeyRecorderView {
         let view = HotkeyRecorderView()
         view.onRecord = { self.binding = $0 }
         view.binding = binding
+        view.captureSuspender = captureSuspender
         return view
     }
 
     func updateNSView(_ view: HotkeyRecorderView, context: Context) {
         view.onRecord = { self.binding = $0 }
         view.binding = binding
+        view.captureSuspender = captureSuspender
     }
 }
 
 private final class HotkeyRecorderView: NSButton {
     var onRecord: ((HotkeyBinding) -> Void)?
     var binding: HotkeyBinding = .function { didSet { refreshTitle() } }
+    weak var captureSuspender: (any HotkeyCaptureSuspending & AnyObject)?
     private var isRecording = false
     private var pendingModifierFlags: CGEventFlags = []
 
@@ -342,8 +283,16 @@ private final class HotkeyRecorderView: NSButton {
     @objc private func beginRecording() {
         isRecording = true
         pendingModifierFlags = []
+        // The global tap keeps matching the CURRENT binding while a new one is
+        // recorded; pressing its modifier here must not start a dictation.
+        captureSuspender?.suspendMatching()
         window?.makeFirstResponder(self)
         refreshTitle()
+    }
+
+    override func viewWillMove(toWindow newWindow: NSWindow?) {
+        if newWindow == nil, isRecording { finishRecording() }
+        super.viewWillMove(toWindow: newWindow)
     }
 
     override func keyDown(with event: NSEvent) {
@@ -374,6 +323,7 @@ private final class HotkeyRecorderView: NSButton {
 
     override func resignFirstResponder() -> Bool {
         isRecording = false
+        captureSuspender?.resumeMatching()
         refreshTitle()
         return super.resignFirstResponder()
     }
@@ -381,6 +331,7 @@ private final class HotkeyRecorderView: NSButton {
     private func finishRecording() {
         isRecording = false
         pendingModifierFlags = []
+        captureSuspender?.resumeMatching()
         refreshTitle()
     }
 
@@ -409,15 +360,15 @@ struct PrivacyView: View {
             Section("Audio and Transcripts") {
                 privacyRow(presenter.providerStatus.privacySummary, icon: "waveform.badge.mic")
                 privacyRow("Audio is held in memory only. Successfully inserted transcription text is saved locally in History; audio and API keys are never logged.", icon: "internaldrive")
-                privacyRow("Local models remain blocked on an approved artifact and runtime; generic Remote is operational when configured.", icon: "network.slash")
+                privacyRow("Local transcription runs on this Mac; Remote sends audio only to the endpoint you configure.", icon: "network.slash")
             }
 
             Section("Safe Insertion") {
-                privacyRow("WinterVoice targets the exact field that was focused when dictation began.", icon: "scope")
+                privacyRow("When the focused field is visible to Accessibility, WinterVoice targets that exact field and fails safely if it loses focus.", icon: "scope")
                 privacyRow("Direct Accessibility insertion is attempted before clipboard paste.", icon: "accessibility")
-                privacyRow("Clipboard fallback restores prior contents and will not overwrite a newer clipboard change.", icon: "doc.on.clipboard")
-                Text("If focus can no longer be verified, insertion fails safely instead of pasting into another field.")
-                    .foregroundStyle(.secondary)
+                privacyRow("Apps that do not expose their focused field to Accessibility fall back to paste after verifying the same app is still frontmost — field-level verification is not possible there.", icon: "questionmark.app")
+                privacyRow("Clipboard fallback marks the transcription as concealed and transient for clipboard managers, restores prior contents, and will not overwrite a newer clipboard change.", icon: "doc.on.clipboard")
+                privacyRow("Text dictated into a detected password field is inserted but never saved to History.", icon: "key")
             }
         }
         .formStyle(.grouped)

@@ -1,10 +1,94 @@
 import Foundation
+import AVFoundation
+import CryptoKit
 import Security
 import XCTest
 @testable import WinterVoice
 
 @MainActor
 final class ProviderConfigurationTests: XCTestCase {
+    func testSelectedLocalModelIsReadyAndTranscribesThroughLocalRuntime() async throws {
+        let suite = "LocalRuntimeMessageTests.\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(suite)
+        defer { try? FileManager.default.removeItem(at: root) }
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        let source = root.appendingPathComponent("model.bin")
+        let bytes = Data("local model".utf8)
+        try bytes.write(to: source)
+        let hash = SHA256.hash(data: bytes).map { String(format: "%02x", $0) }.joined()
+        let descriptor = ModelDescriptor(
+            id: "local-test", displayName: "Local Test", family: "whisper",
+            runtime: "whisper.cpp", variant: "tiny", quantization: nil,
+            downloadURL: URL(string: "https://models.example/model.bin")!,
+            fileName: "model.bin", fileSize: Int64(bytes.count), sha256: hash
+        )
+        let models = ModelManager(root: root.appendingPathComponent("store"))
+        try await models.installDownloadedFile(source, descriptor: descriptor)
+        await models.select(descriptor.id)
+        XCTAssertNil(models.lastError)
+        let store = ProviderConfigurationStore(defaults: defaults, credentials: CredentialStoreSpy())
+        store.mode = .local
+        let runtime = LocalRuntimeSpy(result: "xin chào")
+        let subject = ConfiguredTranscriber(
+            recorder: AudioRecorderSpy(samples: [0.1, -0.1]),
+            configuration: store,
+            models: models,
+            localRuntime: runtime
+        )
+
+        XCTAssertNoThrow(try subject.validateConfiguration())
+        try await subject.start()
+        let transcription = try await subject.stop()
+        XCTAssertEqual(transcription, "xin chào")
+        let request = await runtime.request
+        XCTAssertEqual(request?.audio.samples, [0.1, -0.1])
+        XCTAssertEqual(request?.audio.sampleRate, 16_000)
+        XCTAssertEqual(request?.modelURL.lastPathComponent, "model.bin")
+        XCTAssertNil(request?.language)
+    }
+
+    func testEnglishOnlyModelRoutesEnglishLanguageToLocalRuntime() async throws {
+        let suite = "EnglishOnlyRoutingTests.\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(suite)
+        defer { try? FileManager.default.removeItem(at: root) }
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        let source = root.appendingPathComponent("ggml-tiny.en.bin")
+        let bytes = Data("english-only model".utf8)
+        try bytes.write(to: source)
+        let hash = SHA256.hash(data: bytes).map { String(format: "%02x", $0) }.joined()
+        let descriptor = ModelDescriptor(
+            id: "local-test-en", displayName: "Local Test English", family: "whisper",
+            runtime: "whisper.cpp", variant: "tiny.en", quantization: nil,
+            downloadURL: URL(string: "https://models.example/ggml-tiny.en.bin")!,
+            fileName: "ggml-tiny.en.bin", fileSize: Int64(bytes.count), sha256: hash
+        )
+        let models = ModelManager(root: root.appendingPathComponent("store"))
+        try await models.installDownloadedFile(source, descriptor: descriptor)
+        await models.select(descriptor.id)
+        XCTAssertNil(models.lastError)
+        XCTAssertEqual(models.activeModel?.isEnglishOnly, true)
+        let store = ProviderConfigurationStore(defaults: defaults, credentials: CredentialStoreSpy())
+        store.mode = .local
+        let runtime = LocalRuntimeSpy(result: "hello")
+        let subject = ConfiguredTranscriber(
+            recorder: AudioRecorderSpy(samples: [0.1, -0.1]),
+            configuration: store,
+            models: models,
+            localRuntime: runtime
+        )
+
+        try await subject.start()
+        let transcription = try await subject.stop()
+        XCTAssertEqual(transcription, "hello")
+        let request = await runtime.request
+        XCTAssertEqual(request?.modelURL.lastPathComponent, "ggml-tiny.en.bin")
+        XCTAssertEqual(request?.language, "en")
+    }
+
     func testModeRemoteConfigurationAndCredentialPersistAtTheirOwnedStores() throws {
         let suite = "ProviderConfigurationTests.\(UUID().uuidString)"
         let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
@@ -44,7 +128,7 @@ final class ProviderConfigurationTests: XCTestCase {
         try store.saveRemote(.init(baseURL: "https://host.example/v1", model: "m", language: ""), apiKey: "secret")
         let remote = store.status(localModels: models)
         XCTAssertTrue(remote.isReady)
-        XCTAssertTrue(remote.overviewSummary.contains("Remote transcription is configured"))
+        XCTAssertTrue(remote.overviewSummary.contains("Transcription is ready"))
         XCTAssertTrue(remote.privacySummary.contains("configured remote endpoint"))
         XCTAssertTrue(remote.readiness.detail.contains("Keychain authentication"))
     }
@@ -134,6 +218,20 @@ final class RemoteProviderTests: XCTestCase {
         XCTAssertEqual(queryEndpoint.query, "deployment=a", "Non-secret endpoint query parameters are deliberately preserved")
     }
 
+    func testIsLocalOrLANRequiresHostToBeAnIPLiteralOrLocalName() {
+        for host in ["localhost", "myhost.local", "127.0.0.1", "10.0.0.5", "192.168.1.4", "172.16.0.1", "::1", "[::1]"] {
+            XCTAssertTrue(RemoteTranscriptionProvider.isLocalOrLAN(host), "Expected \(host) to count as local/LAN")
+        }
+        for host in ["10.1.2.3.attacker.com", "8.8.8.8", "172.32.0.1", "public.example"] {
+            XCTAssertFalse(RemoteTranscriptionProvider.isLocalOrLAN(host), "Expected \(host) to be rejected")
+        }
+        XCTAssertThrowsError(
+            try RemoteTranscriptionProvider.endpoint(for: .init(baseURL: "http://10.1.2.3.attacker.com/v1", model: "m", language: "")),
+            "A public DNS name embedding a private IP must not unlock plain HTTP"
+        )
+        XCTAssertNoThrow(try RemoteTranscriptionProvider.endpoint(for: .init(baseURL: "http://[::1]:8080/v1", model: "m", language: "")))
+    }
+
     func testMultipartRequestAndStandardTextResponse() async throws {
         let transport = RemoteTransportSpy(status: 200, body: #"{"text":"hello"}"#)
         let subject = RemoteTranscriptionProvider(transport: transport)
@@ -210,9 +308,165 @@ final class RemoteProviderTests: XCTestCase {
             } catch { XCTFail("Unexpected error: \(error)") }
         }
     }
+
+    func testConnectionProbeAcceptsEmptyTranscriptionAndSendsRealAudioPayload() async throws {
+        let transport = RemoteTransportSpy(status: 200, body: #"{"text":""}"#)
+        let subject = RemoteTranscriptionProvider(transport: transport)
+
+        try await subject.testConnection(
+            configuration: .init(baseURL: "https://host.example/v1", model: "m", language: ""),
+            apiKey: "probe-key"
+        )
+
+        XCTAssertEqual(RemoteTranscriptionProvider.connectionProbeAudio.samples.count, 3_200)
+        XCTAssertEqual(RemoteTranscriptionProvider.connectionProbeAudio.sampleRate, 16_000)
+        let capturedRequest = await transport.request
+        let request = try XCTUnwrap(capturedRequest)
+        XCTAssertEqual(request.url?.path, "/v1/audio/transcriptions")
+        XCTAssertEqual(request.value(forHTTPHeaderField: "Authorization"), "Bearer probe-key")
+        let body = try XCTUnwrap(request.httpBody)
+        XCTAssertNotNil(body.range(of: Data("filename=\"audio.wav\"".utf8)))
+        XCTAssertGreaterThan(body.count, 12_800, "The probe carries 0.2 s of 16 kHz audio (3,200 four-byte samples)")
+    }
+
+    func testConnectionProbeMapsAuthenticationFailureLikeTranscription() async {
+        let subject = RemoteTranscriptionProvider(transport: RemoteTransportSpy(status: 401, body: "key=secret"))
+        do {
+            try await subject.testConnection(
+                configuration: .init(baseURL: "https://host.example/v1", model: "m", language: ""),
+                apiKey: "secret"
+            )
+            XCTFail("Expected failure")
+        } catch let failure as DictationFailure {
+            XCTAssertEqual(failure.message, "Remote authentication failed.")
+            XCTAssertFalse(failure.message.contains("secret"))
+        } catch { XCTFail("Unexpected error: \(error)") }
+    }
+
+    func testConnectionProbeWithoutKeySendsNoAuthorizationHeader() async throws {
+        let transport = RemoteTransportSpy(status: 200, body: #"{"text":"ok"}"#)
+
+        try await RemoteTranscriptionProvider(transport: transport).testConnection(
+            configuration: .init(baseURL: "http://localhost:8080/v1", model: "m", language: ""),
+            apiKey: nil
+        )
+
+        let capturedRequest = await transport.request
+        let request = try XCTUnwrap(capturedRequest)
+        XCTAssertNil(request.value(forHTTPHeaderField: "Authorization"))
+    }
+}
+
+final class WhisperContextActorGuardTests: XCTestCase {
+    func testRejectsAudioThatIsNot16kHzBeforeAnyModelWork() async {
+        await assertTranscriptionFails(
+            audio: RecordedAudio(samples: [0.1, -0.1], sampleRate: 44_100),
+            messageContaining: "unsupported audio"
+        )
+    }
+
+    func testRejectsEmptyRecordingBeforeAnyModelWork() async {
+        await assertTranscriptionFails(
+            audio: RecordedAudio(samples: [], sampleRate: 16_000),
+            messageContaining: "No speech was recorded"
+        )
+    }
+
+    func testRejectsMissingModelFileBeforeLoadingRuntime() async {
+        await assertTranscriptionFails(
+            audio: RecordedAudio(samples: [0.1, -0.1], sampleRate: 16_000),
+            modelURL: FileManager.default.temporaryDirectory
+                .appendingPathComponent("WhisperGuardTests.\(UUID().uuidString)")
+                .appendingPathComponent("ggml-missing.bin"),
+            messageContaining: "missing"
+        )
+    }
+
+    private func assertTranscriptionFails(
+        audio: RecordedAudio,
+        modelURL: URL = URL(fileURLWithPath: "/nonexistent/whisper-guard-model.bin"),
+        messageContaining fragment: String,
+        file: StaticString = #filePath,
+        line: UInt = #line
+    ) async {
+        do {
+            _ = try await WhisperContextActor().transcribe(audio, modelURL: modelURL, language: nil)
+            XCTFail("Expected transcription to be rejected", file: file, line: line)
+        } catch let failure as DictationFailure {
+            XCTAssertTrue(
+                failure.message.contains(fragment),
+                "\(failure.message.debugDescription) should contain \(fragment.debugDescription)",
+                file: file, line: line
+            )
+        } catch {
+            XCTFail("Unexpected error: \(error)", file: file, line: line)
+        }
+    }
+}
+
+final class WhisperRuntimeIntegrationTests: XCTestCase {
+    func testRealWhisperRuntimeTranscribesFixtureWhenPathsAreProvided() async throws {
+        let environment = ProcessInfo.processInfo.environment
+        let modelPath = environment["WINTERVOICE_WHISPER_TEST_MODEL"]
+            ?? FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+                .appendingPathComponent("WinterVoice/Models/whisper-tiny/ggml-tiny.bin").path
+        let audioPath = environment["WINTERVOICE_WHISPER_TEST_AUDIO"] ?? "/tmp/whisper-jfk.wav"
+        guard FileManager.default.fileExists(atPath: modelPath),
+              FileManager.default.fileExists(atPath: audioPath) else {
+            throw XCTSkip("Install Whisper Tiny and provide the JFK fixture to run this integration test.")
+        }
+        let file = try AVAudioFile(forReading: URL(fileURLWithPath: audioPath))
+        let format = file.processingFormat
+        XCTAssertEqual(format.sampleRate, 16_000)
+        XCTAssertEqual(format.channelCount, 1)
+        let buffer = try XCTUnwrap(
+            AVAudioPCMBuffer(pcmFormat: format, frameCapacity: AVAudioFrameCount(file.length))
+        )
+        try file.read(into: buffer)
+        let channel = try XCTUnwrap(buffer.floatChannelData?[0])
+        let samples = Array(UnsafeBufferPointer(start: channel, count: Int(buffer.frameLength)))
+
+        let transcription = try await WhisperContextActor().transcribe(
+            RecordedAudio(samples: samples, sampleRate: format.sampleRate),
+            modelURL: URL(fileURLWithPath: modelPath),
+            language: "en"
+        )
+
+        XCTAssertTrue(transcription.localizedCaseInsensitiveContains("fellow Americans"))
+    }
 }
 
 private enum TestFailure: Error { case expected }
+
+@MainActor
+private final class AudioRecorderSpy: AudioRecording {
+    private let samples: [Float]
+    init(samples: [Float] = []) { self.samples = samples }
+    func start() throws {}
+    func stop() throws -> RecordedAudio { RecordedAudio(samples: samples, sampleRate: 16_000) }
+    func cancel() {}
+}
+
+private actor LocalRuntimeSpy: LocalTranscriptionRunning {
+    struct Request: Sendable {
+        let audio: RecordedAudio
+        let modelURL: URL
+        let language: String?
+    }
+
+    private(set) var request: Request?
+    private let result: String
+
+    init(result: String) { self.result = result }
+
+    func transcribe(_ audio: RecordedAudio, modelURL: URL, language: String?) -> String {
+        request = Request(audio: audio, modelURL: modelURL, language: language)
+        return result
+    }
+
+    nonisolated func cancelActiveTranscription() {}
+    func unloadContext() {}
+}
 
 private final class CredentialStoreSpy: CredentialStoring {
     var value: String?

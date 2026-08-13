@@ -4,7 +4,7 @@ import XCTest
 final class AppShellSemanticsTests: XCTestCase {
     func testOperationalDestinationsAreAvailable() {
         let destinations: [AppShellDestination] = [
-            .overview, .permissions, .transcription, .hotkey, .privacy, .models, .remoteProviders
+            .overview, .permissions, .transcription, .hotkey, .privacy
         ]
         XCTAssertTrue(destinations.allSatisfy { $0.availability == .available })
     }
@@ -17,7 +17,7 @@ final class AppShellSemanticsTests: XCTestCase {
     }
 
     func testEveryDestinationHasExactlyOneAvailability() {
-        XCTAssertEqual(AppShellDestination.allCases.count, 9)
+        XCTAssertEqual(AppShellDestination.allCases.count, 7)
         XCTAssertTrue(AppShellDestination.allCases.allSatisfy { $0.availability == .available })
     }
 }

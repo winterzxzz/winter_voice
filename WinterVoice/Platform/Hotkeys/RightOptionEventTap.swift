@@ -1,4 +1,5 @@
 import AppKit
+import Carbon.HIToolbox
 import Combine
 
 enum RightOptionEvent {
@@ -21,14 +22,16 @@ protocol HotkeyReconciling: AnyObject {
 }
 
 @MainActor
-final class RightOptionEventTap: HotkeyReconciling {
+final class RightOptionEventTap: HotkeyReconciling, HotkeyCaptureSuspending {
     private weak var interactor: DictationInteracting?
     private let relay: HotkeyHealthRelay
     private let binding: HotkeyBindingStore
     private let listenAccessGranted: () -> Bool
+    private let physicallyPressed: (HotkeyBinding) -> Bool
     private let backend: RightOptionEventTapBacking
     private var isInstalled = false
     private var isPressed = false
+    private var isSuspended = false
     private var bindingCancellable: AnyCancellable?
 
     init(
@@ -36,12 +39,14 @@ final class RightOptionEventTap: HotkeyReconciling {
         relay: HotkeyHealthRelay,
         binding: HotkeyBindingStore = HotkeyBindingStore(),
         listenAccessGranted: @escaping () -> Bool = { CGPreflightListenEventAccess() },
+        physicallyPressed: @escaping (HotkeyBinding) -> Bool = RightOptionEventTap.systemPhysicalPressState,
         backend: RightOptionEventTapBacking = SystemRightOptionEventTapBackend()
     ) {
         self.interactor = interactor
         self.relay = relay
         self.binding = binding
         self.listenAccessGranted = listenAccessGranted
+        self.physicallyPressed = physicallyPressed
         self.backend = backend
         backend.eventHandler = { [weak self] event in self?.receive(event) }
         bindingCancellable = binding.objectWillChange.sink { [weak self] _ in
@@ -49,6 +54,18 @@ final class RightOptionEventTap: HotkeyReconciling {
             self.isPressed = false
             self.interactor?.endPushToTalk()
         }
+    }
+
+    /// While suspended, hotkey events are ignored so recording a new
+    /// binding in Settings cannot trigger a live dictation.
+    func suspendMatching() {
+        guard !isSuspended else { return }
+        isSuspended = true
+        if isPressed { updatePressed(false) }
+    }
+
+    func resumeMatching() {
+        isSuspended = false
     }
 
     func reconcile() {
@@ -73,7 +90,12 @@ final class RightOptionEventTap: HotkeyReconciling {
     private func tearDown() {
         backend.uninstall()
         isInstalled = false
-        isPressed = false
+        // A dictation held open by this tap must end with the tap: once the
+        // tap is gone no release event can ever arrive to stop the recorder.
+        if isPressed {
+            isPressed = false
+            interactor?.endPushToTalk()
+        }
     }
 
     private func receive(_ event: RightOptionEvent) {
@@ -85,13 +107,20 @@ final class RightOptionEventTap: HotkeyReconciling {
                 relay.publish(listenAccessGranted() ? .installationFailed : .permissionRequired)
             } else {
                 relay.publish(.listening)
+                // A release delivered while the tap was disabled was never
+                // observed; trust the physical key state over our last event.
+                if isPressed, !physicallyPressed(binding.selection) {
+                    updatePressed(false)
+                }
             }
         case .modifierChanged(let keyCode, let flags):
+            guard !isSuspended else { return }
             let selected = binding.selection
             guard selected.isModifierOnly else { return }
             let pressed = selected.matchesModifierEvent(keyCode: keyCode, flags: flags)
             updatePressed(pressed)
         case .keyChanged(let keyCode, let flags, let isDown):
+            guard !isSuspended else { return }
             let selected = binding.selection
             guard selected.matchesKeyEvent(keyCode: keyCode, flags: flags) else { return }
             updatePressed(isDown)
@@ -102,6 +131,17 @@ final class RightOptionEventTap: HotkeyReconciling {
             guard pressed != isPressed else { return }
             isPressed = pressed
             pressed ? interactor?.beginPushToTalk() : interactor?.endPushToTalk()
+    }
+
+    nonisolated static func systemPhysicalPressState(for binding: HotkeyBinding) -> Bool {
+        if binding.keyCode >= 0 {
+            if Int(binding.keyCode) == kVK_Function {
+                return CGEventSource.flagsState(.combinedSessionState).contains(.maskSecondaryFn)
+            }
+            return CGEventSource.keyState(.combinedSessionState, key: CGKeyCode(binding.keyCode))
+        }
+        let active = CGEventSource.flagsState(.combinedSessionState).intersection(.hotkeyModifiers)
+        return active.contains(binding.modifiers)
     }
 }
 

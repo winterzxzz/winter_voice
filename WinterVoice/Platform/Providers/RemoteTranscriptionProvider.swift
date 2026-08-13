@@ -1,3 +1,4 @@
+import Darwin
 import Foundation
 
 protocol RemoteTransport: Sendable {
@@ -44,6 +45,32 @@ struct RemoteTranscriptionProvider: Sendable {
         configuration: RemoteProviderConfiguration,
         apiKey: String?
     ) async throws -> String {
+        let (data, response) = try await send(audio: audio, configuration: configuration, apiKey: apiKey)
+        return try Self.decode(data: data, response: response)
+    }
+
+    /// Probes the given configuration without any side effects on stored
+    /// settings: reachability, authentication, and response shape only.
+    func testConnection(configuration: RemoteProviderConfiguration, apiKey: String?) async throws {
+        let (data, response) = try await send(
+            audio: Self.connectionProbeAudio,
+            configuration: configuration,
+            apiKey: apiKey
+        )
+        try Self.validateConnectionTestResponse(data: data, response: response)
+    }
+
+    /// 0.2 s of silence: enough to satisfy providers that enforce a minimum
+    /// audio duration (OpenAI rejects anything under 0.1 s).
+    static var connectionProbeAudio: RecordedAudio {
+        RecordedAudio(samples: [Float](repeating: 0, count: 3_200), sampleRate: 16_000)
+    }
+
+    private func send(
+        audio: RecordedAudio,
+        configuration: RemoteProviderConfiguration,
+        apiKey: String?
+    ) async throws -> (Data, URLResponse) {
         let endpoint = try Self.endpoint(for: configuration)
         let request = try Self.makeRequest(
             endpoint: endpoint,
@@ -52,12 +79,14 @@ struct RemoteTranscriptionProvider: Sendable {
             apiKey: apiKey,
             boundary: "WinterVoice-\(UUID().uuidString)"
         )
-        let data: Data
-        let response: URLResponse
-        do { (data, response) = try await transport.data(for: request) } catch {
+        do { return try await transport.data(for: request) } catch {
+            let nsError = error as NSError
+            if error is CancellationError
+                || (nsError.domain == NSURLErrorDomain && nsError.code == NSURLErrorCancelled) {
+                throw CancellationError()
+            }
             throw DictationFailure(message: "Could not reach the remote provider.", recovery: "Check the endpoint and network connection.")
         }
-        return try Self.decode(data: data, response: response)
     }
 
     static func makeRequest(
@@ -103,9 +132,32 @@ struct RemoteTranscriptionProvider: Sendable {
     }
 
     static func decode(data: Data, response: URLResponse) throws -> String {
+        let http = try validatedHTTPResponse(response)
+        try validateStatus(http)
+        guard let decoded = try? JSONDecoder().decode(Response.self, from: data), !decoded.text.isEmpty else {
+            throw DictationFailure(message: "The remote provider returned an invalid response.", recovery: "Expected an OpenAI-compatible JSON response containing text.")
+        }
+        return decoded.text
+    }
+
+    static func validateConnectionTestResponse(data: Data, response: URLResponse) throws {
+        let http = try validatedHTTPResponse(response)
+        try validateStatus(http)
+        // Silence legitimately transcribes to empty text; the probe validates
+        // reachability, auth, and response shape — not recognition output.
+        guard (try? JSONDecoder().decode(Response.self, from: data)) != nil else {
+            throw DictationFailure(message: "The remote provider returned an invalid response.", recovery: "Expected an OpenAI-compatible JSON response containing text.")
+        }
+    }
+
+    private static func validatedHTTPResponse(_ response: URLResponse) throws -> HTTPURLResponse {
         guard let http = response as? HTTPURLResponse else {
             throw DictationFailure(message: "The remote provider returned an invalid response.", recovery: "Check provider compatibility.")
         }
+        return http
+    }
+
+    private static func validateStatus(_ http: HTTPURLResponse) throws {
         switch http.statusCode {
         case 200..<300: break
         case 401, 403:
@@ -115,20 +167,26 @@ struct RemoteTranscriptionProvider: Sendable {
         default:
             throw DictationFailure(message: "Remote transcription failed (HTTP \(http.statusCode)).", recovery: "Check the provider configuration and try again.")
         }
-        guard let decoded = try? JSONDecoder().decode(Response.self, from: data), !decoded.text.isEmpty else {
-            throw DictationFailure(message: "The remote provider returned an invalid response.", recovery: "Expected an OpenAI-compatible JSON response containing text.")
-        }
-        return decoded.text
     }
 
-    private static func isLocalOrLAN(_ host: String) -> Bool {
-        if host == "localhost" || host == "::1" || host.hasSuffix(".local") { return true }
-        let octets = host.split(separator: ".").compactMap { Int($0) }
-        guard octets.count == 4 else { return false }
-        return octets[0] == 10
-            || (octets[0] == 192 && octets[1] == 168)
-            || (octets[0] == 172 && (16...31).contains(octets[1]))
-            || octets[0] == 127
+    static func isLocalOrLAN(_ host: String) -> Bool {
+        if host == "localhost" || host.hasSuffix(".local") { return true }
+        // The host must BE an IP literal, not merely contain numeric labels:
+        // "10.1.2.3.attacker.com" is a public DNS name and must not pass.
+        let bracketless = host.trimmingCharacters(in: CharacterSet(charactersIn: "[]"))
+        var v6 = in6_addr()
+        if inet_pton(AF_INET6, bracketless, &v6) == 1 {
+            return bracketless == "::1"
+        }
+        var v4 = in_addr()
+        guard inet_pton(AF_INET, host, &v4) == 1 else { return false }
+        let address = UInt32(bigEndian: v4.s_addr)
+        let octet1 = (address >> 24) & 0xFF
+        let octet2 = (address >> 16) & 0xFF
+        return octet1 == 10
+            || octet1 == 127
+            || (octet1 == 192 && octet2 == 168)
+            || (octet1 == 172 && (16...31).contains(octet2))
     }
 }
 

@@ -58,9 +58,11 @@ final class KeychainCredentialStore: CredentialStoring {
             kSecAttrService as String: service,
             kSecAttrAccount as String: account
         ]
+        // No kSecAttrAccessible here: it only applies to the data-protection
+        // keychain; on the default file-based login keychain it is silently
+        // ignored, and declaring it would misstate the item's real protection.
         let valueAttributes: [String: Any] = [
-            kSecValueData as String: Data(value.utf8),
-            kSecAttrAccessible as String: kSecAttrAccessibleAfterFirstUnlock
+            kSecValueData as String: Data(value.utf8)
         ]
         let updateStatus = operations.update(identity as CFDictionary, attributes: valueAttributes as CFDictionary)
         if updateStatus == errSecSuccess { return }
@@ -89,8 +91,13 @@ final class KeychainCredentialStore: CredentialStoring {
 
 @MainActor
 final class ProviderConfigurationStore: ObservableObject {
+    var onModeChange: ((ProviderMode) -> Void)?
+
     @Published var mode: ProviderMode {
-        didSet { defaults.set(mode.rawValue, forKey: Keys.mode) }
+        didSet {
+            defaults.set(mode.rawValue, forKey: Keys.mode)
+            if oldValue != mode { onModeChange?(mode) }
+        }
     }
     @Published var remote: RemoteProviderConfiguration
     @Published private(set) var hasAPIKey: Bool
@@ -128,9 +135,9 @@ final class ProviderConfigurationStore: ObservableObject {
         switch mode {
         case .local:
             guard let active = localModels.activeModel else {
-                return .unavailable("No active local model. No supported downloadable model is published yet.")
+                return .unavailable("Choose and download a local model below.")
             }
-            return .unavailable("\(active.displayName) is installed, but the approved whisper.cpp runtime dependency is not present.")
+            return .ready("\(active.displayName) is installed and ready for private, on-device transcription.")
         case .remote:
             do {
                 _ = try RemoteTranscriptionProvider.endpoint(for: remote)

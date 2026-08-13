@@ -20,6 +20,10 @@ struct TextInsertionTarget: Hashable, Sendable {
     let id: UUID
 }
 
+struct InsertionOutcome: Equatable, Sendable {
+    let landedInSecureField: Bool
+}
+
 enum DictationTransitionError: Error, Equatable {
     case invalid(from: DictationState, to: DictationState)
 }
@@ -43,7 +47,8 @@ struct DictationStateMachine {
              (.inserting, .idle),
              (.failed, .idle):
             return true
-        case (.preparing, .failed),
+        case (.idle, .failed),
+             (.preparing, .failed),
              (.recording, .failed),
              (.processing, .failed),
              (.inserting, .failed):

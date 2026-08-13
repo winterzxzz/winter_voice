@@ -25,11 +25,6 @@ struct AppShellView: View {
                     sidebarRow(.privacy)
                 }
 
-                Section("Providers") {
-                    sidebarRow(.models)
-                    sidebarRow(.remoteProviders)
-                }
-
                 Section("Data") {
                     sidebarRow(.history)
                     sidebarRow(.dictionary)
@@ -76,14 +71,11 @@ struct AppShellView: View {
         case .hotkey:
             HotkeyView(
                 presenter: presenter.dictationPresenter,
-                binding: presenter.hotkeyBinding
+                binding: presenter.hotkeyBinding,
+                captureSuspender: presenter.hotkeyCaptureSuspender
             )
         case .privacy:
             PrivacyView(presenter: presenter)
-        case .models:
-            ModelsView(manager: presenter.modelManager)
-        case .remoteProviders:
-            RemoteProvidersView(store: presenter.providerConfiguration)
         case .history:
             HistoryView(store: presenter.history)
         case .dictionary:
@@ -100,8 +92,6 @@ extension AppShellDestination {
         case .transcription: "Transcription"
         case .hotkey: "Hotkey"
         case .privacy: "Privacy"
-        case .models: "Models"
-        case .remoteProviders: "Remote Providers"
         case .history: "History"
         case .dictionary: "Dictionary"
         }
@@ -114,8 +104,6 @@ extension AppShellDestination {
         case .transcription: "waveform"
         case .hotkey: "keyboard"
         case .privacy: "hand.raised"
-        case .models: "shippingbox"
-        case .remoteProviders: "network"
         case .history: "clock.arrow.circlepath"
         case .dictionary: "character.book.closed"
         }

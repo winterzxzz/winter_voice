@@ -10,5 +10,13 @@
     <false/>
     <key>NSMicrophoneUsageDescription</key>
     <string>WinterVoice captures audio while you hold the push-to-talk key for the transcription provider you configure.</string>
+    <key>NSAppTransportSecurity</key>
+    <dict>
+        <!-- Permits the documented explicit HTTP option for localhost/LAN
+             endpoints only; app-level validation requires the host to be a
+             loopback, RFC1918, or .local literal before accepting http. -->
+        <key>NSAllowsLocalNetworking</key>
+        <true/>
+    </dict>
 </dict>
 </plist>

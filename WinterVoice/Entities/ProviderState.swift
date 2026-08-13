@@ -44,7 +44,7 @@ struct ProviderStatus: Equatable, Sendable {
 
     var overviewSummary: String {
         if isReady {
-            return "Remote transcription is configured. Hold the configured push-to-talk key, then release to transcribe and insert text."
+            return "Transcription is ready. Hold the configured push-to-talk key, then release to transcribe and insert text."
         }
         return readiness.detail
     }
@@ -55,8 +55,10 @@ struct ProviderStatus: Equatable, Sendable {
             "Audio is sent only to your configured remote endpoint when you dictate. Optional API keys remain in Keychain, unauthenticated endpoints receive no Authorization header, and audio or transcripts are not logged."
         case (.remote, false):
             "Remote mode is not ready, so dictation attempts do not record or send audio."
-        case (.local, _):
-            "Local mode is not ready, so dictation attempts do not record or send audio. No supported downloadable model or approved runtime is available yet."
+        case (.local, true):
+            "Audio is transcribed privately on this Mac with the selected whisper.cpp model and is never sent to a remote provider."
+        case (.local, false):
+            "Local mode is not ready, so dictation attempts do not record or send audio."
         }
     }
 }

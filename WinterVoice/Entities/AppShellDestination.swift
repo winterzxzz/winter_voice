@@ -11,8 +11,6 @@ enum AppShellDestination: String, CaseIterable, Identifiable, Sendable {
     case transcription
     case hotkey
     case privacy
-    case models
-    case remoteProviders
     case history
     case dictionary
 
@@ -20,7 +18,7 @@ enum AppShellDestination: String, CaseIterable, Identifiable, Sendable {
 
     var availability: FeatureAvailability {
         switch self {
-        case .overview, .permissions, .transcription, .hotkey, .privacy, .models, .remoteProviders, .history, .dictionary:
+        case .overview, .permissions, .transcription, .hotkey, .privacy, .history, .dictionary:
             .available
         }
     }

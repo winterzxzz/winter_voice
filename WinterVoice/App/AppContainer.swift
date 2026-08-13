@@ -40,12 +40,22 @@ final class AppContainer {
         self.history = history
         self.dictionary = dictionary
         self.hotkeyBinding = hotkeyBinding
+        let whisperRuntime = WhisperContextActor()
+        modelManager.localRuntimeUnloader = {
+            Task { await whisperRuntime.unloadContext() }
+        }
+        providerConfiguration.onModeChange = { mode in
+            guard mode == .remote else { return }
+            Task { await whisperRuntime.unloadContext() }
+        }
+        let audioRecorder = SystemAudioRecorder()
         let interactor = DictationInteractor(
             relay: relay,
             transcriber: ConfiguredTranscriber(
-                recorder: SystemAudioRecorder(),
+                recorder: audioRecorder,
                 configuration: providerConfiguration,
-                models: modelManager
+                models: modelManager,
+                localRuntime: whisperRuntime
             ),
             injector: SystemTextInjector(),
             permissions: permissionManager,
@@ -62,6 +72,12 @@ final class AppContainer {
             hotkeyBinding: hotkeyBinding
         )
         self.presenter = presenter
+        let hotkey = RightOptionEventTap(
+            interactor: interactor,
+            relay: hotkeyRelay,
+            binding: hotkeyBinding
+        )
+        self.hotkey = hotkey
         shellPresenter = AppShellPresenter(
             dictationPresenter: presenter,
             router: router,
@@ -69,7 +85,8 @@ final class AppContainer {
             modelManager: modelManager,
             history: history,
             dictionary: dictionary,
-            hotkeyBinding: hotkeyBinding
+            hotkeyBinding: hotkeyBinding,
+            hotkeyCaptureSuspender: hotkey
         )
         onboardingPresenter = OnboardingPresenter(
             dictationPresenter: presenter,
@@ -77,17 +94,14 @@ final class AppContainer {
                 completionStore: UserDefaultsOnboardingCompletionStore()
             )
         )
-        let hotkey = RightOptionEventTap(
-            interactor: interactor,
-            relay: hotkeyRelay,
-            binding: hotkeyBinding
-        )
-        self.hotkey = hotkey
         permissionHotkeyReconciler = PermissionHotkeyReconciler(
             presenter: presenter,
             hotkey: hotkey
         )
-        panelController = RecordingPanelController(presenter: presenter)
+        panelController = RecordingPanelController(
+            presenter: presenter,
+            levelMeter: audioRecorder.levelMeter
+        )
     }
 
     func start() {

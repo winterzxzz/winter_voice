@@ -5,6 +5,19 @@ import XCTest
 
 @MainActor
 final class ModelManagerTests: XCTestCase {
+    func testPublishedCatalogIncludesVietnameseCapableAndEnglishModelsWithChecksums() throws {
+        let catalog = PublishedModelCatalog.models
+
+        XCTAssertEqual(catalog.count, 6)
+        XCTAssertEqual(catalog.filter { !$0.isEnglishOnly }.map(\.variant), ["tiny", "base", "small"])
+        XCTAssertEqual(catalog.filter(\.isEnglishOnly).map(\.variant), ["tiny.en", "base.en", "small.en"])
+        XCTAssertTrue(catalog.filter { !$0.isEnglishOnly }.allSatisfy { $0.languageLabel.contains("Vietnamese") })
+        for descriptor in catalog {
+            try descriptor.validateForDownload()
+            XCTAssertEqual(descriptor.downloadURL.host, "huggingface.co")
+        }
+    }
+
     func testDescriptorRejectsInsecureMissingChecksumAndEscapingPaths() {
         XCTAssertThrowsError(try descriptor(sha256: nil, url: "https://models.example/model.bin").validateForDownload())
         XCTAssertThrowsError(try descriptor(sha256: validHash, url: "http://models.example/model.bin").validateForDownload())
@@ -19,24 +32,55 @@ final class ModelManagerTests: XCTestCase {
         let source = root.appendingPathComponent("source.bin")
         let bytes = Data("downloaded model".utf8)
         try bytes.write(to: source)
-        let hash = SHA256.hash(data: bytes).map { String(format: "%02x", $0) }.joined()
         let downloader = ManualModelDownloader()
         let subject = ModelManager(root: root.appendingPathComponent("store"), downloader: downloader)
 
-        subject.install(descriptor(sha256: hash))
-        for _ in 0..<200 where downloader.requestCount == 0 { await Task.yield() }
+        subject.install(descriptor(sha256: sha256Hex(bytes)))
+        await waitUntil { downloader.requestCount == 1 }
         XCTAssertEqual(downloader.requestCount, 1)
         downloader.send(.progress(received: 4, expected: 16))
-        for _ in 0..<200 where subject.downloadProgress["approved-model"] != 0.25 { await Task.yield() }
+        await waitUntil { subject.downloadProgress["approved-model"] == 0.25 }
         XCTAssertEqual(subject.downloadProgress["approved-model"], 0.25)
         downloader.send(.progress(received: 16, expected: 16))
         downloader.send(.downloaded(source))
         downloader.finish()
-        for _ in 0..<200 where subject.installed.isEmpty || subject.downloadingModelIDs.contains("approved-model") { await Task.yield() }
+        await waitUntil { !subject.installed.isEmpty && !subject.downloadingModelIDs.contains("approved-model") }
 
         XCTAssertEqual(downloader.requestCount, 1)
         XCTAssertEqual(subject.installed.first?.id, "approved-model")
+        XCTAssertFalse(subject.downloadingModelIDs.contains("approved-model"))
         XCTAssertNil(subject.downloadProgress["approved-model"])
+    }
+
+    func testConcurrentInstallsMergeBothModelsIntoPersistedRegistry() async throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent("ModelConcurrentInstallTests.\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: root) }
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        let bytesA = Data("first concurrent model".utf8)
+        let bytesB = Data("second concurrent model".utf8)
+        let sourceA = root.appendingPathComponent("a-source.bin")
+        let sourceB = root.appendingPathComponent("b-source.bin")
+        try bytesA.write(to: sourceA)
+        try bytesB.write(to: sourceB)
+        let store = root.appendingPathComponent("store")
+        let downloader = ManualModelDownloader()
+        let subject = ModelManager(root: store, downloader: downloader)
+
+        subject.install(descriptor(sha256: sha256Hex(bytesA), id: "model-a", fileName: "a.bin"))
+        subject.install(descriptor(sha256: sha256Hex(bytesB), id: "model-b", fileName: "b.bin"))
+        await waitUntil { downloader.requestCount == 2 }
+        XCTAssertEqual(downloader.requestCount, 2)
+        downloader.send(.downloaded(sourceA), to: "model-a")
+        downloader.finish("model-a")
+        await waitUntil { subject.installed.contains { $0.id == "model-a" } }
+        XCTAssertTrue(subject.installed.contains { $0.id == "model-a" })
+        downloader.send(.downloaded(sourceB), to: "model-b")
+        downloader.finish("model-b")
+        await waitUntil { subject.installed.contains { $0.id == "model-b" } }
+
+        XCTAssertEqual(Set(subject.installed.map(\.id)), ["model-a", "model-b"])
+        XCTAssertEqual(Set(try decodeRegistry(store).installed.map(\.id)), ["model-a", "model-b"])
+        XCTAssertNil(subject.lastError)
     }
 
     func testCancellationTerminatesDownloaderWithoutInstall() async {
@@ -47,7 +91,7 @@ final class ModelManagerTests: XCTestCase {
         subject.install(descriptor(sha256: validHash))
         await Task.yield()
         subject.cancelInstall("approved-model")
-        for _ in 0..<20 where !downloader.wasCancelled { await Task.yield() }
+        await waitUntil { downloader.wasCancelled }
         XCTAssertTrue(downloader.wasCancelled)
         XCTAssertTrue(subject.installed.isEmpty)
     }
@@ -59,20 +103,32 @@ final class ModelManagerTests: XCTestCase {
         try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
         let bytes = Data("approved model".utf8)
         try bytes.write(to: source)
-        let hash = SHA256.hash(data: bytes).map { String(format: "%02x", $0) }.joined()
-        let descriptor = descriptor(sha256: hash)
+        let descriptor = descriptor(sha256: sha256Hex(bytes))
         let subject = ModelManager(root: root.appendingPathComponent("store"))
 
         try await subject.installDownloadedFile(source, descriptor: descriptor)
-        try await subject.select(descriptor.id)
+        await subject.select(descriptor.id)
+        XCTAssertNil(subject.lastError)
         let restored = ModelManager(root: root.appendingPathComponent("store"))
-        for _ in 0..<20 where restored.activeModel == nil { await Task.yield() }
+        await waitUntil { restored.activeModel != nil }
 
         XCTAssertEqual(restored.activeModel?.id, descriptor.id)
         XCTAssertTrue(FileManager.default.fileExists(atPath: root.appendingPathComponent("store/\(descriptor.id)/model.bin").path))
-        try await restored.delete(try XCTUnwrap(restored.activeModel))
+        await restored.delete(try XCTUnwrap(restored.activeModel))
+        XCTAssertNil(restored.lastError)
         XCTAssertNil(restored.activeModel)
         XCTAssertFalse(FileManager.default.fileExists(atPath: root.appendingPathComponent("store/\(descriptor.id)").path))
+    }
+
+    func testSelectingUninstalledModelSurfacesErrorWithoutThrowing() async {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent("ModelSelectErrorTests.\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: root) }
+        let subject = ModelManager(root: root)
+
+        await subject.select("not-installed")
+
+        XCTAssertEqual(subject.lastError, "That model is not installed.")
+        XCTAssertNil(subject.activeModelID)
     }
 
     func testChecksumMismatchInstallsNothing() async throws {
@@ -99,7 +155,7 @@ final class ModelManagerTests: XCTestCase {
         let storage = DiskModelStorage(root: root, registryWriter: FailingRegistryWriter())
 
         do {
-            try await storage.delete(model, registry: .empty)
+            _ = try await storage.delete(model)
             XCTFail("Expected registry persistence failure")
         } catch {}
 
@@ -115,7 +171,7 @@ final class ModelManagerTests: XCTestCase {
         try createStoredModel(model, root: root, registry: original)
         let storage = DiskModelStorage(root: root)
 
-        try await storage.delete(model, registry: .empty)
+        _ = try await storage.delete(model)
 
         XCTAssertFalse(FileManager.default.fileExists(atPath: root.appendingPathComponent(model.id).path))
         XCTAssertEqual(try decodeRegistry(root), .empty)
@@ -131,10 +187,10 @@ final class ModelManagerTests: XCTestCase {
         defer { try? FileManager.default.removeItem(at: source) }
 
         subject.install(descriptor(sha256: validHash))
-        for _ in 0..<200 where downloader.requestCount == 0 { await Task.yield() }
+        await waitUntil { downloader.requestCount == 1 }
         XCTAssertEqual(downloader.requestCount, 1)
         downloader.send(.downloaded(source))
-        for _ in 0..<200 where !subject.installingModelIDs.contains("approved-model") { await Task.yield() }
+        await waitUntil { subject.installingModelIDs.contains("approved-model") }
         XCTAssertTrue(subject.installingModelIDs.contains("approved-model"))
 
         var mainActorRan = false
@@ -144,17 +200,20 @@ final class ModelManagerTests: XCTestCase {
         XCTAssertTrue(installStarted)
         subject.cancelInstall("approved-model")
         await storage.cancelSuspension()
-        for _ in 0..<200 where !subject.installingModelIDs.isEmpty { await Task.yield() }
+        await waitUntil { subject.installingModelIDs.isEmpty }
         XCTAssertTrue(subject.installingModelIDs.isEmpty)
         XCTAssertTrue(subject.installed.isEmpty)
         XCTAssertNil(subject.lastError)
     }
 
     func testURLSessionCancellationErrorClearsLifecycleWithoutErrorOrInstall() async {
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent("ModelURLSessionCancelTests.\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: root) }
         let downloader = FailingModelDownloader(error: URLError(.cancelled))
-        let subject = ModelManager(downloader: downloader)
+        let subject = ModelManager(root: root, downloader: downloader)
         subject.install(descriptor(sha256: validHash))
-        for _ in 0..<20 where !subject.downloadingModelIDs.isEmpty { await Task.yield() }
+        await waitUntil { subject.downloadingModelIDs.isEmpty }
         XCTAssertTrue(subject.downloadingModelIDs.isEmpty)
         XCTAssertTrue(subject.installingModelIDs.isEmpty)
         XCTAssertTrue(subject.downloadProgress.isEmpty)
@@ -162,10 +221,38 @@ final class ModelManagerTests: XCTestCase {
         XCTAssertNil(subject.lastError)
     }
 
+    func testDownloadFailureSurfacesErrorAndClearsLifecycle() async {
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent("ModelDownloadFailureTests.\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: root) }
+        let downloader = FailingModelDownloader(error: URLError(.timedOut))
+        let subject = ModelManager(root: root, downloader: downloader)
+
+        subject.install(descriptor(sha256: validHash))
+        await waitUntil { subject.downloadingModelIDs.isEmpty }
+
+        XCTAssertTrue(subject.downloadingModelIDs.isEmpty)
+        XCTAssertNotNil(subject.lastError)
+        XCTAssertTrue(subject.installingModelIDs.isEmpty)
+        XCTAssertTrue(subject.downloadProgress.isEmpty)
+        XCTAssertTrue(subject.installed.isEmpty)
+    }
+
     private var validHash: String { String(repeating: "a", count: 64) }
 
+    private func sha256Hex(_ bytes: Data) -> String {
+        SHA256.hash(data: bytes).map { String(format: "%02x", $0) }.joined()
+    }
+
     private func installedModel() -> InstalledModel {
-        InstalledModel(id: "approved-model", displayName: "Approved Model", runtime: "whisper.cpp", fileName: "model.bin", installedAt: Date(timeIntervalSince1970: 1))
+        InstalledModel(
+            id: "approved-model",
+            displayName: "Approved Model",
+            runtime: "whisper.cpp",
+            fileName: "model.bin",
+            installedAt: Date(timeIntervalSince1970: 1),
+            isEnglishOnly: false
+        )
     }
 
     private func createStoredModel(_ model: InstalledModel, root: URL, registry: ModelRegistry) throws {
@@ -195,16 +282,21 @@ final class ModelManagerTests: XCTestCase {
 
 private final class ManualModelDownloader: ModelDownloading, @unchecked Sendable {
     private let lock = NSLock()
-    private(set) var requestCount = 0
-    private var continuation: AsyncThrowingStream<ModelDownloadEvent, Error>.Continuation?
+    private var requests = 0
+    private var continuations: [String: AsyncThrowingStream<ModelDownloadEvent, Error>.Continuation] = [:]
+    var requestCount: Int { lock.withLock { requests } }
     func events(for descriptor: ModelDescriptor) -> AsyncThrowingStream<ModelDownloadEvent, Error> {
-        requestCount += 1
+        lock.withLock { requests += 1 }
         return AsyncThrowingStream { continuation in
-            lock.withLock { self.continuation = continuation }
+            lock.withLock { self.continuations[descriptor.id] = continuation }
         }
     }
-    func send(_ event: ModelDownloadEvent) { _ = lock.withLock { continuation?.yield(event) } }
-    func finish() { lock.withLock { continuation?.finish() } }
+    func send(_ event: ModelDownloadEvent, to id: String = "approved-model") {
+        _ = lock.withLock { continuations[id]?.yield(event) }
+    }
+    func finish(_ id: String = "approved-model") {
+        lock.withLock { continuations[id]?.finish() }
+    }
 }
 
 private final class SuspendedModelDownloader: ModelDownloading, @unchecked Sendable {
@@ -234,10 +326,15 @@ private enum TestStorageFailure: Error { case expected }
 
 private actor SuspendedModelStorage: ModelStoring {
     private var continuation: CheckedContinuation<Void, Never>?
+    private var registry: ModelRegistry = .empty
+    private var version: UInt64 = 0
     private(set) var installStarted = false
 
-    func loadRegistry() -> ModelRegistry { .empty }
-    func install(source: URL, descriptor: ModelDescriptor, registry: ModelRegistry) async throws -> ModelRegistry {
+    func loadRegistry() -> RegistrySnapshot {
+        RegistrySnapshot(registry: registry, version: version)
+    }
+
+    func install(source: URL, descriptor: ModelDescriptor) async throws -> RegistrySnapshot {
         installStarted = true
         await withCheckedContinuation { continuation = $0 }
         try Task.checkCancellation()
@@ -246,14 +343,45 @@ private actor SuspendedModelStorage: ModelStoring {
             displayName: descriptor.displayName,
             runtime: descriptor.runtime,
             fileName: descriptor.fileName,
-            installedAt: Date()
+            installedAt: Date(),
+            isEnglishOnly: false
         )
-        return ModelRegistry(installed: [model], activeModelID: registry.activeModelID)
+        registry = ModelRegistry(
+            installed: registry.installed.filter { $0.id != model.id } + [model],
+            activeModelID: registry.activeModelID
+        )
+        version += 1
+        return loadRegistry()
     }
-    func persist(_ registry: ModelRegistry) async throws {}
-    func delete(_ model: InstalledModel, registry: ModelRegistry) async throws {}
-    func removeTemporary(_ url: URL) async {}
+
+    func selectActive(_ id: String?) throws -> RegistrySnapshot {
+        registry = ModelRegistry(installed: registry.installed, activeModelID: id)
+        version += 1
+        return loadRegistry()
+    }
+
+    func delete(_ model: InstalledModel) throws -> RegistrySnapshot {
+        registry = ModelRegistry(
+            installed: registry.installed.filter { $0.id != model.id },
+            activeModelID: registry.activeModelID == model.id ? nil : registry.activeModelID
+        )
+        version += 1
+        return loadRegistry()
+    }
+
+    func removeTemporary(_ url: URL) {}
     func cancelSuspension() { continuation?.resume(); continuation = nil }
+}
+
+@MainActor
+private func waitUntil(
+    timeout: TimeInterval = 2,
+    condition: @escaping @MainActor () -> Bool
+) async {
+    let deadline = Date().addingTimeInterval(timeout)
+    while !condition() && Date() < deadline {
+        try? await Task.sleep(nanoseconds: 1_000_000)
+    }
 }
 
 private extension NSLock {

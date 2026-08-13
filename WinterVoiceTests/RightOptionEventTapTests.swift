@@ -195,6 +195,142 @@ final class RightOptionEventTapTests: XCTestCase {
         XCTAssertEqual(interactor.endCallCount, 1)
         XCTAssertEqual(binding.selection.title, "⌥⇧")
     }
+
+    func testTearDownDuringHoldEndsDictation() {
+        var listenAccessGranted = true
+        let backend = EventTapBackendSpy(installResult: true)
+        let relay = HotkeyHealthRelay()
+        let interactor = DictationInteractorSpy()
+        let subject = RightOptionEventTap(
+            interactor: interactor,
+            relay: relay,
+            binding: makeBinding(),
+            listenAccessGranted: { listenAccessGranted },
+            backend: backend
+        )
+        subject.reconcile()
+        backend.send(.modifierChanged(keyCode: 61, flags: [.maskAlternate]))
+
+        listenAccessGranted = false
+        subject.reconcile()
+
+        XCTAssertEqual(interactor.beginCallCount, 1)
+        XCTAssertEqual(
+            interactor.endCallCount,
+            1,
+            "A dictation held open by the tap must end with it; no release event can arrive once it is gone"
+        )
+        XCTAssertEqual(relay.health, .permissionRequired)
+    }
+
+    func testStopDuringHoldEndsDictation() {
+        let backend = EventTapBackendSpy(installResult: true)
+        let interactor = DictationInteractorSpy()
+        let subject = RightOptionEventTap(
+            interactor: interactor,
+            relay: HotkeyHealthRelay(),
+            binding: makeBinding(),
+            listenAccessGranted: { true },
+            backend: backend
+        )
+        subject.reconcile()
+        backend.send(.modifierChanged(keyCode: 61, flags: [.maskAlternate]))
+
+        subject.stop()
+
+        XCTAssertEqual(interactor.endCallCount, 1)
+    }
+
+    func testFailedRecoveryDuringHoldEndsDictation() {
+        let backend = EventTapBackendSpy(installResult: true, enableResult: false)
+        let interactor = DictationInteractorSpy()
+        let subject = RightOptionEventTap(
+            interactor: interactor,
+            relay: HotkeyHealthRelay(),
+            binding: makeBinding(),
+            listenAccessGranted: { true },
+            backend: backend
+        )
+        subject.reconcile()
+        backend.send(.modifierChanged(keyCode: 61, flags: [.maskAlternate]))
+
+        backend.send(.disabled)
+
+        XCTAssertEqual(interactor.endCallCount, 1)
+    }
+
+    func testRecoveredTapResyncsPhysicallyReleasedKey() {
+        let backend = EventTapBackendSpy(installResult: true)
+        let relay = HotkeyHealthRelay()
+        let interactor = DictationInteractorSpy()
+        let subject = RightOptionEventTap(
+            interactor: interactor,
+            relay: relay,
+            binding: makeBinding(),
+            listenAccessGranted: { true },
+            physicallyPressed: { _ in false },
+            backend: backend
+        )
+        subject.reconcile()
+        backend.send(.modifierChanged(keyCode: 61, flags: [.maskAlternate]))
+
+        backend.send(.disabled)
+
+        XCTAssertEqual(relay.health, .listening)
+        XCTAssertEqual(
+            interactor.endCallCount,
+            1,
+            "A release missed while the tap was disabled must be synthesized from physical key state"
+        )
+
+        backend.send(.modifierChanged(keyCode: 61, flags: [.maskAlternate]))
+        XCTAssertEqual(interactor.beginCallCount, 2)
+    }
+
+    func testRecoveredTapKeepsHeldKeyPressed() {
+        let backend = EventTapBackendSpy(installResult: true)
+        let interactor = DictationInteractorSpy()
+        let subject = RightOptionEventTap(
+            interactor: interactor,
+            relay: HotkeyHealthRelay(),
+            binding: makeBinding(),
+            listenAccessGranted: { true },
+            physicallyPressed: { _ in true },
+            backend: backend
+        )
+        subject.reconcile()
+        backend.send(.modifierChanged(keyCode: 61, flags: [.maskAlternate]))
+
+        backend.send(.disabled)
+        XCTAssertEqual(interactor.endCallCount, 0, "A physically held key keeps the dictation running")
+
+        backend.send(.modifierChanged(keyCode: 61, flags: []))
+        XCTAssertEqual(interactor.endCallCount, 1)
+    }
+
+    func testSuspendMatchingIgnoresEventsAndEndsInFlightPress() {
+        let backend = EventTapBackendSpy(installResult: true)
+        let interactor = DictationInteractorSpy()
+        let subject = RightOptionEventTap(
+            interactor: interactor,
+            relay: HotkeyHealthRelay(),
+            binding: makeBinding(),
+            listenAccessGranted: { true },
+            backend: backend
+        )
+        subject.reconcile()
+        backend.send(.modifierChanged(keyCode: 61, flags: [.maskAlternate]))
+
+        subject.suspendMatching()
+        XCTAssertEqual(interactor.endCallCount, 1)
+
+        backend.send(.modifierChanged(keyCode: 61, flags: [.maskAlternate]))
+        XCTAssertEqual(interactor.beginCallCount, 1, "A suspended tap must not begin dictation")
+
+        subject.resumeMatching()
+        backend.send(.modifierChanged(keyCode: 61, flags: [.maskAlternate]))
+        XCTAssertEqual(interactor.beginCallCount, 2)
+    }
 }
 
 @MainActor
