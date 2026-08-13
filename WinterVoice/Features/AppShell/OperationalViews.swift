@@ -1,3 +1,5 @@
+import AppKit
+import Carbon.HIToolbox
 import SwiftUI
 
 struct OverviewView: View {
@@ -42,14 +44,14 @@ struct OverviewView: View {
 
                 LabeledContent("Global hotkey") {
                     Label(
-                        dictationPresenter.hotkeyHealth.title,
+                        dictationPresenter.hotkeyHealthTitle,
                         systemImage: dictationPresenter.hotkeyHealth == .listening
                             ? "keyboard.badge.ellipsis"
                             : "exclamationmark.triangle.fill"
                     )
                     .foregroundStyle(dictationPresenter.hotkeyHealth == .listening ? .green : .orange)
                 }
-                Text(dictationPresenter.hotkeyHealth.detail)
+                Text(dictationPresenter.hotkeyHealthDetail)
                     .foregroundStyle(.secondary)
 
                 Divider()
@@ -270,34 +272,132 @@ struct RemoteProvidersView: View {
 
 struct HotkeyView: View {
     @ObservedObject var presenter: DictationPresenter
+    @ObservedObject var binding: HotkeyBindingStore
 
     var body: some View {
         Form {
             Section("Push to Talk") {
                 LabeledContent("Current hotkey") {
-                    Text("Right Option")
-                        .font(.body.monospaced())
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 5)
-                        .background(.quaternary, in: RoundedRectangle(cornerRadius: 6))
-                        .accessibilityLabel("Right Option key")
+                    HStack {
+                        HotkeyRecorder(binding: $binding.selection)
+                        Button("Reset to Fn / Globe") {
+                            binding.selection = .function
+                        }
+                        .disabled(binding.selection == .function)
+                    }
                 }
                 LabeledContent("Behavior", value: "Reserved for push to talk; provider required")
                 LabeledContent("Listener status") {
-                    Text(presenter.hotkeyHealth.title)
+                    Text(presenter.hotkeyHealthTitle)
                         .foregroundStyle(presenter.hotkeyHealth == .listening ? .green : .orange)
                 }
-                Text(presenter.hotkeyHealth.detail)
+                Text(presenter.hotkeyHealthDetail)
                     .foregroundStyle(.secondary)
             }
 
             Section {
-                Text("The binding is fixed in this MVP. Left Option does not start dictation, and hotkey rebinding is not yet available.")
+                Text("Click Record Hotkey, then press a key, key combination, or hold multiple modifiers such as ⌥⇧ and release them together. Fn / Globe is the default. The change applies immediately and is saved for future launches.")
                     .foregroundStyle(.secondary)
             }
         }
         .formStyle(.grouped)
         .navigationTitle("Hotkey")
+    }
+}
+
+private struct HotkeyRecorder: NSViewRepresentable {
+    @Binding var binding: HotkeyBinding
+
+    func makeNSView(context: Context) -> HotkeyRecorderView {
+        let view = HotkeyRecorderView()
+        view.onRecord = { self.binding = $0 }
+        view.binding = binding
+        return view
+    }
+
+    func updateNSView(_ view: HotkeyRecorderView, context: Context) {
+        view.onRecord = { self.binding = $0 }
+        view.binding = binding
+    }
+}
+
+private final class HotkeyRecorderView: NSButton {
+    var onRecord: ((HotkeyBinding) -> Void)?
+    var binding: HotkeyBinding = .function { didSet { refreshTitle() } }
+    private var isRecording = false
+    private var pendingModifierFlags: CGEventFlags = []
+
+    override init(frame frameRect: NSRect) {
+        super.init(frame: frameRect)
+        bezelStyle = .rounded
+        target = self
+        action = #selector(beginRecording)
+        refreshTitle()
+    }
+
+    required init?(coder: NSCoder) { nil }
+
+    override var acceptsFirstResponder: Bool { true }
+
+    @objc private func beginRecording() {
+        isRecording = true
+        pendingModifierFlags = []
+        window?.makeFirstResponder(self)
+        refreshTitle()
+    }
+
+    override func keyDown(with event: NSEvent) {
+        guard isRecording else { return super.keyDown(with: event) }
+        if event.keyCode == UInt16(kVK_Escape) {
+            finishRecording()
+            return
+        }
+        onRecord?(.recorded(
+            keyCode: Int64(event.keyCode),
+            flags: event.modifierFlags.cgEventFlags
+        ))
+        finishRecording()
+    }
+
+    override func flagsChanged(with event: NSEvent) {
+        guard isRecording else { return super.flagsChanged(with: event) }
+        let active = event.modifierFlags.cgEventFlags.intersection(.hotkeyModifiers)
+        if !active.isEmpty {
+            pendingModifierFlags.formUnion(active)
+            title = "\(HotkeyBinding.modifierChord(pendingModifierFlags).title)  ·  Release to save"
+            return
+        }
+        guard !pendingModifierFlags.isEmpty else { return }
+        onRecord?(.modifierChord(pendingModifierFlags))
+        finishRecording()
+    }
+
+    override func resignFirstResponder() -> Bool {
+        isRecording = false
+        refreshTitle()
+        return super.resignFirstResponder()
+    }
+
+    private func finishRecording() {
+        isRecording = false
+        pendingModifierFlags = []
+        refreshTitle()
+    }
+
+    private func refreshTitle() {
+        title = isRecording ? "Press hotkey…" : "\(binding.title)  ·  Record Hotkey"
+    }
+}
+
+private extension NSEvent.ModifierFlags {
+    var cgEventFlags: CGEventFlags {
+        var result: CGEventFlags = []
+        if contains(.command) { result.insert(.maskCommand) }
+        if contains(.shift) { result.insert(.maskShift) }
+        if contains(.option) { result.insert(.maskAlternate) }
+        if contains(.control) { result.insert(.maskControl) }
+        if contains(.function) { result.insert(.maskSecondaryFn) }
+        return result
     }
 }
 

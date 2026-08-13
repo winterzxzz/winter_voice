@@ -15,14 +15,14 @@ struct MenuBarView: View {
         .disabled(true)
 
         Label(
-            presenter.hotkeyHealth.title,
+            presenter.hotkeyHealthTitle,
             systemImage: presenter.hotkeyHealth == .listening
                 ? "keyboard" : "exclamationmark.triangle"
         )
         .disabled(true)
 
         Text(shellPresenter.providerStatus.isReady
-            ? "Hold Right Option to dictate"
+            ? presenter.hotkeyInstruction
             : "Transcription provider not ready")
             .disabled(true)
 

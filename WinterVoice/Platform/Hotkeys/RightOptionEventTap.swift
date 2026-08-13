@@ -1,22 +1,10 @@
 import AppKit
-import Carbon.HIToolbox
+import Combine
 
 enum RightOptionEvent {
     case modifierChanged(keyCode: Int64, flags: CGEventFlags)
+    case keyChanged(keyCode: Int64, flags: CGEventFlags, isDown: Bool)
     case disabled
-}
-
-private extension CGEventFlags {
-    static let deviceLeftAlternate = CGEventFlags(rawValue: 0x20)
-    static let deviceRightAlternate = CGEventFlags(rawValue: 0x40)
-
-    var isPhysicalRightOptionPressed: Bool {
-        let deviceAlternateFlags: CGEventFlags = [.deviceLeftAlternate, .deviceRightAlternate]
-        if !intersection(deviceAlternateFlags).isEmpty {
-            return contains(.deviceRightAlternate)
-        }
-        return contains(.maskAlternate)
-    }
 }
 
 @MainActor
@@ -36,22 +24,31 @@ protocol HotkeyReconciling: AnyObject {
 final class RightOptionEventTap: HotkeyReconciling {
     private weak var interactor: DictationInteracting?
     private let relay: HotkeyHealthRelay
+    private let binding: HotkeyBindingStore
     private let listenAccessGranted: () -> Bool
     private let backend: RightOptionEventTapBacking
     private var isInstalled = false
     private var isPressed = false
+    private var bindingCancellable: AnyCancellable?
 
     init(
         interactor: DictationInteracting,
         relay: HotkeyHealthRelay,
+        binding: HotkeyBindingStore = HotkeyBindingStore(),
         listenAccessGranted: @escaping () -> Bool = { CGPreflightListenEventAccess() },
         backend: RightOptionEventTapBacking = SystemRightOptionEventTapBackend()
     ) {
         self.interactor = interactor
         self.relay = relay
+        self.binding = binding
         self.listenAccessGranted = listenAccessGranted
         self.backend = backend
         backend.eventHandler = { [weak self] event in self?.receive(event) }
+        bindingCancellable = binding.objectWillChange.sink { [weak self] _ in
+            guard let self, self.isPressed else { return }
+            self.isPressed = false
+            self.interactor?.endPushToTalk()
+        }
     }
 
     func reconcile() {
@@ -90,12 +87,21 @@ final class RightOptionEventTap: HotkeyReconciling {
                 relay.publish(.listening)
             }
         case .modifierChanged(let keyCode, let flags):
-            guard keyCode == Int64(kVK_RightOption) else { return }
-            let pressed = flags.isPhysicalRightOptionPressed
+            let selected = binding.selection
+            guard selected.isModifierOnly else { return }
+            let pressed = selected.matchesModifierEvent(keyCode: keyCode, flags: flags)
+            updatePressed(pressed)
+        case .keyChanged(let keyCode, let flags, let isDown):
+            let selected = binding.selection
+            guard selected.matchesKeyEvent(keyCode: keyCode, flags: flags) else { return }
+            updatePressed(isDown)
+        }
+    }
+
+    private func updatePressed(_ pressed: Bool) {
             guard pressed != isPressed else { return }
             isPressed = pressed
             pressed ? interactor?.beginPushToTalk() : interactor?.endPushToTalk()
-        }
     }
 }
 
@@ -107,7 +113,11 @@ final class SystemRightOptionEventTapBackend: RightOptionEventTapBacking {
 
     func install() -> Bool {
         uninstall()
-        let mask = CGEventMask(1 << CGEventType.flagsChanged.rawValue)
+        let mask = CGEventMask(
+            (1 << CGEventType.flagsChanged.rawValue)
+                | (1 << CGEventType.keyDown.rawValue)
+                | (1 << CGEventType.keyUp.rawValue)
+        )
         let context = Unmanaged.passUnretained(self).toOpaque()
         guard let tap = CGEvent.tapCreate(
             tap: .cgSessionEventTap,
@@ -141,9 +151,17 @@ final class SystemRightOptionEventTapBackend: RightOptionEventTapBacking {
     nonisolated private static let callback: CGEventTapCallBack = { _, type, event, userInfo in
         guard let userInfo else { return Unmanaged.passUnretained(event) }
         let backend = Unmanaged<SystemRightOptionEventTapBackend>.fromOpaque(userInfo).takeUnretainedValue()
-        let mapped: RightOptionEvent = if type == .tapDisabledByTimeout || type == .tapDisabledByUserInput {
-            .disabled
+        let mapped: RightOptionEvent
+        if type == .tapDisabledByTimeout || type == .tapDisabledByUserInput {
+            mapped = .disabled
+        } else if type == .keyDown || type == .keyUp {
+            mapped = .keyChanged(
+                keyCode: event.getIntegerValueField(.keyboardEventKeycode),
+                flags: event.flags,
+                isDown: type == .keyDown
+            )
         } else {
+            mapped =
             .modifierChanged(
                 keyCode: event.getIntegerValueField(.keyboardEventKeycode),
                 flags: event.flags

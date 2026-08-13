@@ -11,6 +11,7 @@ final class DictationPresenter: ObservableObject {
     private let interactor: DictationInteracting
     private let permissionManager: PermissionManaging
     private let router: AppRouter
+    let hotkeyBinding: HotkeyBindingStore
     private var cancellables = Set<AnyCancellable>()
     private var permissionRequestTask: Task<Void, Never>?
     private var activationRefreshTask: Task<Void, Never>?
@@ -25,15 +26,20 @@ final class DictationPresenter: ObservableObject {
         relay: DictationStateRelay,
         hotkeyRelay: HotkeyHealthRelay,
         permissionManager: PermissionManaging,
-        router: AppRouter
+        router: AppRouter,
+        hotkeyBinding: HotkeyBindingStore = HotkeyBindingStore()
     ) {
         self.interactor = interactor
         self.permissionManager = permissionManager
         self.router = router
+        self.hotkeyBinding = hotkeyBinding
         permissions = permissionManager.snapshot()
         hotkeyHealth = hotkeyRelay.health
         relay.$state.assign(to: &$state)
         hotkeyRelay.$health.assign(to: &$hotkeyHealth)
+        hotkeyBinding.objectWillChange
+            .sink { [weak self] _ in self?.objectWillChange.send() }
+            .store(in: &cancellables)
     }
 
     deinit {
@@ -55,6 +61,18 @@ final class DictationPresenter: ObservableObject {
     var statusDetail: String? {
         if case .failed(let failure) = state { return failure.recovery }
         return nil
+    }
+
+    var hotkeyHealthTitle: String {
+        hotkeyHealth.title(binding: hotkeyBinding.selection)
+    }
+
+    var hotkeyHealthDetail: String {
+        hotkeyHealth.detail(binding: hotkeyBinding.selection)
+    }
+
+    var hotkeyInstruction: String {
+        "Hold \(hotkeyBinding.selection.title) to dictate"
     }
 
     var permissionRequestMessage: String? {

@@ -74,7 +74,10 @@ struct AppShellView: View {
         case .transcription:
             TranscriptionView(presenter: presenter)
         case .hotkey:
-            HotkeyView(presenter: presenter.dictationPresenter)
+            HotkeyView(
+                presenter: presenter.dictationPresenter,
+                binding: presenter.hotkeyBinding
+            )
         case .privacy:
             PrivacyView(presenter: presenter)
         case .models:

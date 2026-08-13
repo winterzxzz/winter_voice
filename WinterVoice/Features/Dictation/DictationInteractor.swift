@@ -77,7 +77,7 @@ final class DictationInteractor: DictationInteracting {
             let text = textProcessor.process(rawText)
                 .trimmingCharacters(in: .whitespacesAndNewlines)
             guard !text.isEmpty else {
-                throw DictationFailure(message: "No speech was recognized.", recovery: "Hold Right Option and try speaking again.")
+                throw DictationFailure(message: "No speech was recognized.", recovery: "Hold the configured push-to-talk key and try speaking again.")
             }
             move(to: .inserting)
             try await injector.insert(text, into: target)

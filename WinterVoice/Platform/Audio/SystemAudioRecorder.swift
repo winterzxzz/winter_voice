@@ -45,7 +45,7 @@ final class SystemAudioRecorder: AudioRecording {
         tearDown()
         let samples = storage.snapshot()
         guard !samples.isEmpty else {
-            throw DictationFailure(message: "No audio was captured.", recovery: "Hold Right Option and speak before releasing it.")
+            throw DictationFailure(message: "No audio was captured.", recovery: "Hold the configured push-to-talk key and speak before releasing it.")
         }
         return RecordedAudio(samples: samples, sampleRate: 16_000)
     }

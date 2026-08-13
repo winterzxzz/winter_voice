@@ -44,7 +44,7 @@ struct ProviderStatus: Equatable, Sendable {
 
     var overviewSummary: String {
         if isReady {
-            return "Remote transcription is configured. Hold Right Option to record, then release to transcribe and insert text."
+            return "Remote transcription is configured. Hold the configured push-to-talk key, then release to transcribe and insert text."
         }
         return readiness.detail
     }

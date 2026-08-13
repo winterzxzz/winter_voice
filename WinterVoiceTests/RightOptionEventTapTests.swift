@@ -4,6 +4,33 @@ import XCTest
 
 @MainActor
 final class RightOptionEventTapTests: XCTestCase {
+    func testSelectedBindingPersistsAndImmediatelyReplacesRightOption() throws {
+        let suite = "HotkeyBindingTests.\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let binding = HotkeyBindingStore(defaults: defaults)
+        let backend = EventTapBackendSpy(installResult: true)
+        let interactor = DictationInteractorSpy()
+        let subject = RightOptionEventTap(
+            interactor: interactor,
+            relay: HotkeyHealthRelay(),
+            binding: binding,
+            listenAccessGranted: { true },
+            backend: backend
+        )
+        subject.reconcile()
+
+        binding.selection = .rightControl
+        backend.send(.modifierChanged(keyCode: 61, flags: [.maskAlternate]))
+        backend.send(.modifierChanged(keyCode: 61, flags: []))
+        backend.send(.modifierChanged(keyCode: 62, flags: [.maskControl]))
+        backend.send(.modifierChanged(keyCode: 62, flags: []))
+
+        XCTAssertEqual(interactor.beginCallCount, 1)
+        XCTAssertEqual(interactor.endCallCount, 1)
+        XCTAssertEqual(HotkeyBindingStore(defaults: defaults).selection, .rightControl)
+    }
+
     func testMissingListenPermissionRejectsEvenCreatableTap() {
         let backend = EventTapBackendSpy(installResult: true)
         let relay = HotkeyHealthRelay()
@@ -11,6 +38,7 @@ final class RightOptionEventTapTests: XCTestCase {
         let subject = RightOptionEventTap(
             interactor: interactor,
             relay: relay,
+            binding: makeBinding(),
             listenAccessGranted: { false },
             backend: backend
         )
@@ -29,6 +57,7 @@ final class RightOptionEventTapTests: XCTestCase {
         let subject = RightOptionEventTap(
             interactor: DictationInteractorSpy(),
             relay: relay,
+            binding: makeBinding(),
             listenAccessGranted: { listenAccessGranted },
             backend: backend
         )
@@ -49,6 +78,7 @@ final class RightOptionEventTapTests: XCTestCase {
         let subject = RightOptionEventTap(
             interactor: interactor,
             relay: HotkeyHealthRelay(),
+            binding: makeBinding(),
             listenAccessGranted: { true },
             backend: backend
         )
@@ -72,6 +102,7 @@ final class RightOptionEventTapTests: XCTestCase {
         let subject = RightOptionEventTap(
             interactor: DictationInteractorSpy(),
             relay: relay,
+            binding: makeBinding(),
             listenAccessGranted: { true },
             backend: backend
         )
@@ -81,6 +112,88 @@ final class RightOptionEventTapTests: XCTestCase {
 
         XCTAssertEqual(backend.enableCallCount, 1)
         XCTAssertEqual(relay.health, .installationFailed)
+    }
+
+    func testChangingBindingWhilePressedEndsCurrentPushToTalk() {
+        let binding = makeBinding()
+        let backend = EventTapBackendSpy(installResult: true)
+        let interactor = DictationInteractorSpy()
+        let subject = RightOptionEventTap(
+            interactor: interactor,
+            relay: HotkeyHealthRelay(),
+            binding: binding,
+            listenAccessGranted: { true },
+            backend: backend
+        )
+        subject.reconcile()
+        backend.send(.modifierChanged(keyCode: 61, flags: [.maskAlternate]))
+
+        binding.selection = .leftControl
+
+        XCTAssertEqual(interactor.beginCallCount, 1)
+        XCTAssertEqual(interactor.endCallCount, 1)
+    }
+
+    private func makeBinding() -> HotkeyBindingStore {
+        let suite = "RightOptionEventTapTests.\(UUID().uuidString)"
+        let store = HotkeyBindingStore(defaults: UserDefaults(suiteName: suite)!)
+        store.selection = .rightOption
+        return store
+    }
+
+    func testNewBindingDefaultsToFunctionAndSupportsRecordedCombination() {
+        let suite = "HotkeyDefaultTests.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite)!
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let store = HotkeyBindingStore(defaults: defaults)
+
+        XCTAssertEqual(store.selection, .function)
+
+        let combination = HotkeyBinding.recorded(
+            keyCode: 49,
+            flags: [.maskCommand, .maskShift]
+        )
+        XCTAssertEqual(combination.title, "⇧⌘Space")
+        XCTAssertTrue(combination.matchesKeyEvent(
+            keyCode: 49,
+            flags: [.maskCommand, .maskShift]
+        ))
+    }
+
+    func testResetToFunctionPersistsDefaultBinding() {
+        let suite = "HotkeyResetTests.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite)!
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let store = HotkeyBindingStore(defaults: defaults)
+        store.selection = .rightOption
+
+        store.selection = .function
+
+        XCTAssertEqual(HotkeyBindingStore(defaults: defaults).selection, .function)
+    }
+
+    func testModifierChordRequiresAllModifiersAndEndsWhenEitherIsReleased() {
+        let binding = makeBinding()
+        binding.selection = .modifierChord([.maskAlternate, .maskShift])
+        let backend = EventTapBackendSpy(installResult: true)
+        let interactor = DictationInteractorSpy()
+        let subject = RightOptionEventTap(
+            interactor: interactor,
+            relay: HotkeyHealthRelay(),
+            binding: binding,
+            listenAccessGranted: { true },
+            backend: backend
+        )
+        subject.reconcile()
+
+        backend.send(.modifierChanged(keyCode: 58, flags: [.maskAlternate]))
+        XCTAssertEqual(interactor.beginCallCount, 0)
+        backend.send(.modifierChanged(keyCode: 56, flags: [.maskAlternate, .maskShift]))
+        XCTAssertEqual(interactor.beginCallCount, 1)
+        backend.send(.modifierChanged(keyCode: 56, flags: [.maskAlternate]))
+
+        XCTAssertEqual(interactor.endCallCount, 1)
+        XCTAssertEqual(binding.selection.title, "⌥⇧")
     }
 }
 

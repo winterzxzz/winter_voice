@@ -8,6 +8,7 @@ final class AppShellPresenter: ObservableObject {
     let modelManager: ModelManager
     let history: HistoryStore
     let dictionary: DictionaryStore
+    let hotkeyBinding: HotkeyBindingStore
     private let router: AppRouter
     private var cancellables = Set<AnyCancellable>()
 
@@ -17,7 +18,8 @@ final class AppShellPresenter: ObservableObject {
         providerConfiguration: ProviderConfigurationStore,
         modelManager: ModelManager,
         history: HistoryStore,
-        dictionary: DictionaryStore
+        dictionary: DictionaryStore,
+        hotkeyBinding: HotkeyBindingStore
     ) {
         self.dictationPresenter = dictationPresenter
         self.router = router
@@ -25,6 +27,7 @@ final class AppShellPresenter: ObservableObject {
         self.modelManager = modelManager
         self.history = history
         self.dictionary = dictionary
+        self.hotkeyBinding = hotkeyBinding
         selection = router.selection
         router.$selection.assign(to: &$selection)
         providerConfiguration.objectWillChange

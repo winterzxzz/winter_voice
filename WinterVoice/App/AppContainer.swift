@@ -21,6 +21,7 @@ final class AppContainer {
     let modelManager: ModelManager
     let history: HistoryStore
     let dictionary: DictionaryStore
+    let hotkeyBinding: HotkeyBindingStore
     private let hotkey: RightOptionEventTap
     private let permissionHotkeyReconciler: PermissionHotkeyReconciler
     private let panelController: RecordingPanelController
@@ -33,10 +34,12 @@ final class AppContainer {
         let modelManager = ModelManager()
         let history = HistoryStore()
         let dictionary = DictionaryStore()
+        let hotkeyBinding = HotkeyBindingStore()
         self.providerConfiguration = providerConfiguration
         self.modelManager = modelManager
         self.history = history
         self.dictionary = dictionary
+        self.hotkeyBinding = hotkeyBinding
         let interactor = DictationInteractor(
             relay: relay,
             transcriber: ConfiguredTranscriber(
@@ -55,7 +58,8 @@ final class AppContainer {
             relay: relay,
             hotkeyRelay: hotkeyRelay,
             permissionManager: permissionManager,
-            router: router
+            router: router,
+            hotkeyBinding: hotkeyBinding
         )
         self.presenter = presenter
         shellPresenter = AppShellPresenter(
@@ -64,7 +68,8 @@ final class AppContainer {
             providerConfiguration: providerConfiguration,
             modelManager: modelManager,
             history: history,
-            dictionary: dictionary
+            dictionary: dictionary,
+            hotkeyBinding: hotkeyBinding
         )
         onboardingPresenter = OnboardingPresenter(
             dictationPresenter: presenter,
@@ -72,7 +77,11 @@ final class AppContainer {
                 completionStore: UserDefaultsOnboardingCompletionStore()
             )
         )
-        let hotkey = RightOptionEventTap(interactor: interactor, relay: hotkeyRelay)
+        let hotkey = RightOptionEventTap(
+            interactor: interactor,
+            relay: hotkeyRelay,
+            binding: hotkeyBinding
+        )
         self.hotkey = hotkey
         permissionHotkeyReconciler = PermissionHotkeyReconciler(
             presenter: presenter,

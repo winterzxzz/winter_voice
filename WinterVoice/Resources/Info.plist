@@ -7,8 +7,8 @@
     <key>CFBundleDisplayName</key>
     <string>WinterVoice</string>
     <key>LSUIElement</key>
-    <true/>
+    <false/>
     <key>NSMicrophoneUsageDescription</key>
-    <string>WinterVoice captures audio while you hold Right Option for the transcription provider you configure.</string>
+    <string>WinterVoice captures audio while you hold the push-to-talk key for the transcription provider you configure.</string>
 </dict>
 </plist>

@@ -15,8 +15,8 @@ enum AppPermission: CaseIterable, Identifiable, Sendable {
     }
     var explanation: String {
         switch self {
-        case .microphone: "Captures audio while Right Option is held."
-        case .inputMonitoring: "Observes the global Right Option hotkey without changing keyboard input."
+        case .microphone: "Captures audio while the configured push-to-talk key is held."
+        case .inputMonitoring: "Observes the configured global push-to-talk key without changing keyboard input."
         case .accessibility: "Captures the focused field and inserts text back into the focused app safely."
         }
     }
