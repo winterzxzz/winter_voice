@@ -8,61 +8,103 @@ struct DictionaryView: View {
     @State private var editingEntry: DictionaryEntry?
 
     var body: some View {
-        Form {
-            Section("Add Replacement") {
-                TextField("Word or phrase", text: $source)
-                TextField("Replace with", text: $replacement)
-                HStack {
-                    Button("Add Entry") { addEntry() }
-                        .buttonStyle(.borderedProminent)
-                    if let errorMessage {
-                        Text(errorMessage)
-                            .foregroundStyle(.red)
-                            .font(.caption)
+        WVPage(
+            icon: "character.book.closed",
+            title: "Dictionary",
+            subtitle: "Fix words and phrases transcription often gets wrong."
+        ) {
+            addCard
+            replacementsCard
+            WVCard {
+                Text("Enabled replacements are applied to the transcription before it is inserted and saved in History. Longer phrases are matched before shorter ones.")
+                    .font(.wvCaption)
+                    .foregroundStyle(Theme.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .sheet(item: $editingEntry) { entry in
+            DictionaryEditView(store: store, entry: entry)
+        }
+    }
+
+    private var addCard: some View {
+        WVCard {
+            VStack(alignment: .leading, spacing: 12) {
+                Text("Add Replacement")
+                    .font(.wvHeadline)
+                    .foregroundStyle(Theme.textPrimary)
+                HStack(alignment: .bottom, spacing: 10) {
+                    WVField(label: "Word or phrase") {
+                        TextField("", text: $source).textFieldStyle(.wv)
                     }
+                    WVField(label: "Replace with") {
+                        TextField("", text: $replacement).textFieldStyle(.wv)
+                    }
+                    Button("Add") { addEntry() }
+                        .buttonStyle(.wvPrimary)
+                }
+                if let errorMessage {
+                    Text(errorMessage).font(.wvCaption).foregroundStyle(Theme.danger)
                 }
             }
+        }
+    }
 
-            Section("Custom Replacements") {
-                if !store.isLoaded {
-                    ProgressView("Loading dictionary…")
-                } else if store.entries.isEmpty {
+    @ViewBuilder
+    private var replacementsCard: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("CUSTOM REPLACEMENTS")
+                .font(.system(size: 11, weight: .semibold))
+                .tracking(0.6)
+                .foregroundStyle(Theme.textTertiary)
+            if !store.isLoaded {
+                WVCard { HStack { Spacer(); ProgressView("Loading dictionary…"); Spacer() }.padding(.vertical, 16) }
+            } else if store.entries.isEmpty {
+                WVCard {
                     Text("No replacements yet. Add names, product terms, or phrases that transcription often gets wrong.")
-                        .foregroundStyle(.secondary)
-                } else {
-                    ForEach(store.entries) { entry in
-                        HStack {
-                            Toggle(isOn: Binding(
-                                get: { entry.isEnabled },
-                                set: { store.setEnabled($0, for: entry) }
-                            )) {
-                                VStack(alignment: .leading, spacing: 4) {
-                                    Text(entry.source)
-                                    Text("→ (entry.replacement)")
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-                                }
-                            }
-                            Button("Edit") { editingEntry = entry }
-                            Button("Delete", systemImage: "trash", role: .destructive) {
-                                store.delete(entry)
-                            }
-                            .labelStyle(.iconOnly)
-                            .buttonStyle(.borderless)
+                        .font(.wvBody)
+                        .foregroundStyle(Theme.textSecondary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.vertical, 8)
+                }
+            } else {
+                WVCard(padding: 6) {
+                    VStack(spacing: 0) {
+                        ForEach(Array(store.entries.enumerated()), id: \.element.id) { index, entry in
+                            if index > 0 { WVDivider().padding(.horizontal, 10) }
+                            entryRow(entry).padding(10)
                         }
                     }
                 }
             }
-
-            Section("How It Works") {
-                Text("Enabled replacements are applied to the transcription before it is inserted and saved in History. Longer phrases are matched before shorter ones.")
-                    .foregroundStyle(.secondary)
-            }
         }
-        .formStyle(.grouped)
-        .navigationTitle("Dictionary")
-        .sheet(item: $editingEntry) { entry in
-            DictionaryEditView(store: store, entry: entry)
+    }
+
+    private func entryRow(_ entry: DictionaryEntry) -> some View {
+        HStack(spacing: Theme.Space.sm) {
+            Toggle("", isOn: Binding(
+                get: { entry.isEnabled },
+                set: { store.setEnabled($0, for: entry) }
+            ))
+            .toggleStyle(.switch)
+            .tint(Theme.accent)
+            .labelsHidden()
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(entry.source)
+                    .font(.wvRowTitle)
+                    .foregroundStyle(entry.isEnabled ? Theme.textPrimary : Theme.textSecondary)
+                Text("→ \(entry.replacement)")
+                    .font(.wvCaption)
+                    .foregroundStyle(Theme.textSecondary)
+            }
+            Spacer(minLength: Theme.Space.sm)
+            Button("Edit") { editingEntry = entry }
+                .buttonStyle(.wvSecondary)
+            Button(action: { store.delete(entry) }) {
+                Image(systemName: "trash").font(.system(size: 13))
+            }
+            .buttonStyle(.wvGhost(role: .destructive))
         }
     }
 
@@ -96,25 +138,31 @@ private struct DictionaryEditView: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 18) {
+        VStack(alignment: .leading, spacing: 16) {
             Text("Edit Replacement")
-                .font(.title2.bold())
-            TextField("Word or phrase", text: $source)
-            TextField("Replace with", text: $replacement)
+                .font(.wvTitle)
+                .foregroundStyle(Theme.textPrimary)
+            WVField(label: "Word or phrase") {
+                TextField("", text: $source).textFieldStyle(.wv)
+            }
+            WVField(label: "Replace with") {
+                TextField("", text: $replacement).textFieldStyle(.wv)
+            }
             if let errorMessage {
-                Text(errorMessage)
-                    .font(.caption)
-                    .foregroundStyle(.red)
+                Text(errorMessage).font(.wvCaption).foregroundStyle(Theme.danger)
             }
             HStack {
                 Spacer()
-                Button("Cancel") { dismiss() }
-                Button("Save") { save() }
-                    .buttonStyle(.borderedProminent)
+                Button("Cancel") { dismiss() }.buttonStyle(.wvSecondary)
+                Button("Save") { save() }.buttonStyle(.wvPrimary)
             }
+            .padding(.top, 4)
         }
         .padding(24)
-        .frame(width: 420)
+        .frame(width: 440)
+        .background(Theme.canvas)
+        .tint(Theme.accent)
+        .preferredColorScheme(.dark)
     }
 
     private func save() {

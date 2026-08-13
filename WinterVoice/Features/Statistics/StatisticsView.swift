@@ -4,51 +4,26 @@ struct StatisticsView: View {
     @ObservedObject var store: UsageStatsStore
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 24) {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Statistics")
-                        .font(.largeTitle)
-                    Text("Local usage totals for successful dictations. Nothing leaves this Mac.")
-                        .foregroundStyle(.secondary)
-                }
-
-                LazyVGrid(
-                    columns: [GridItem(.adaptive(minimum: 190), spacing: 16)],
-                    spacing: 16
-                ) {
-                    statTile(
-                        title: "Words dictated",
-                        value: store.totals.totalWords.formatted(),
-                        icon: "text.word.spacing"
-                    )
-                    statTile(
-                        title: "Speaking time",
-                        value: speakingTime,
-                        icon: "clock"
-                    )
-                    statTile(
-                        title: "Dictations",
-                        value: store.totals.sessionCount.formatted(),
-                        icon: "mic"
-                    )
-                    statTile(
-                        title: "Average pace",
-                        value: averagePace,
-                        icon: "speedometer"
-                    )
-                }
-
-                if store.totals.sessionCount > 0 {
-                    Button("Reset Statistics", role: .destructive) {
-                        store.reset()
-                    }
-                }
+        WVPage(
+            icon: "chart.bar.xaxis",
+            title: "Statistics",
+            subtitle: "Local usage totals for successful dictations. Nothing leaves this Mac."
+        ) {
+            LazyVGrid(
+                columns: [GridItem(.adaptive(minimum: 200), spacing: 14)],
+                spacing: 14
+            ) {
+                statTile(title: "Words dictated", value: store.totals.totalWords.formatted(), icon: "text.word.spacing")
+                statTile(title: "Speaking time", value: speakingTime, icon: "clock")
+                statTile(title: "Dictations", value: store.totals.sessionCount.formatted(), icon: "mic")
+                statTile(title: "Average pace", value: averagePace, icon: "speedometer")
             }
-            .frame(maxWidth: 680, alignment: .leading)
-            .padding(32)
+
+            if store.totals.sessionCount > 0 {
+                Button("Reset Statistics", role: .destructive) { store.reset() }
+                    .buttonStyle(.wvSecondary(role: .destructive))
+            }
         }
-        .navigationTitle("Statistics")
     }
 
     private var speakingTime: String {
@@ -68,16 +43,21 @@ struct StatisticsView: View {
     }
 
     private func statTile(title: String, value: String, icon: String) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Label(title, systemImage: icon)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-            Text(value)
-                .font(.system(size: 28, weight: .semibold, design: .rounded))
-                .monospacedDigit()
+        WVCard {
+            VStack(alignment: .leading, spacing: 12) {
+                HStack(spacing: 8) {
+                    Image(systemName: icon)
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundStyle(Theme.accent)
+                    Text(title)
+                        .font(.wvCaption)
+                        .foregroundStyle(Theme.textSecondary)
+                }
+                Text(value)
+                    .font(.system(size: 30, weight: .semibold, design: .rounded))
+                    .foregroundStyle(Theme.textPrimary)
+                    .monospacedDigit()
+            }
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(16)
-        .background(.quaternary.opacity(0.5), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
 }

@@ -2,6 +2,8 @@ import AppKit
 import Carbon.HIToolbox
 import SwiftUI
 
+// MARK: - Home
+
 struct OverviewView: View {
     @ObservedObject var presenter: AppShellPresenter
     @ObservedObject private var dictationPresenter: DictationPresenter
@@ -15,74 +17,89 @@ struct OverviewView: View {
         OnboardingProgress(permissions: dictationPresenter.permissions) == .ready
     }
     private var providerStatus: ProviderStatus { presenter.providerStatus }
+    private var isRecording: Bool { dictationPresenter.state == .recording }
+    private var listening: Bool { dictationPresenter.hotkeyHealth == .listening }
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 24) {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("WinterVoice")
-                        .font(.largeTitle)
-                    Text(providerStatus.overviewSummary)
-                        .font(.title3)
-                        .foregroundStyle(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-
-                LabeledContent("Dictation status") {
-                    Label(
-                        dictationPresenter.statusTitle,
-                        systemImage: dictationPresenter.state == .recording ? "waveform" : "circle.fill"
-                    )
-                    .foregroundStyle(dictationPresenter.state == .recording ? .red : .primary)
-                }
-                if let detail = dictationPresenter.statusDetail {
-                    Text(detail)
-                        .foregroundStyle(.secondary)
-                }
-
-                LabeledContent("Global hotkey") {
-                    Label(
-                        dictationPresenter.hotkeyHealthTitle,
-                        systemImage: dictationPresenter.hotkeyHealth == .listening
-                            ? "keyboard.badge.ellipsis"
-                            : "exclamationmark.triangle.fill"
-                    )
-                    .foregroundStyle(dictationPresenter.hotkeyHealth == .listening ? .green : .orange)
-                }
-                Text(dictationPresenter.hotkeyHealthDetail)
-                    .foregroundStyle(.secondary)
-
-                Divider()
-
-                VStack(alignment: .leading, spacing: 10) {
-                    Label("Private by design", systemImage: "lock.shield")
-                        .font(.headline)
-                    Text(providerStatus.privacySummary)
-                        .foregroundStyle(.secondary)
-                }
-
-                VStack(alignment: .leading, spacing: 10) {
-                    Label(
-                        permissionsReady ? "Permissions ready" : "Permissions need attention",
-                        systemImage: permissionsReady ? "checkmark.circle.fill" : "exclamationmark.triangle.fill"
-                    )
-                    .font(.headline)
-                    .foregroundStyle(permissionsReady ? .green : .orange)
-                    Text(permissionsReady
-                        ? "Microphone, Input Monitoring, and Accessibility access are allowed. Provider: \(providerStatus.title) — \(providerStatus.stateLabel)."
-                        : "WinterVoice needs all three permissions for audio capture, the global hotkey, and safe insertion.")
-                        .foregroundStyle(.secondary)
-                    Button(permissionsReady ? "Review Permissions" : "Fix Permission Issues") {
-                        presenter.navigate(to: .permissions)
+        WVPage(icon: "house", title: "Home", subtitle: providerStatus.overviewSummary) {
+            WVCard {
+                VStack(spacing: 0) {
+                    WVRow(
+                        icon: isRecording ? "waveform" : "mic",
+                        title: "Dictation",
+                        subtitle: dictationPresenter.statusDetail ?? "Hold your hotkey to dictate into any app."
+                    ) {
+                        WVStatusPill(
+                            text: dictationPresenter.statusTitle,
+                            color: isRecording ? Theme.danger : Theme.success,
+                            filled: true
+                        )
+                    }
+                    WVDivider().padding(.vertical, 12)
+                    WVRow(
+                        icon: listening ? "keyboard" : "exclamationmark.triangle.fill",
+                        title: "Global hotkey",
+                        subtitle: dictationPresenter.hotkeyHealthDetail
+                    ) {
+                        WVStatusPill(
+                            text: dictationPresenter.hotkeyHealthTitle,
+                            color: listening ? Theme.success : Theme.warning,
+                            filled: true
+                        )
                     }
                 }
             }
-            .frame(maxWidth: 680, alignment: .leading)
-            .padding(32)
+
+            WVCard {
+                HStack(alignment: .top, spacing: Theme.Space.sm) {
+                    WVIconBadge(systemImage: "lock.shield", tint: Theme.success)
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Private by design")
+                            .font(.wvHeadline)
+                            .foregroundStyle(Theme.textPrimary)
+                        Text(providerStatus.privacySummary)
+                            .font(.wvBody)
+                            .foregroundStyle(Theme.textSecondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+            }
+
+            WVCard {
+                HStack(alignment: .top, spacing: Theme.Space.sm) {
+                    WVIconBadge(
+                        systemImage: permissionsReady ? "checkmark.circle.fill" : "exclamationmark.triangle.fill",
+                        tint: permissionsReady ? Theme.success : Theme.warning
+                    )
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text(permissionsReady ? "Permissions ready" : "Permissions need attention")
+                            .font(.wvHeadline)
+                            .foregroundStyle(permissionsReady ? Theme.success : Theme.warning)
+                        Text(permissionsReady
+                            ? "Microphone, Input Monitoring, and Accessibility access are allowed. Provider: \(providerStatus.title) — \(providerStatus.stateLabel)."
+                            : "WinterVoice needs all three permissions for audio capture, the global hotkey, and safe insertion.")
+                            .font(.wvBody)
+                            .foregroundStyle(Theme.textSecondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                        Group {
+                            if permissionsReady {
+                                Button("Review Permissions") { presenter.navigate(to: .permissions) }
+                                    .buttonStyle(.wvSecondary)
+                            } else {
+                                Button("Fix Permission Issues") { presenter.navigate(to: .permissions) }
+                                    .buttonStyle(.wvPrimary)
+                            }
+                        }
+                        .padding(.top, 2)
+                    }
+                    Spacer(minLength: 0)
+                }
+            }
         }
-        .navigationTitle("Overview")
     }
 }
+
+// MARK: - Transcription
 
 struct TranscriptionView: View {
     @ObservedObject var presenter: AppShellPresenter
@@ -98,18 +115,26 @@ struct TranscriptionView: View {
     private var models: ModelManager { presenter.modelManager }
 
     var body: some View {
-        Form {
-            Section("Transcription Provider") {
-                Picker("Mode", selection: Binding(
-                    get: { configuration.mode },
-                    set: { configuration.mode = $0 }
-                )) {
-                    ForEach(ProviderMode.allCases, id: \.self) { Text($0.title).tag($0) }
+        WVPage(icon: "waveform", title: "Transcription", subtitle: "Choose where your speech is turned into text.") {
+            WVCard {
+                VStack(alignment: .leading, spacing: 14) {
+                    Picker("", selection: Binding(
+                        get: { configuration.mode },
+                        set: { configuration.mode = $0 }
+                    )) {
+                        ForEach(ProviderMode.allCases, id: \.self) { Text($0.title).tag($0) }
+                    }
+                    .pickerStyle(.segmented)
+                    .labelsHidden()
+
+                    WVDivider()
+                    infoLine("Provider", status.title)
+                    infoLine("Status", status.stateLabel)
+                    Text(status.readiness.detail)
+                        .font(.wvCaption)
+                        .foregroundStyle(Theme.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
-                .pickerStyle(.segmented)
-                LabeledContent("Provider", value: status.title)
-                LabeledContent("Status", value: status.stateLabel)
-                Text(status.readiness.detail).foregroundStyle(.secondary)
             }
 
             switch configuration.mode {
@@ -119,133 +144,269 @@ struct TranscriptionView: View {
                 remoteSections
             }
         }
-        .formStyle(.grouped)
-        .navigationTitle("Transcription")
         .onAppear { controller.loadRemoteDraft() }
+    }
+
+    private func infoLine(_ label: String, _ value: String) -> some View {
+        HStack {
+            Text(label).font(.wvBody).foregroundStyle(Theme.textSecondary)
+            Spacer()
+            Text(value).font(.wvBody.weight(.medium)).foregroundStyle(Theme.textPrimary)
+        }
     }
 
     @ViewBuilder
     private var localSections: some View {
-        Section("Vietnamese and Multilingual") {
-            ForEach(models.catalog.filter { !$0.isEnglishOnly }) { modelRow($0) }
-        }
-        Section("English Only") {
-            ForEach(models.catalog.filter(\.isEnglishOnly)) { modelRow($0) }
-        }
+        modelGroup("Vietnamese and Multilingual", models.catalog.filter { !$0.isEnglishOnly })
+        modelGroup("English Only", models.catalog.filter(\.isEnglishOnly))
         if let error = models.lastError {
-            Section { Text(error).foregroundStyle(.red) }
+            WVCard { Text(error).font(.wvBody).foregroundStyle(Theme.danger) }
         }
-        Section("Local Runtime Status") {
+        WVCard {
             Text("Selected models run privately on this Mac with whisper.cpp. Multilingual models automatically detect Vietnamese, English, and other supported languages.")
-                .foregroundStyle(.secondary)
+                .font(.wvCaption)
+                .foregroundStyle(Theme.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
         }
     }
 
     @ViewBuilder
-    private var remoteSections: some View {
-        Section("OpenAI-Compatible Endpoint") {
-            TextField("Base URL", text: $controller.baseURL, prompt: Text("https://host.example/v1"))
-            TextField("Model", text: $controller.remoteModel)
-            TextField("Language (optional)", text: $controller.language)
-            SecureField(
-                configuration.hasAPIKey ? "API key (optional, saved in Keychain)" : "API key (optional)",
-                text: $controller.apiKey
-            )
-        }
-        Section {
-            HStack {
-                Button("Save Configuration") { controller.saveRemote() }.buttonStyle(.borderedProminent)
-                Button("Test Connection") { controller.testRemoteConnection() }
-                if configuration.hasAPIKey {
-                    Button("Use Without Authentication", role: .destructive) { controller.removeAPIKey() }
+    private func modelGroup(_ title: String, _ descriptors: [ModelDescriptor]) -> some View {
+        if !descriptors.isEmpty {
+            VStack(alignment: .leading, spacing: 10) {
+                Text(title.uppercased())
+                    .font(.system(size: 11, weight: .semibold))
+                    .tracking(0.6)
+                    .foregroundStyle(Theme.textTertiary)
+                WVCard(padding: 6) {
+                    VStack(spacing: 0) {
+                        ForEach(Array(descriptors.enumerated()), id: \.element.id) { index, descriptor in
+                            if index > 0 { WVDivider().padding(.horizontal, 10) }
+                            modelRow(descriptor).padding(10)
+                        }
+                    }
                 }
             }
-            if let remoteResult = controller.remoteResult { Text(remoteResult).foregroundStyle(.secondary) }
-        }
-        Section {
-            Text("HTTPS is required except for localhost or a private LAN endpoint. API keys are stored in Keychain. Test Connection probes the draft above without saving it.")
-                .foregroundStyle(.secondary)
         }
     }
 
     private func modelRow(_ descriptor: ModelDescriptor) -> some View {
         let installed = models.installed.first { $0.id == descriptor.id }
+        let isActive = models.activeModelID == descriptor.id
+        let busy = models.downloadingModelIDs.contains(descriptor.id)
+            || models.installingModelIDs.contains(descriptor.id)
         return VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                VStack(alignment: .leading, spacing: 3) {
+            HStack(spacing: Theme.Space.sm) {
+                WVIconBadge(systemImage: isActive ? "checkmark.circle.fill" : "cube.box",
+                            tint: isActive ? Theme.success : Theme.textSecondary)
+                VStack(alignment: .leading, spacing: 2) {
                     Text(descriptor.displayName)
+                        .font(.wvRowTitle)
+                        .foregroundStyle(Theme.textPrimary)
                     Text("\(descriptor.languageLabel) · \(descriptor.formattedFileSize)")
-                        .font(.caption).foregroundStyle(.secondary)
+                        .font(.wvCaption)
+                        .foregroundStyle(Theme.textSecondary)
                 }
-                Spacer()
-                if models.activeModelID == descriptor.id {
-                    Text("Selected").foregroundStyle(.green)
-                }
-                if models.downloadingModelIDs.contains(descriptor.id)
-                    || models.installingModelIDs.contains(descriptor.id) {
+                Spacer(minLength: Theme.Space.sm)
+                if isActive { WVStatusPill(text: "Selected", color: Theme.success, filled: true) }
+                if busy {
                     Button("Cancel") { models.cancelInstall(descriptor.id) }
+                        .buttonStyle(.wvGhost(role: .destructive))
                 } else if installed != nil {
                     Button("Select") { Task { await models.select(descriptor.id) } }
-                        .disabled(models.activeModelID == descriptor.id)
+                        .buttonStyle(.wvSecondary)
+                        .disabled(isActive)
                     Button("Delete", role: .destructive) {
                         if let installed { Task { await models.delete(installed) } }
                     }
+                    .buttonStyle(.wvGhost(role: .destructive))
                 } else {
                     Button("Download") { models.install(descriptor) }
+                        .buttonStyle(.wvPrimary)
                 }
             }
             if let progress = models.downloadProgress[descriptor.id] {
-                ProgressView(value: progress)
+                ProgressView(value: progress).tint(Theme.accent)
             } else if models.downloadingModelIDs.contains(descriptor.id) {
-                ProgressView()
+                ProgressView().controlSize(.small)
             } else if models.installingModelIDs.contains(descriptor.id) {
-                ProgressView("Installing and verifying…")
+                ProgressView("Installing and verifying…").controlSize(.small)
             }
         }
     }
 
+    @ViewBuilder
+    private var remoteSections: some View {
+        WVCard {
+            VStack(alignment: .leading, spacing: 12) {
+                Text("OpenAI-Compatible Endpoint")
+                    .font(.wvHeadline)
+                    .foregroundStyle(Theme.textPrimary)
+                WVField(label: "Base URL") {
+                    TextField("", text: $controller.baseURL, prompt: Text("https://host.example/v1"))
+                        .textFieldStyle(.wv)
+                }
+                WVField(label: "Model") {
+                    TextField("", text: $controller.remoteModel).textFieldStyle(.wv)
+                }
+                WVField(label: "Language (optional)") {
+                    TextField("", text: $controller.language).textFieldStyle(.wv)
+                }
+                WVField(label: configuration.hasAPIKey ? "API key (saved in Keychain)" : "API key (optional)") {
+                    SecureField("", text: $controller.apiKey).textFieldStyle(.wv)
+                }
+            }
+        }
+        WVCard {
+            VStack(alignment: .leading, spacing: 10) {
+                HStack(spacing: 10) {
+                    Button("Save Configuration") { controller.saveRemote() }.buttonStyle(.wvPrimary)
+                    Button("Test Connection") { controller.testRemoteConnection() }.buttonStyle(.wvSecondary)
+                    if configuration.hasAPIKey {
+                        Button("Use Without Authentication", role: .destructive) { controller.removeAPIKey() }
+                            .buttonStyle(.wvGhost(role: .destructive))
+                    }
+                }
+                if let remoteResult = controller.remoteResult {
+                    Text(remoteResult).font(.wvCaption).foregroundStyle(Theme.textSecondary)
+                }
+            }
+        }
+        WVCard {
+            Text("HTTPS is required except for localhost or a private LAN endpoint. API keys are stored in Keychain. Test Connection probes the draft above without saving it.")
+                .font(.wvCaption)
+                .foregroundStyle(Theme.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
 }
+
+// MARK: - Shortcuts
 
 struct HotkeyView: View {
     @ObservedObject var presenter: DictationPresenter
     @ObservedObject var binding: HotkeyBindingStore
     var captureSuspender: HotkeyCaptureSuspending?
 
+    private var listening: Bool { presenter.hotkeyHealth == .listening }
+
     var body: some View {
-        Form {
-            Section("Push to Talk") {
-                LabeledContent("Current hotkey") {
-                    HStack {
-                        HotkeyRecorder(binding: $binding.selection, captureSuspender: captureSuspender)
-                        Button("Reset to Fn / Globe") {
-                            binding.selection = .function
+        WVPage(icon: "keyboard", title: "Shortcuts", subtitle: "Set the keys that control recording.") {
+            WVCard {
+                VStack(alignment: .leading, spacing: 16) {
+                    HStack(spacing: Theme.Space.sm) {
+                        WVIconBadge(systemImage: "mic")
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Push to Talk")
+                                .font(.wvRowTitle)
+                                .foregroundStyle(Theme.textPrimary)
+                            Text("Hold to record. Release to insert your words.")
+                                .font(.wvCaption)
+                                .foregroundStyle(Theme.textSecondary)
                         }
-                        .disabled(binding.selection == .function)
+                        Spacer(minLength: Theme.Space.sm)
+                        HotkeyRecorder(binding: $binding.selection, captureSuspender: captureSuspender)
+                            .frame(width: 210, height: 30)
+                        Button("Reset") { binding.selection = .function }
+                            .buttonStyle(.wvGhost)
+                            .disabled(binding.selection == .function)
                     }
+
+                    WVDivider()
+
+                    HStack {
+                        Text("Recording mode")
+                            .font(.wvBody)
+                            .foregroundStyle(Theme.textSecondary)
+                        Spacer()
+                        Picker("", selection: $binding.recordingMode) {
+                            ForEach(RecordingMode.allCases, id: \.self) { Text($0.title).tag($0) }
+                        }
+                        .pickerStyle(.segmented)
+                        .labelsHidden()
+                        .frame(width: 240)
+                    }
+                    Text(binding.recordingMode.instruction(binding: binding.selection))
+                        .font(.wvCaption)
+                        .foregroundStyle(Theme.textSecondary)
+
+                    WVDivider()
+
+                    HStack {
+                        Text("Listener status")
+                            .font(.wvBody)
+                            .foregroundStyle(Theme.textSecondary)
+                        Spacer()
+                        WVStatusPill(
+                            text: presenter.hotkeyHealthTitle,
+                            color: listening ? Theme.success : Theme.warning,
+                            filled: true
+                        )
+                    }
+                    Text(presenter.hotkeyHealthDetail)
+                        .font(.wvCaption)
+                        .foregroundStyle(Theme.textSecondary)
                 }
-                Picker("Recording mode", selection: $binding.recordingMode) {
-                    ForEach(RecordingMode.allCases, id: \.self) { Text($0.title).tag($0) }
-                }
-                .pickerStyle(.segmented)
-                Text(binding.recordingMode.instruction(binding: binding.selection))
-                    .foregroundStyle(.secondary)
-                LabeledContent("Listener status") {
-                    Text(presenter.hotkeyHealthTitle)
-                        .foregroundStyle(presenter.hotkeyHealth == .listening ? .green : .orange)
-                }
-                Text(presenter.hotkeyHealthDetail)
-                    .foregroundStyle(.secondary)
             }
 
-            Section {
+            WVCard {
                 Text("Click Record Hotkey, then press a key, key combination, or hold multiple modifiers such as ⌥⇧ and release them together. Fn / Globe is the default. Hold to Talk records while the key is held; Toggle starts on one press and stops on the next. Changes apply immediately and are saved for future launches.")
-                    .foregroundStyle(.secondary)
+                    .font(.wvCaption)
+                    .foregroundStyle(Theme.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
-        .formStyle(.grouped)
-        .navigationTitle("Hotkey")
     }
 }
+
+// MARK: - Privacy
+
+struct PrivacyView: View {
+    @ObservedObject var presenter: AppShellPresenter
+
+    var body: some View {
+        WVPage(icon: "hand.raised", title: "Privacy", subtitle: "How WinterVoice handles your audio and text.") {
+            card("Audio and Transcripts", rows: [
+                (presenter.providerStatus.privacySummary, "waveform.badge.mic"),
+                ("Audio is held in memory only. Successfully inserted transcription text is saved locally in History; audio and API keys are never logged.", "internaldrive"),
+                ("Local transcription runs on this Mac; Remote sends audio only to the endpoint you configure.", "network.slash"),
+            ])
+            card("Safe Insertion", rows: [
+                ("When the focused field is visible to Accessibility, WinterVoice targets that exact field and fails safely if it loses focus.", "scope"),
+                ("Direct Accessibility insertion is attempted before clipboard paste.", "accessibility"),
+                ("Apps that do not expose their focused field to Accessibility fall back to paste after verifying the same app is still frontmost — field-level verification is not possible there.", "questionmark.app"),
+                ("Clipboard fallback marks the transcription as concealed and transient for clipboard managers, restores prior contents, and will not overwrite a newer clipboard change.", "doc.on.clipboard"),
+                ("Text dictated into a detected password field is inserted but never saved to History.", "key"),
+            ])
+        }
+    }
+
+    private func card(_ title: String, rows: [(String, String)]) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text(title.uppercased())
+                .font(.system(size: 11, weight: .semibold))
+                .tracking(0.6)
+                .foregroundStyle(Theme.textTertiary)
+            WVCard {
+                VStack(alignment: .leading, spacing: 0) {
+                    ForEach(Array(rows.enumerated()), id: \.offset) { index, row in
+                        if index > 0 { WVDivider().padding(.vertical, 11) }
+                        HStack(alignment: .top, spacing: Theme.Space.sm) {
+                            WVIconBadge(systemImage: row.1, size: 30)
+                            Text(row.0)
+                                .font(.wvBody)
+                                .foregroundStyle(Theme.textSecondary)
+                                .fixedSize(horizontal: false, vertical: true)
+                            Spacer(minLength: 0)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+// MARK: - Hotkey recorder (AppKit)
 
 private struct HotkeyRecorder: NSViewRepresentable {
     @Binding var binding: HotkeyBinding
@@ -354,33 +515,5 @@ private extension NSEvent.ModifierFlags {
         if contains(.control) { result.insert(.maskControl) }
         if contains(.function) { result.insert(.maskSecondaryFn) }
         return result
-    }
-}
-
-struct PrivacyView: View {
-    @ObservedObject var presenter: AppShellPresenter
-
-    var body: some View {
-        Form {
-            Section("Audio and Transcripts") {
-                privacyRow(presenter.providerStatus.privacySummary, icon: "waveform.badge.mic")
-                privacyRow("Audio is held in memory only. Successfully inserted transcription text is saved locally in History; audio and API keys are never logged.", icon: "internaldrive")
-                privacyRow("Local transcription runs on this Mac; Remote sends audio only to the endpoint you configure.", icon: "network.slash")
-            }
-
-            Section("Safe Insertion") {
-                privacyRow("When the focused field is visible to Accessibility, WinterVoice targets that exact field and fails safely if it loses focus.", icon: "scope")
-                privacyRow("Direct Accessibility insertion is attempted before clipboard paste.", icon: "accessibility")
-                privacyRow("Apps that do not expose their focused field to Accessibility fall back to paste after verifying the same app is still frontmost — field-level verification is not possible there.", icon: "questionmark.app")
-                privacyRow("Clipboard fallback marks the transcription as concealed and transient for clipboard managers, restores prior contents, and will not overwrite a newer clipboard change.", icon: "doc.on.clipboard")
-                privacyRow("Text dictated into a detected password field is inserted but never saved to History.", icon: "key")
-            }
-        }
-        .formStyle(.grouped)
-        .navigationTitle("Privacy")
-    }
-
-    private func privacyRow(_ text: String, icon: String) -> some View {
-        Label(text, systemImage: icon)
     }
 }

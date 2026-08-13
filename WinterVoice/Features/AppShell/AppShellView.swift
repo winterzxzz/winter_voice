@@ -5,56 +5,29 @@ struct AppShellView: View {
     let onboardingPresenter: OnboardingPresenter
     @Environment(\.scenePhase) private var scenePhase
 
-    private var selection: Binding<AppShellDestination?> {
-        Binding(
-            get: { presenter.selection },
-            set: { destination in
-                if let destination { presenter.navigate(to: destination) }
-            }
-        )
-    }
-
     var body: some View {
-        NavigationSplitView {
-            List(selection: selection) {
-                Section("WinterVoice") {
-                    sidebarRow(.overview)
-                    sidebarRow(.permissions)
-                    sidebarRow(.transcription)
-                    sidebarRow(.hotkey)
-                    sidebarRow(.privacy)
-                }
+        HStack(spacing: 0) {
+            WVSidebar(presenter: presenter)
 
-                Section("Data") {
-                    sidebarRow(.history)
-                    sidebarRow(.dictionary)
-                    sidebarRow(.statistics)
-                }
-            }
-            .navigationTitle("WinterVoice")
-            .navigationSplitViewColumnWidth(min: 210, ideal: 235)
-        } detail: {
-            destinationView(presenter.selection)
-                .id(presenter.selection)
+            detail
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                .background(Theme.canvas)
         }
-        .frame(minWidth: 760, minHeight: 520)
+        .frame(minWidth: 860, minHeight: 560)
+        .background(Theme.canvas)
+        .tint(Theme.accent)
+        .preferredColorScheme(.dark)
+        .wvWindowChrome()
         .onAppear { presenter.refresh() }
         .onChange(of: scenePhase) { _, phase in
             if phase == .active { presenter.refresh() }
         }
     }
 
-    private func sidebarRow(_ destination: AppShellDestination) -> some View {
-        Label {
-            HStack {
-                Text(destination.title)
-                Spacer()
-            }
-        } icon: {
-            Image(systemName: destination.icon)
-        }
-        .tag(destination)
-        .accessibilityLabel(destination.title)
+    @ViewBuilder
+    private var detail: some View {
+        destinationView(presenter.selection)
+            .id(presenter.selection)
     }
 
     @ViewBuilder
@@ -87,13 +60,54 @@ struct AppShellView: View {
     }
 }
 
+/// Shared page scaffold: a scrollable, max-width content column with a header
+/// and consistent padding. Every screen sits inside one of these so the dark
+/// canvas, spacing, and header treatment stay identical across the app.
+struct WVPage<Content: View>: View {
+    let icon: String
+    let title: String
+    var subtitle: String?
+    var maxWidth: CGFloat = 760
+    @ViewBuilder var content: Content
+
+    init(
+        icon: String,
+        title: String,
+        subtitle: String? = nil,
+        maxWidth: CGFloat = 760,
+        @ViewBuilder content: () -> Content
+    ) {
+        self.icon = icon
+        self.title = title
+        self.subtitle = subtitle
+        self.maxWidth = maxWidth
+        self.content = content()
+    }
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: Theme.Space.lg) {
+                WVSectionHeader(icon: icon, title: title, subtitle: subtitle)
+                content
+            }
+            .frame(maxWidth: maxWidth, alignment: .leading)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 40)
+            .padding(.top, 40)
+            .padding(.bottom, 48)
+        }
+        .scrollContentBackground(.hidden)
+        .background(Theme.canvas)
+    }
+}
+
 extension AppShellDestination {
     var title: String {
         switch self {
-        case .overview: "Overview"
+        case .overview: "Home"
         case .permissions: "Permissions"
         case .transcription: "Transcription"
-        case .hotkey: "Hotkey"
+        case .hotkey: "Shortcuts"
         case .privacy: "Privacy"
         case .history: "History"
         case .dictionary: "Dictionary"
@@ -113,5 +127,4 @@ extension AppShellDestination {
         case .statistics: "chart.bar.xaxis"
         }
     }
-
 }
