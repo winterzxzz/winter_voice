@@ -785,7 +785,6 @@ struct SettingsView: View {
         .background(Theme.canvas)
         .tint(Theme.accent)
         .preferredColorScheme(theme.mode.colorScheme)
-        .id(theme.mode)
         .onAppear { presenter.refreshPermissions() }
     }
 }

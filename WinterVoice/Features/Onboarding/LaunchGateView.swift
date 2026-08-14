@@ -4,8 +4,10 @@ struct LaunchGateView: View {
     @ObservedObject var onboardingPresenter: OnboardingPresenter
     let shellPresenter: AppShellPresenter
     @State private var isShowingSplash = true
-    /// Observed here — the window root — so a theme switch rebuilds the whole
-    /// tree (every view resolves `Theme` tokens at body time).
+    /// Observed here — the window root — so a theme switch re-evaluates the
+    /// color scheme below. Theme tokens are appearance-dynamic colors, so the
+    /// appearance flip alone recolors every view in place; nothing is torn
+    /// down and scroll/disclosure state survives.
     @ObservedObject private var theme = ThemeStore.shared
 
     var body: some View {
@@ -23,7 +25,7 @@ struct LaunchGateView: View {
                 .zIndex(1)
             }
         }
-        .id(theme.mode)
+        .preferredColorScheme(theme.mode.colorScheme)
     }
 
     @ViewBuilder

@@ -5,10 +5,22 @@ import SwiftUI
 /// reference UI: a transparent, hidden titlebar over a rail-colored window so
 /// the top strip fuses with the sidebar, plus a brand mark installed as a
 /// titlebar accessory so it sits on the same line as the traffic lights.
-/// Re-applied whenever the theme changes (the window root rebuilds this view).
+/// On a theme switch only the window appearance flips — the dynamic Theme
+/// colors then re-resolve in place, so no view tree is rebuilt.
 struct WindowConfigurator: NSViewRepresentable {
+    func makeCoordinator() -> Coordinator {
+        Coordinator()
+    }
+
+    /// Remembers the mode last pushed to the window so routine re-renders
+    /// (sidebar toggle, navigation) don't reinstall the titlebar accessory.
+    final class Coordinator {
+        var appliedMode: ThemeMode?
+    }
+
     func makeNSView(context: Context) -> NSView {
         let view = NSView()
+        context.coordinator.appliedMode = Theme.mode
         DispatchQueue.main.async { [weak view] in
             guard let window = view?.window else { return }
             Self.apply(to: window)
@@ -16,14 +28,21 @@ struct WindowConfigurator: NSViewRepresentable {
         return view
     }
 
-    func updateNSView(_ nsView: NSView, context: Context) {}
+    func updateNSView(_ nsView: NSView, context: Context) {
+        guard context.coordinator.appliedMode != Theme.mode else { return }
+        context.coordinator.appliedMode = Theme.mode
+        DispatchQueue.main.async { [weak nsView] in
+            guard let window = nsView?.window else { return }
+            Self.apply(to: window)
+        }
+    }
 
     static func apply(to window: NSWindow) {
         window.titlebarAppearsTransparent = true
         window.titleVisibility = .hidden
         window.styleMask.insert(.fullSizeContentView)
         window.isMovableByWindowBackground = true
-        window.backgroundColor = NSColor(Theme.sidebar)
+        window.backgroundColor = Theme.windowBackground
         window.appearance = NSAppearance(named: Theme.mode == .black ? .darkAqua : .aqua)
         installBrandAccessory(in: window)
     }

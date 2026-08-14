@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 
 // MARK: - Theme mode
@@ -19,10 +20,6 @@ enum ThemeMode: String, CaseIterable, Identifiable {
 
     var colorScheme: ColorScheme {
         self == .black ? .dark : .light
-    }
-
-    var palette: ThemePalette {
-        self == .black ? .black : .light
     }
 }
 
@@ -160,7 +157,6 @@ final class ThemeStore: ObservableObject {
             guard oldValue != mode else { return }
             UserDefaults.standard.set(mode.rawValue, forKey: Self.defaultsKey)
             Theme.mode = mode
-            Theme.palette = mode.palette
         }
     }
 
@@ -171,9 +167,12 @@ final class ThemeStore: ObservableObject {
 
 // MARK: - Token accessors
 
-/// Central design tokens for WinterVoice, resolved against the active palette.
-/// Views read `Theme.canvas` etc.; a theme switch swaps the palette and window
-/// roots rebuild via `ThemeStore` (`.id(theme.mode)`).
+/// Central design tokens for WinterVoice. Every token is an appearance-dynamic
+/// color: it resolves to the Black palette under a dark appearance and the
+/// Light palette under a light one. A theme switch therefore only flips the
+/// window's appearance (`preferredColorScheme` + `WindowConfigurator`) and
+/// AppKit re-resolves every color in place — no view-tree rebuild, so scroll
+/// positions, disclosure state, and focus all survive the switch.
 enum Theme {
 
     /// Loaded from defaults on first touch; mutated only by `ThemeStore` on
@@ -183,68 +182,82 @@ enum Theme {
         return stored.flatMap(ThemeMode.init(rawValue:)) ?? .black
     }()
 
-    nonisolated(unsafe) fileprivate(set) static var palette: ThemePalette = mode.palette
+    /// An `NSColor` that resolves the token against the draw-time appearance.
+    private static func dynamicNSColor(_ token: KeyPath<ThemePalette, Color>) -> NSColor {
+        NSColor(name: nil) { appearance in
+            let isDark = appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
+            return NSColor((isDark ? ThemePalette.black : ThemePalette.light)[keyPath: token])
+        }
+    }
+
+    private static func dynamic(_ token: KeyPath<ThemePalette, Color>) -> Color {
+        Color(nsColor: dynamicNSColor(token))
+    }
+
+    /// The window's own background — the rail color as a dynamic `NSColor`
+    /// so `WindowConfigurator` keeps appearance-driven resolution.
+    static var windowBackground: NSColor { dynamicNSColor(\.sidebar) }
 
     // MARK: Canvas & surfaces
 
     /// Content-area background.
-    static var canvas: Color { palette.canvas }
+    static let canvas = dynamic(\.canvas)
     /// Sidebar and titlebar rail — fuses with the window chrome.
-    static var sidebar: Color { palette.sidebar }
+    static let sidebar = dynamic(\.sidebar)
     /// Default card surface.
-    static var surface: Color { palette.surface }
+    static let surface = dynamic(\.surface)
     /// A card nested inside another card, or a pressed/elevated surface.
-    static var surfaceElevated: Color { palette.surfaceElevated }
+    static let surfaceElevated = dynamic(\.surfaceElevated)
     /// Small inset squares that hold row icons, keycaps, and inputs.
-    static var inset: Color { palette.inset }
+    static let inset = dynamic(\.inset)
 
     // MARK: Borders
 
-    static var border: Color { palette.border }
-    static var borderStrong: Color { palette.borderStrong }
-    static var separator: Color { palette.separator }
+    static let border = dynamic(\.border)
+    static let borderStrong = dynamic(\.borderStrong)
+    static let separator = dynamic(\.separator)
 
     // MARK: Text
 
-    static var textPrimary: Color { palette.textPrimary }
-    static var textSecondary: Color { palette.textSecondary }
-    static var textTertiary: Color { palette.textTertiary }
+    static let textPrimary = dynamic(\.textPrimary)
+    static let textSecondary = dynamic(\.textSecondary)
+    static let textTertiary = dynamic(\.textTertiary)
 
     // MARK: Emphasis
 
     /// High-contrast fill of primary buttons and active toggles — white in
     /// Black, near-black in Light.
-    static var emphasis: Color { palette.emphasis }
+    static let emphasis = dynamic(\.emphasis)
     /// Text/knob placed on the emphasis fill.
-    static var textOnEmphasis: Color { palette.textOnEmphasis }
+    static let textOnEmphasis = dynamic(\.textOnEmphasis)
 
     // MARK: Accents
 
     /// Primary action blue (brand mark).
-    static var accent: Color { palette.accent }
-    static var accentHover: Color { palette.accentHover }
+    static let accent = dynamic(\.accent)
+    static let accentHover = dynamic(\.accentHover)
     /// Live / active / success green.
-    static var success: Color { palette.success }
-    static var successSurface: Color { palette.successSurface }
-    static var successBorder: Color { palette.successBorder }
+    static let success = dynamic(\.success)
+    static let successSurface = dynamic(\.successSurface)
+    static let successBorder = dynamic(\.successBorder)
     /// Destructive red.
-    static var danger: Color { palette.danger }
+    static let danger = dynamic(\.danger)
     /// Warning amber for degraded states.
-    static var warning: Color { palette.warning }
+    static let warning = dynamic(\.warning)
 
     // MARK: Interactive fills
 
     /// Hovered sidebar-row fill; the selected row is a solid `navPillFill` pill.
-    static var hoverFill: Color { palette.hoverFill }
+    static let hoverFill = dynamic(\.hoverFill)
     /// Selected chip fill, with a brighter border, per reference.
-    static var chipSelected: Color { palette.chipSelected }
-    static var chipSelectedBorder: Color { palette.chipSelectedBorder }
+    static let chipSelected = dynamic(\.chipSelected)
+    static let chipSelectedBorder = dynamic(\.chipSelectedBorder)
     /// The selected sidebar row — white pill in Black, gray pill in Light.
-    static var navPillFill: Color { palette.navPillFill }
-    static var navPillText: Color { palette.navPillText }
+    static let navPillFill = dynamic(\.navPillFill)
+    static let navPillText = dynamic(\.navPillText)
     /// Toggle track and knob in the off state; on-state uses `emphasis`.
-    static var toggleOffFill: Color { palette.toggleOffFill }
-    static var toggleKnobOff: Color { palette.toggleKnobOff }
+    static let toggleOffFill = dynamic(\.toggleOffFill)
+    static let toggleKnobOff = dynamic(\.toggleKnobOff)
 
     // MARK: Metrics
 

@@ -24,7 +24,6 @@ struct AppShellView: View {
         .animation(.spring(response: 0.28, dampingFraction: 0.95), value: sidebarExpanded)
         .frame(minWidth: 860, minHeight: 560)
         .tint(Theme.accent)
-        .preferredColorScheme(Theme.mode.colorScheme)
         .wvWindowChrome()
         .onAppear { presenter.refresh() }
         .onChange(of: scenePhase) { _, phase in

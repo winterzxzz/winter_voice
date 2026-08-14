@@ -72,6 +72,16 @@ final class AppContainer {
            let destination = AppShellDestination(rawValue: arguments.dropFirst(flagIndex + 1).first ?? "") {
             router.navigate(to: destination)
         }
+        // Dev affordance: `-WVThemeFlipAfter 3` toggles Black/Light once after
+        // N seconds, so live theme switching is verifiable in screenshot runs.
+        if let flagIndex = arguments.firstIndex(of: "-WVThemeFlipAfter"),
+           let delay = TimeInterval(arguments.dropFirst(flagIndex + 1).first ?? "") {
+            Task { @MainActor in
+                try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
+                let store = ThemeStore.shared
+                store.mode = store.mode == .black ? .light : .black
+            }
+        }
         let presenter = DictationPresenter(
             interactor: interactor,
             relay: relay,
