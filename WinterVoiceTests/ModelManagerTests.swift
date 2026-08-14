@@ -244,6 +244,59 @@ final class ModelManagerTests: XCTestCase {
         SHA256.hash(data: bytes).map { String(format: "%02x", $0) }.joined()
     }
 
+    func testDiskStorageImportsGGMLModelAndRecordsRegistryEntry() async throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent("ModelImportTests.\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: root) }
+        let source = root.appendingPathComponent("ggml-large-v3.bin")
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        try (Data([0x6C, 0x6D, 0x67, 0x67]) + Data(repeating: 7, count: 128)).write(to: source)
+        let storage = DiskModelStorage(root: root.appendingPathComponent("store"))
+
+        let snapshot = try await storage.importModel(source: source)
+
+        let model = try XCTUnwrap(snapshot.registry.installed.first)
+        XCTAssertEqual(model.id, "imported-ggml-large-v3")
+        XCTAssertEqual(model.displayName, "large-v3 (imported)")
+        XCTAssertEqual(model.fileName, "ggml-large-v3.bin")
+        XCTAssertTrue(model.isImported)
+        XCTAssertEqual(model.fileSize, 132)
+        XCTAssertFalse(model.isEnglishOnly)
+        let installedPath = root.appendingPathComponent("store/imported-ggml-large-v3/ggml-large-v3.bin")
+        XCTAssertTrue(FileManager.default.fileExists(atPath: installedPath.path))
+    }
+
+    func testDiskStorageRejectsImportWithoutGGMLMagic() async throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent("ModelImportRejectTests.\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: root) }
+        let source = root.appendingPathComponent("not-a-model.bin")
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        try Data([0x00, 0x01, 0x02, 0x03, 0x04]).write(to: source)
+        let storage = DiskModelStorage(root: root.appendingPathComponent("store"))
+
+        do {
+            _ = try await storage.importModel(source: source)
+            XCTFail("Expected magic validation failure")
+        } catch {}
+        let snapshot = await storage.loadRegistry()
+        XCTAssertTrue(snapshot.registry.installed.isEmpty)
+    }
+
+    func testDiskStorageImportReplacesPreviousImportWithSameFileName() async throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent("ModelImportReplaceTests.\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: root) }
+        let source = root.appendingPathComponent("ggml-medium.bin")
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        let storage = DiskModelStorage(root: root.appendingPathComponent("store"))
+        try (Data([0x6C, 0x6D, 0x67, 0x67]) + Data(repeating: 1, count: 16)).write(to: source)
+        _ = try await storage.importModel(source: source)
+        try (Data([0x6C, 0x6D, 0x67, 0x67]) + Data(repeating: 2, count: 64)).write(to: source)
+
+        let snapshot = try await storage.importModel(source: source)
+
+        XCTAssertEqual(snapshot.registry.installed.count, 1)
+        XCTAssertEqual(snapshot.registry.installed.first?.fileSize, 68)
+    }
+
     private func installedModel() -> InstalledModel {
         InstalledModel(
             id: "approved-model",
@@ -368,6 +421,8 @@ private actor SuspendedModelStorage: ModelStoring {
         version += 1
         return loadRegistry()
     }
+
+    func importModel(source: URL) throws -> RegistrySnapshot { loadRegistry() }
 
     func removeTemporary(_ url: URL) {}
     func cancelSuspension() { continuation?.resume(); continuation = nil }

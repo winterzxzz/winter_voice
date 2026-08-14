@@ -147,7 +147,7 @@ Có — chạy một router API chuẩn OpenAI trên máy như 9router rồi tr�
 
 <details>
 <summary><b>Có những model Whisper nào?</b></summary>
-Tiny, Base và Small — mỗi loại có bản đa ngôn ngữ (gồm tiếng Việt) và bản chỉ tiếng Anh, tải từ nguồn whisper.cpp chính thức và kiểm SHA-256.
+Tiny, Base và Small — mỗi loại có bản đa ngôn ngữ (gồm tiếng Việt) và bản chỉ tiếng Anh, tải từ nguồn whisper.cpp chính thức và kiểm SHA-256. Muốn hơn thế? Dùng <b>Import Model…</b> trong Settings → Transcription để nạp bất kỳ file ggml whisper <code>.bin</code> nào — Medium, Large-v3, bản quantized, bản fine-tune.
 </details>
 
 ## 🤝 Đóng góp

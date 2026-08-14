@@ -2,6 +2,7 @@ import AppKit
 import AVFoundation
 import ServiceManagement
 import SwiftUI
+import UniformTypeIdentifiers
 
 // MARK: - In-app Settings page
 
@@ -22,6 +23,7 @@ struct AppSettingsView: View {
     /// A preset chip the user tapped whose model is still downloading; selected
     /// automatically once the install lands.
     @State private var pendingPresetModelID: String?
+    @State private var isImportingModel = false
 
     init(presenter: AppShellPresenter, reopenOnboarding: (() -> Void)? = nil) {
         self.presenter = presenter
@@ -201,6 +203,23 @@ struct AppSettingsView: View {
             VStack(alignment: .leading, spacing: 14) {
                 modelGroup("Vietnamese and Multilingual", models.catalog.filter { !$0.isEnglishOnly })
                 modelGroup("English Only", models.catalog.filter(\.isEnglishOnly))
+                WVDivider()
+                HStack(spacing: Theme.Space.sm) {
+                    Button("Import Model…") { isImportingModel = true }
+                        .buttonStyle(.wvSecondary)
+                    Text("Bring any ggml whisper .bin — medium, large-v3, quantized builds…")
+                        .font(.wvCaption)
+                        .foregroundStyle(Theme.textSecondary)
+                    Spacer(minLength: 0)
+                }
+                .fileImporter(
+                    isPresented: $isImportingModel,
+                    allowedContentTypes: [UTType(filenameExtension: "bin") ?? .data]
+                ) { result in
+                    if case .success(let url) = result {
+                        Task { await models.importModel(from: url) }
+                    }
+                }
             }
         }
         WVDisclosureCard(label: storageSummary) {
@@ -224,6 +243,12 @@ struct AppSettingsView: View {
                             Text(formattedSize(for: installed.id))
                                 .font(.wvCaption)
                                 .foregroundStyle(Theme.textSecondary)
+                            if models.activeModelID != installed.id {
+                                Button("Select") {
+                                    Task { await models.select(installed.id) }
+                                }
+                                .buttonStyle(.wvSecondary)
+                            }
                             Button("Delete", role: .destructive) {
                                 Task { await models.delete(installed) }
                             }
@@ -300,7 +325,7 @@ struct AppSettingsView: View {
     private var storageSummary: String {
         let count = models.installed.count
         let bytes = models.installed.compactMap { installed in
-            models.catalog.first { $0.id == installed.id }?.fileSize
+            installed.fileSize ?? models.catalog.first { $0.id == installed.id }?.fileSize
         }.reduce(Int64(0), +)
         let size = ByteCountFormatter.string(fromByteCount: bytes, countStyle: .file)
         let noun = count == 1 ? "model" : "models"
@@ -310,6 +335,9 @@ struct AppSettingsView: View {
     }
 
     private func formattedSize(for id: String) -> String {
+        if let bytes = models.installed.first(where: { $0.id == id })?.fileSize {
+            return ByteCountFormatter.string(fromByteCount: bytes, countStyle: .file)
+        }
         guard let descriptor = models.catalog.first(where: { $0.id == id }) else { return "" }
         return descriptor.formattedFileSize
     }

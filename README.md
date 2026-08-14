@@ -147,7 +147,7 @@ Yes — run a local OpenAI-compatible router like 9router and point it at a prov
 
 <details>
 <summary><b>Which Whisper models are available?</b></summary>
-Tiny, Base, and Small — each in multilingual (incl. Vietnamese) and English-only variants, downloaded from official whisper.cpp sources and verified against published SHA-256 checksums.
+Tiny, Base, and Small — each in multilingual (incl. Vietnamese) and English-only variants, downloaded from official whisper.cpp sources and verified against published SHA-256 checksums. Want more? Use <b>Import Model…</b> in Settings → Transcription to bring any ggml whisper <code>.bin</code> — Medium, Large-v3, quantized builds, fine-tunes.
 </details>
 
 ## 🤝 Contributing

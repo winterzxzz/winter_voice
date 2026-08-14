@@ -96,6 +96,10 @@ struct InstalledModel: Identifiable, Codable, Equatable, Sendable {
     let fileName: String
     let installedAt: Date
     let isEnglishOnly: Bool
+    let fileSize: Int64?
+
+    static let importedIDPrefix = "imported-"
+    var isImported: Bool { id.hasPrefix(Self.importedIDPrefix) }
 
     init(
         id: String,
@@ -103,7 +107,8 @@ struct InstalledModel: Identifiable, Codable, Equatable, Sendable {
         runtime: String,
         fileName: String,
         installedAt: Date,
-        isEnglishOnly: Bool
+        isEnglishOnly: Bool,
+        fileSize: Int64? = nil
     ) {
         self.id = id
         self.displayName = displayName
@@ -111,6 +116,7 @@ struct InstalledModel: Identifiable, Codable, Equatable, Sendable {
         self.fileName = fileName
         self.installedAt = installedAt
         self.isEnglishOnly = isEnglishOnly
+        self.fileSize = fileSize
     }
 
     init(from decoder: Decoder) throws {
@@ -124,6 +130,7 @@ struct InstalledModel: Identifiable, Codable, Equatable, Sendable {
         // catalog file-naming convention they were installed under.
         isEnglishOnly = try container.decodeIfPresent(Bool.self, forKey: .isEnglishOnly)
             ?? fileName.contains(".en.")
+        fileSize = try container.decodeIfPresent(Int64.self, forKey: .fileSize)
     }
 }
 
@@ -217,6 +224,7 @@ struct RegistrySnapshot: Sendable, Equatable {
 protocol ModelStoring: Sendable {
     func loadRegistry() async -> RegistrySnapshot
     func install(source: URL, descriptor: ModelDescriptor) async throws -> RegistrySnapshot
+    func importModel(source: URL) async throws -> RegistrySnapshot
     func selectActive(_ id: String?) async throws -> RegistrySnapshot
     func delete(_ model: InstalledModel) async throws -> RegistrySnapshot
     func removeTemporary(_ url: URL) async
@@ -310,7 +318,8 @@ actor DiskModelStorage: ModelStoring {
                 runtime: descriptor.runtime,
                 fileName: descriptor.fileName,
                 installedAt: Date(),
-                isEnglishOnly: descriptor.isEnglishOnly
+                isEnglishOnly: descriptor.isEnglishOnly,
+                fileSize: descriptor.fileSize
             )
             let registry = currentRegistry()
             var nextInstalled = registry.installed.filter { $0.id != model.id }
@@ -324,6 +333,89 @@ actor DiskModelStorage: ModelStoring {
             if backedUp { try? fileManager.moveItem(at: backup, to: finalDirectory) }
             throw error
         }
+    }
+
+    /// Installs a user-provided ggml whisper model. Imports skip the
+    /// checksum requirement (there is no published hash for arbitrary
+    /// files) but must carry the ggml magic so the runtime never tries
+    /// to load an unrelated file.
+    func importModel(source: URL) throws -> RegistrySnapshot {
+        try Task.checkCancellation()
+        let fileName = source.lastPathComponent
+        guard ModelDescriptor.isSafePathComponent(fileName),
+              fileName.lowercased().hasSuffix(".bin") else {
+            throw DictationFailure(
+                message: "That file is not a whisper model.",
+                recovery: "Pick a ggml whisper model file ending in .bin."
+            )
+        }
+        guard Self.hasGGMLMagic(source) else {
+            throw DictationFailure(
+                message: "That file is not a ggml whisper model.",
+                recovery: "whisper.cpp models begin with the ggml header. Download a ggml-*.bin model and try again."
+            )
+        }
+        let id = Self.importedModelID(for: fileName)
+        let fileSize = (try? fileManager.attributesOfItem(atPath: source.path)[.size] as? Int64) ?? nil
+        try fileManager.createDirectory(at: root, withIntermediateDirectories: true)
+        let finalDirectory = root.appendingPathComponent(id, isDirectory: true)
+        let staging = root.appendingPathComponent(".\(id).\(UUID().uuidString)", isDirectory: true)
+        let backup = root.appendingPathComponent(".\(id).backup.\(UUID().uuidString)", isDirectory: true)
+        try fileManager.createDirectory(at: staging, withIntermediateDirectories: false)
+        var promoted = false
+        var backedUp = false
+        do {
+            _ = try copyAndHash(source: source, destination: staging.appendingPathComponent(fileName))
+            try Task.checkCancellation()
+            if fileManager.fileExists(atPath: finalDirectory.path) {
+                try fileManager.moveItem(at: finalDirectory, to: backup)
+                backedUp = true
+            }
+            try fileManager.moveItem(at: staging, to: finalDirectory)
+            promoted = true
+            let model = InstalledModel(
+                id: id,
+                displayName: Self.importedDisplayName(for: fileName),
+                runtime: "whisper.cpp",
+                fileName: fileName,
+                installedAt: Date(),
+                isEnglishOnly: fileName.lowercased().contains(".en"),
+                fileSize: fileSize
+            )
+            let registry = currentRegistry()
+            var nextInstalled = registry.installed.filter { $0.id != model.id }
+            nextInstalled.append(model)
+            try persist(ModelRegistry(installed: nextInstalled, activeModelID: registry.activeModelID))
+            if backedUp { try? fileManager.removeItem(at: backup) }
+            return loadRegistry()
+        } catch {
+            try? fileManager.removeItem(at: staging)
+            if promoted { try? fileManager.removeItem(at: finalDirectory) }
+            if backedUp { try? fileManager.moveItem(at: backup, to: finalDirectory) }
+            throw error
+        }
+    }
+
+    static func importedModelID(for fileName: String) -> String {
+        let base = (fileName as NSString).deletingPathExtension.lowercased()
+        let safe = String(base.map { $0.isLetter || $0.isNumber ? $0 : "-" })
+        return InstalledModel.importedIDPrefix + safe
+    }
+
+    static func importedDisplayName(for fileName: String) -> String {
+        var name = (fileName as NSString).deletingPathExtension
+        if name.hasPrefix("ggml-") { name.removeFirst(5) }
+        return "\(name) (imported)"
+    }
+
+    /// whisper.cpp model files open with the ggml magic (0x67676d6c);
+    /// both byte orders are accepted so endianness never rejects a
+    /// legitimate model.
+    static func hasGGMLMagic(_ url: URL) -> Bool {
+        guard let handle = try? FileHandle(forReadingFrom: url) else { return false }
+        defer { try? handle.close() }
+        guard let data = try? handle.read(upToCount: 4), data.count == 4 else { return false }
+        return data == Data([0x6C, 0x6D, 0x67, 0x67]) || data == Data([0x67, 0x67, 0x6D, 0x6C])
     }
 
     private func persist(_ registry: ModelRegistry) throws {
@@ -503,6 +595,16 @@ final class ModelManager: ObservableObject {
             if wasActive { localRuntimeUnloader?() }
         } catch {
             lastError = (error as? DictationFailure)?.message ?? "Could not delete the model."
+        }
+    }
+
+    func importModel(from url: URL) async {
+        await ensureRegistryLoaded()
+        do {
+            apply(try await storage.importModel(source: url))
+            lastError = nil
+        } catch {
+            lastError = (error as? DictationFailure)?.message ?? "Could not import the model."
         }
     }
 
