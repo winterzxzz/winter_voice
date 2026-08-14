@@ -84,14 +84,23 @@ struct WindowConfigurator: NSViewRepresentable {
 private struct TitlebarBrand: View {
     @AppStorage(SidebarVisibility.key) private var sidebarVisible = true
 
+    private var appVersion: String {
+        Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "—"
+    }
+
     var body: some View {
         HStack(spacing: 10) {
             SidebarToggleButton(isOn: $sidebarVisible)
             HStack(spacing: 8) {
                 WVBrandMark(size: 19)
-                Text("WinterVoice")
-                    .font(.wv(13.5, .semibold))
-                    .foregroundStyle(Theme.textPrimary)
+                HStack(alignment: .firstTextBaseline, spacing: 6) {
+                    Text("WinterVoice")
+                        .font(.wv(13.5, .semibold))
+                        .foregroundStyle(Theme.textPrimary)
+                    Text("v\(appVersion)")
+                        .font(.wv(11, .medium))
+                        .foregroundStyle(Theme.textTertiary)
+                }
             }
         }
         .padding(.leading, 6)
