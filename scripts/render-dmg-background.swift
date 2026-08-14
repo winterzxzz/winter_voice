@@ -116,6 +116,32 @@ for (index, centerX) in wellCenters.enumerated() {
     )
     color(0xFFFFFF, 0.045).setFill()
     path.fill()
+
+    // Nameplate band across the well bottom, where Finder draws the icon
+    // label. Finder colors labels from the SYSTEM appearance (black in
+    // Light Mode, white in Dark Mode), not from the background picture —
+    // a ~50% gray is the only tone that stays readable under both.
+    let bandHeight: CGFloat = 34
+    let band = NSBezierPath()
+    let wellBottom = well.minY
+    band.move(to: NSPoint(x: well.minX, y: wellBottom + bandHeight))
+    band.line(to: NSPoint(x: well.maxX, y: wellBottom + bandHeight))
+    band.line(to: NSPoint(x: well.maxX, y: wellBottom + 32))
+    band.appendArc(
+        from: NSPoint(x: well.maxX, y: wellBottom),
+        to: NSPoint(x: well.maxX - 32, y: wellBottom),
+        radius: 32
+    )
+    band.line(to: NSPoint(x: well.minX + 32, y: wellBottom))
+    band.appendArc(
+        from: NSPoint(x: well.minX, y: wellBottom),
+        to: NSPoint(x: well.minX, y: wellBottom + 32),
+        radius: 32
+    )
+    band.close()
+    color(0x7A7A83, 0.92).setFill()
+    band.fill()
+
     color(0xFFFFFF, 0.10).setStroke()
     path.lineWidth = 1
     path.stroke()
