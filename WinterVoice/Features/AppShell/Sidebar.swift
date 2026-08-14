@@ -13,7 +13,7 @@ struct WVNavRow: View {
         Button(action: action) {
             HStack(spacing: 11) {
                 Image(systemName: destination.icon)
-                    .font(.system(size: 15, weight: .medium))
+                    .font(.system(size: 14, weight: .medium))
                     .frame(width: 20)
                     .foregroundStyle(isSelected ? Theme.textPrimary : Theme.textSecondary)
                 Text(destination.title)
@@ -21,8 +21,8 @@ struct WVNavRow: View {
                     .foregroundStyle(isSelected ? Theme.textPrimary : Theme.textSecondary)
                 Spacer(minLength: 0)
             }
-            .padding(.horizontal, 10)
-            .padding(.vertical, 7)
+            .padding(.horizontal, 11)
+            .padding(.vertical, 8)
             .background {
                 let shape = RoundedRectangle(cornerRadius: Theme.Radius.control, style: .continuous)
                 if isSelected {
@@ -34,36 +34,46 @@ struct WVNavRow: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .focusEffectDisabled()
         .onHover { isHovering = $0 }
     }
 }
 
-/// The full sidebar: brand header, grouped navigation, and a live status footer
-/// that stands in for the reference app's account/credits area.
+/// The full sidebar: brand mark beside the traffic lights, a flat navigation
+/// list, and the words/account footer of the reference app.
 struct WVSidebar: View {
     @ObservedObject var presenter: AppShellPresenter
     @ObservedObject private var dictationPresenter: DictationPresenter
+    @ObservedObject private var usageStats: UsageStatsStore
 
     init(presenter: AppShellPresenter) {
         self.presenter = presenter
         _dictationPresenter = ObservedObject(wrappedValue: presenter.dictationPresenter)
+        _usageStats = ObservedObject(wrappedValue: presenter.usageStats)
     }
 
-    private let primary: [AppShellDestination] = [.overview, .permissions, .transcription, .hotkey, .privacy]
-    private let data: [AppShellDestination] = [.history, .dictionary, .statistics]
+    private let items: [AppShellDestination] = [
+        .overview, .history, .dictionary, .hotkey, .settings,
+    ]
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
+            // Title-bar row: the sidebar ignores the top safe area, so this
+            // sits on the same line as the traffic lights, brand to their right.
             brand
-                .padding(.top, 34)  // clear the traffic lights
-                .padding(.horizontal, 14)
-                .padding(.bottom, 18)
+                .padding(.leading, 76)
+                .frame(height: 30, alignment: .leading)
+                .padding(.bottom, 12)
 
             ScrollView {
                 VStack(alignment: .leading, spacing: 2) {
-                    group(title: "WinterVoice", items: primary)
-                    group(title: "Data", items: data)
-                        .padding(.top, 14)
+                    ForEach(items, id: \.self) { destination in
+                        WVNavRow(
+                            destination: destination,
+                            isSelected: presenter.selection == destination,
+                            action: { presenter.navigate(to: destination) }
+                        )
+                    }
                 }
                 .padding(.horizontal, 10)
                 .padding(.bottom, 12)
@@ -71,20 +81,19 @@ struct WVSidebar: View {
 
             Spacer(minLength: 0)
 
-            WVDivider().padding(.horizontal, 14)
             footer
-                .padding(14)
         }
-        .frame(width: 232)
+        .frame(width: 208)
         .background(Theme.sidebar)
         .overlay(alignment: .trailing) {
             Rectangle().fill(Theme.separator).frame(width: 1)
         }
+        .ignoresSafeArea(.container, edges: .top)
     }
 
     private var brand: some View {
-        HStack(spacing: 10) {
-            RoundedRectangle(cornerRadius: 9, style: .continuous)
+        HStack(spacing: 7) {
+            RoundedRectangle(cornerRadius: 6, style: .continuous)
                 .fill(
                     LinearGradient(
                         colors: [Theme.accent, Color(hex: 0x1D4ED8)],
@@ -92,56 +101,70 @@ struct WVSidebar: View {
                         endPoint: .bottomTrailing
                     )
                 )
-                .frame(width: 30, height: 30)
+                .frame(width: 20, height: 20)
                 .overlay(
                     Image(systemName: "waveform")
-                        .font(.system(size: 15, weight: .bold))
+                        .font(.system(size: 10, weight: .bold))
                         .foregroundStyle(.white)
                 )
             Text("WinterVoice")
-                .font(.system(size: 16, weight: .semibold))
+                .font(.system(size: 13, weight: .semibold))
                 .foregroundStyle(Theme.textPrimary)
-        }
-    }
-
-    private func group(title: String, items: [AppShellDestination]) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text(title.uppercased())
-                .font(.system(size: 10.5, weight: .semibold))
-                .tracking(0.6)
-                .foregroundStyle(Theme.textTertiary)
-                .padding(.horizontal, 10)
-                .padding(.bottom, 4)
-            ForEach(items, id: \.self) { destination in
-                WVNavRow(
-                    destination: destination,
-                    isSelected: presenter.selection == destination,
-                    action: { presenter.navigate(to: destination) }
-                )
-            }
         }
     }
 
     private var footer: some View {
         let listening = dictationPresenter.hotkeyHealth == .listening
-        return VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 8) {
-                WVIconBadge(
-                    systemImage: listening ? "keyboard" : "exclamationmark.triangle.fill",
-                    tint: listening ? Theme.success : Theme.warning,
-                    size: 30
-                )
+        return VStack(alignment: .leading, spacing: 0) {
+            WVDivider()
+
+            HStack(spacing: 9) {
+                Image(systemName: "text.word.spacing")
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(Theme.textSecondary)
+                    .frame(width: 20)
+                Text("Words")
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundStyle(Theme.textSecondary)
+                Spacer(minLength: 0)
+                Text(usageStats.totals.totalWords.formatted())
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(Theme.textPrimary)
+                    .monospacedDigit()
+            }
+            .padding(.horizontal, 16)
+            .padding(.top, 14)
+            .padding(.bottom, 10)
+
+            HStack(spacing: 9) {
+                Circle()
+                    .fill(Theme.surfaceElevated)
+                    .overlay(Circle().strokeBorder(Theme.borderStrong, lineWidth: 1))
+                    .overlay(
+                        Text("WV")
+                            .font(.system(size: 10.5, weight: .semibold))
+                            .foregroundStyle(Theme.textPrimary)
+                    )
+                    .frame(width: 30, height: 30)
                 VStack(alignment: .leading, spacing: 1) {
-                    Text(presenter.providerStatus.title)
+                    Text("WinterVoice")
                         .font(.system(size: 12.5, weight: .medium))
                         .foregroundStyle(Theme.textPrimary)
                         .lineLimit(1)
-                    Text(listening ? "Hotkey listening" : "Hotkey needs attention")
-                        .font(.system(size: 11))
-                        .foregroundStyle(listening ? Theme.success : Theme.warning)
+                    HStack(spacing: 5) {
+                        Circle()
+                            .fill(listening ? Theme.success : Theme.warning)
+                            .frame(width: 5, height: 5)
+                        Text(presenter.providerStatus.title)
+                            .font(.system(size: 11))
+                            .foregroundStyle(Theme.textSecondary)
+                            .lineLimit(1)
+                    }
                 }
                 Spacer(minLength: 0)
             }
+            .padding(.horizontal, 14)
+            .padding(.bottom, 14)
         }
     }
 }

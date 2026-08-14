@@ -46,15 +46,43 @@ final class DictionaryStore: ObservableObject, TextProcessing {
     @Published private(set) var entries: [DictionaryEntry] = []
     @Published private(set) var isLoaded = false
 
+    /// Master switch: when off, saved terms are kept but not applied to
+    /// transcripts (the "Apply to transcripts" toggle).
+    @Published var isApplyEnabled: Bool {
+        didSet { defaults.set(isApplyEnabled, forKey: Self.applyEnabledKey) }
+    }
+
+    private static let applyEnabledKey = "dictionary.applyEnabled"
+    private let defaults: UserDefaults
     private let persistence: any DictionaryPersisting
     private var saveTask: Task<Void, Never>?
     private var hadLocalMutationBeforeLoad = false
 
-    init(root: URL? = nil, persistence: (any DictionaryPersisting)? = nil) {
+    init(
+        root: URL? = nil,
+        persistence: (any DictionaryPersisting)? = nil,
+        defaults: UserDefaults = .standard
+    ) {
         let applicationSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
         let resolvedRoot = root ?? applicationSupport.appendingPathComponent("WinterVoice", isDirectory: true)
         self.persistence = persistence ?? JSONDictionaryPersistence(root: resolvedRoot)
+        self.defaults = defaults
+        isApplyEnabled = defaults.object(forKey: Self.applyEnabledKey) as? Bool ?? true
         Task { [weak self] in await self?.loadPersistedEntries() }
+    }
+
+    /// Re-read the saved terms from disk, waiting out any in-flight save so a
+    /// debounced write is never clobbered.
+    func reload() {
+        let persistence = persistence
+        let pendingSave = saveTask
+        Task { [weak self] in
+            await pendingSave?.value
+            let persisted = await persistence.load()
+            guard let self else { return }
+            self.entries = persisted
+            self.isLoaded = true
+        }
     }
 
     func add(source: String, replacement: String) throws {
@@ -102,6 +130,8 @@ final class DictionaryStore: ObservableObject, TextProcessing {
     }
 
     func process(_ text: String) -> String {
+        guard isApplyEnabled else { return text }
+
         struct Candidate {
             let range: NSRange
             let replacement: String

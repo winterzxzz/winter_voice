@@ -185,3 +185,258 @@ struct WVDivider: View {
             .frame(height: 1)
     }
 }
+
+// MARK: - Toggle
+
+/// The reference switch: white track with a dark knob when on, dark track with
+/// a gray knob when off.
+struct WVToggleStyle: ToggleStyle {
+    @Environment(\.isEnabled) private var isEnabled
+
+    func makeBody(configuration: Configuration) -> some View {
+        Button {
+            configuration.isOn.toggle()
+        } label: {
+            HStack(spacing: 8) {
+                configuration.label
+                Capsule()
+                    .fill(configuration.isOn ? Color.white : Color.white.opacity(0.14))
+                    .frame(width: 38, height: 22)
+                    .overlay(alignment: configuration.isOn ? .trailing : .leading) {
+                        Circle()
+                            .fill(configuration.isOn ? Color(hex: 0x0A0A0B) : Color(hex: 0xA8A8AD))
+                            .frame(width: 16, height: 16)
+                            .padding(3)
+                    }
+                    .animation(.spring(response: 0.24, dampingFraction: 0.9), value: configuration.isOn)
+            }
+        }
+        .buttonStyle(.plain)
+        .focusEffectDisabled()
+        .opacity(isEnabled ? 1 : 0.5)
+    }
+}
+
+extension ToggleStyle where Self == WVToggleStyle {
+    static var wv: WVToggleStyle { WVToggleStyle() }
+}
+
+// MARK: - Dashed empty state
+
+/// The reference empty state: a dashed rounded border around a centered icon
+/// square, a bold one-liner, and a gray hint.
+struct WVDashedEmptyState: View {
+    let icon: String
+    let title: String
+    let message: String
+
+    var body: some View {
+        VStack(spacing: 10) {
+            WVIconBadge(systemImage: icon, tint: Theme.textPrimary, size: 34)
+            Text(title)
+                .font(.system(size: 13.5, weight: .semibold))
+                .foregroundStyle(Theme.textPrimary)
+            Text(message)
+                .font(.wvCaption)
+                .foregroundStyle(Theme.textSecondary)
+                .multilineTextAlignment(.center)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 36)
+        .padding(.horizontal, 20)
+        .overlay(
+            RoundedRectangle(cornerRadius: Theme.Radius.row, style: .continuous)
+                .strokeBorder(
+                    Theme.borderStrong,
+                    style: StrokeStyle(lineWidth: 1, dash: [5, 5])
+                )
+        )
+    }
+}
+
+// MARK: - Chip picker
+
+/// A row of pill "chips" acting as a segmented control; the selected chip is
+/// filled white with dark text like the reference (`Local / Cloud`,
+/// `Always / Recording / Hidden`).
+struct WVChipPicker<Option: Hashable>: View {
+    @Binding var selection: Option
+    let options: [Option]
+    let label: (Option) -> String
+    var icon: ((Option) -> String?)? = nil
+
+    var body: some View {
+        HStack(spacing: 6) {
+            ForEach(options, id: \.self) { option in
+                chip(option)
+            }
+        }
+    }
+
+    private func chip(_ option: Option) -> some View {
+        ChipButton(
+            isSelected: option == selection,
+            title: label(option),
+            symbol: icon?(option) ?? nil,
+            action: { selection = option }
+        )
+    }
+}
+
+/// A single chip: white with dark text when selected, plain gray text with a
+/// hover hint otherwise — the reference chip treatment.
+private struct ChipButton: View {
+    let isSelected: Bool
+    let title: String
+    var symbol: String?
+    let action: () -> Void
+
+    @State private var isHovering = false
+
+    var body: some View {
+        let shape = RoundedRectangle(cornerRadius: Theme.Radius.chip, style: .continuous)
+        Button(action: action) {
+            HStack(spacing: 5) {
+                if let symbol {
+                    Image(systemName: symbol)
+                        .font(.system(size: 11, weight: .medium))
+                }
+                Text(title)
+                    .font(.system(size: 12.5, weight: isSelected ? .semibold : .medium))
+                    .lineLimit(1)
+            }
+            .fixedSize()
+            .foregroundStyle(isSelected ? Color(hex: 0x0A0A0B) : Theme.textSecondary)
+            .padding(.horizontal, 11)
+            .padding(.vertical, 6)
+            .background {
+                if isSelected {
+                    shape.fill(Color.white)
+                } else if isHovering {
+                    shape.fill(Theme.inset)
+                }
+            }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .focusEffectDisabled()
+        .onHover { isHovering = $0 }
+    }
+}
+
+// MARK: - Icon button
+
+/// A small bordered square holding a single icon, e.g. the refresh control
+/// beside a search field.
+struct WVIconButton: View {
+    let systemImage: String
+    var help: String?
+    let action: () -> Void
+
+    @State private var isHovering = false
+
+    var body: some View {
+        Button(action: action) {
+            let shape = RoundedRectangle(cornerRadius: Theme.Radius.chip, style: .continuous)
+            Image(systemName: systemImage)
+                .font(.system(size: 12, weight: .medium))
+                .foregroundStyle(isHovering ? Theme.textPrimary : Theme.textSecondary)
+                .frame(width: 30, height: 30)
+                .background(isHovering ? Theme.surfaceElevated : Theme.inset, in: shape)
+                .overlay(shape.strokeBorder(Theme.border, lineWidth: 1))
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .focusEffectDisabled()
+        .onHover { isHovering = $0 }
+        .help(help ?? "")
+    }
+}
+
+// MARK: - Search field
+
+/// The inset dark search input used by History and Dictionary.
+struct WVSearchField: View {
+    let prompt: String
+    @Binding var text: String
+    var width: CGFloat? = nil
+
+    var body: some View {
+        let shape = RoundedRectangle(cornerRadius: Theme.Radius.control, style: .continuous)
+        HStack(spacing: 7) {
+            Image(systemName: "magnifyingglass")
+                .font(.system(size: 12, weight: .medium))
+                .foregroundStyle(Theme.textTertiary)
+            TextField("", text: $text, prompt: Text(prompt).foregroundColor(Theme.textTertiary))
+                .textFieldStyle(.plain)
+                .font(.system(size: 13))
+                .foregroundStyle(Theme.textPrimary)
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 7)
+        .frame(width: width)
+        .background(Theme.inset, in: shape)
+        .overlay(shape.strokeBorder(Theme.border, lineWidth: 1))
+    }
+}
+
+// MARK: - Disclosure card
+
+/// A full-width collapsible row inside a bordered card: label on the left,
+/// chevron on the right — the reference "All models" / "Advanced" /
+/// "Troubleshooting" rows.
+struct WVDisclosureCard<Content: View>: View {
+    let label: String
+    var chevronLeading = false
+    @ViewBuilder var content: Content
+
+    @State private var isExpanded = false
+
+    var body: some View {
+        let shape = RoundedRectangle(cornerRadius: Theme.Radius.row, style: .continuous)
+        VStack(alignment: .leading, spacing: 0) {
+            Button {
+                withAnimation(.spring(response: 0.28, dampingFraction: 0.9)) {
+                    isExpanded.toggle()
+                }
+            } label: {
+                HStack(spacing: 8) {
+                    if chevronLeading {
+                        chevron
+                        labelText
+                        Spacer(minLength: 0)
+                    } else {
+                        labelText
+                        Spacer(minLength: 0)
+                        chevron
+                    }
+                }
+                .padding(.horizontal, 14)
+                .padding(.vertical, 12)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+
+            if isExpanded {
+                WVDivider().padding(.horizontal, 14)
+                content
+                    .padding(14)
+            }
+        }
+        .background(Theme.surface, in: shape)
+        .overlay(shape.strokeBorder(Theme.border, lineWidth: 1))
+    }
+
+    private var labelText: some View {
+        Text(label)
+            .font(.system(size: 13))
+            .foregroundStyle(Theme.textSecondary)
+    }
+
+    private var chevron: some View {
+        Image(systemName: "chevron.right")
+            .font(.system(size: 10, weight: .semibold))
+            .foregroundStyle(Theme.textTertiary)
+            .rotationEffect(.degrees(chevronLeading ? (isExpanded ? 90 : 0) : (isExpanded ? -90 : 90)))
+    }
+}

@@ -11,48 +11,41 @@ struct HistoryView: View {
     }
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: Theme.Space.lg) {
-                WVSectionHeader(
-                    icon: "clock.arrow.circlepath",
-                    title: "History",
-                    subtitle: "Successfully inserted dictations, stored on this Mac."
-                ) {
+        WVPage(
+            icon: "clock.arrow.circlepath",
+            title: "History",
+            subtitle: "Everything you've dictated on this device."
+        ) {
+            if !store.entries.isEmpty {
+                HStack(spacing: 8) {
+                    WVSearchField(prompt: "Search dictations", text: $searchText)
                     Button("Clear All", role: .destructive) { store.clear() }
                         .buttonStyle(.wvSecondary(role: .destructive))
-                        .disabled(store.entries.isEmpty)
                 }
-
-                if !store.entries.isEmpty {
-                    searchField
-                }
-
-                content
             }
-            .frame(maxWidth: 760, alignment: .leading)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.horizontal, 40)
-            .padding(.top, 40)
-            .padding(.bottom, 48)
+            content
         }
-        .scrollContentBackground(.hidden)
-        .background(Theme.canvas)
     }
 
     @ViewBuilder
     private var content: some View {
         if !store.isLoaded {
-            loadingOrEmpty {
-                ProgressView("Loading history…").foregroundStyle(Theme.textSecondary)
+            WVCard {
+                HStack {
+                    Spacer()
+                    ProgressView("Loading history…").foregroundStyle(Theme.textSecondary)
+                    Spacer()
+                }
+                .padding(.vertical, 24)
             }
         } else if store.entries.isEmpty {
-            emptyState(
-                icon: "clock.arrow.circlepath",
-                title: "No dictation history",
-                message: "Successfully inserted dictations will appear here."
+            WVDashedEmptyState(
+                icon: "mic",
+                title: "No transcriptions yet",
+                message: "Hold your shortcut in any app to dictate — it'll show up here."
             )
         } else if filteredEntries.isEmpty {
-            emptyState(
+            WVDashedEmptyState(
                 icon: "magnifyingglass",
                 title: "No matches",
                 message: "No dictations contain “\(searchText)”."
@@ -63,42 +56,6 @@ struct HistoryView: View {
                     HistoryEntryRow(entry: entry) { store.delete(entry) }
                 }
             }
-        }
-    }
-
-    private var searchField: some View {
-        let shape = RoundedRectangle(cornerRadius: Theme.Radius.control, style: .continuous)
-        return HStack(spacing: 8) {
-            Image(systemName: "magnifyingglass")
-                .font(.system(size: 12, weight: .medium))
-                .foregroundStyle(Theme.textTertiary)
-            TextField("", text: $searchText, prompt: Text("Search dictations").foregroundColor(Theme.textTertiary))
-                .textFieldStyle(.plain)
-                .font(.system(size: 13))
-                .foregroundStyle(Theme.textPrimary)
-        }
-        .padding(.horizontal, 11)
-        .padding(.vertical, 8)
-        .background(Theme.inset, in: shape)
-        .overlay(shape.strokeBorder(Theme.border, lineWidth: 1))
-    }
-
-    private func loadingOrEmpty<V: View>(@ViewBuilder _ view: () -> V) -> some View {
-        WVCard { HStack { Spacer(); view(); Spacer() }.padding(.vertical, 24) }
-    }
-
-    private func emptyState(icon: String, title: String, message: String) -> some View {
-        WVCard {
-            VStack(spacing: 8) {
-                Image(systemName: icon)
-                    .font(.system(size: 30, weight: .light))
-                    .foregroundStyle(Theme.textTertiary)
-                Text(title).font(.wvHeadline).foregroundStyle(Theme.textPrimary)
-                Text(message).font(.wvBody).foregroundStyle(Theme.textSecondary)
-                    .multilineTextAlignment(.center)
-            }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 32)
         }
     }
 }

@@ -1,27 +1,30 @@
 import SwiftUI
 
-struct StatisticsView: View {
+/// Local usage totals rendered as stat tiles — shown on the Home screen.
+struct UsageStatsSection: View {
     @ObservedObject var store: UsageStatsStore
 
     var body: some View {
-        WVPage(
-            icon: "chart.bar.xaxis",
-            title: "Statistics",
-            subtitle: "Local usage totals for successful dictations. Nothing leaves this Mac."
-        ) {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Text("USAGE")
+                    .font(.system(size: 10.5, weight: .semibold))
+                    .tracking(0.6)
+                    .foregroundStyle(Theme.textTertiary)
+                Spacer()
+                if store.totals.sessionCount > 0 {
+                    Button("Reset") { store.reset() }
+                        .buttonStyle(.wvGhost(role: .destructive))
+                }
+            }
             LazyVGrid(
-                columns: [GridItem(.adaptive(minimum: 200), spacing: 14)],
-                spacing: 14
+                columns: [GridItem(.adaptive(minimum: 180), spacing: 12)],
+                spacing: 12
             ) {
                 statTile(title: "Words dictated", value: store.totals.totalWords.formatted(), icon: "text.word.spacing")
                 statTile(title: "Speaking time", value: speakingTime, icon: "clock")
                 statTile(title: "Dictations", value: store.totals.sessionCount.formatted(), icon: "mic")
                 statTile(title: "Average pace", value: averagePace, icon: "speedometer")
-            }
-
-            if store.totals.sessionCount > 0 {
-                Button("Reset Statistics", role: .destructive) { store.reset() }
-                    .buttonStyle(.wvSecondary(role: .destructive))
             }
         }
     }
@@ -44,17 +47,17 @@ struct StatisticsView: View {
 
     private func statTile(title: String, value: String, icon: String) -> some View {
         WVCard {
-            VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: 10) {
                 HStack(spacing: 8) {
                     Image(systemName: icon)
-                        .font(.system(size: 13, weight: .medium))
-                        .foregroundStyle(Theme.accent)
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundStyle(Theme.textSecondary)
                     Text(title)
                         .font(.wvCaption)
                         .foregroundStyle(Theme.textSecondary)
                 }
                 Text(value)
-                    .font(.system(size: 30, weight: .semibold, design: .rounded))
+                    .font(.system(size: 26, weight: .semibold, design: .rounded))
                     .foregroundStyle(Theme.textPrimary)
                     .monospacedDigit()
             }

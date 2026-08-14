@@ -2,6 +2,39 @@ import AppKit
 import Combine
 import SwiftUI
 
+/// When the floating pill is on screen — the reference "Show widget" setting.
+enum WidgetVisibility: String, CaseIterable, Codable, Sendable {
+    case always
+    case whileRecording
+    case hidden
+
+    var title: String {
+        switch self {
+        case .always: "Always"
+        case .whileRecording: "Recording"
+        case .hidden: "Hidden"
+        }
+    }
+}
+
+/// Persisted preferences for the floating widget, shared between the Settings
+/// screen and the panel controller.
+@MainActor
+final class WidgetPreferences: ObservableObject {
+    @Published var visibility: WidgetVisibility {
+        didSet { defaults.set(visibility.rawValue, forKey: Self.visibilityKey) }
+    }
+
+    private static let visibilityKey = "widget.visibility"
+    private let defaults: UserDefaults
+
+    init(defaults: UserDefaults = .standard) {
+        self.defaults = defaults
+        visibility = defaults.string(forKey: Self.visibilityKey)
+            .flatMap(WidgetVisibility.init(rawValue:)) ?? .always
+    }
+}
+
 @MainActor
 final class RecordingPanelController {
     private static let originXKey = "recordingPanel.origin.x"
@@ -10,14 +43,20 @@ final class RecordingPanelController {
     private let panel: NSPanel
     private let hostingView: NSHostingView<RecordingPanelView>
     private let defaults: UserDefaults
+    private let preferences: WidgetPreferences
     private var hasPositioned = false
-    private var cancellable: AnyCancellable?
+    private var latestState: DictationState = .idle
+    private var visibility: WidgetVisibility
+    private var cancellables = Set<AnyCancellable>()
 
     init(
         presenter: DictationPresenter,
         levelMeter: AudioLevelMeter,
+        preferences: WidgetPreferences = WidgetPreferences(),
         defaults: UserDefaults = .standard
     ) {
+        self.preferences = preferences
+        visibility = preferences.visibility
         self.defaults = defaults
         panel = NSPanel(
             contentRect: NSRect(x: 0, y: 0, width: 120, height: 80),
@@ -46,11 +85,42 @@ final class RecordingPanelController {
             onDragDelta: { [weak self] delta in self?.moveBy(delta) },
             onDragEnded: { [weak self] in self?.persistPosition() }
         )
-        cancellable = presenter.$state.sink { [weak self] _ in self?.render() }
+        presenter.$state
+            .sink { [weak self] state in
+                self?.latestState = state
+                self?.render()
+            }
+            .store(in: &cancellables)
+        preferences.$visibility
+            .sink { [weak self] visibility in
+                self?.visibility = visibility
+                self?.render()
+            }
+            .store(in: &cancellables)
+    }
+
+    /// Bring the pill to the front without changing state — the fixed
+    /// Cmd+Shift+Space shortcut. Ignored while the widget is set to Hidden.
+    func showWidget() {
+        guard visibility != .hidden else { return }
+        present()
     }
 
     private func render() {
-        // The widget is always on screen: idle shows the compact pill.
+        let visible: Bool
+        switch visibility {
+        case .always: visible = true
+        case .whileRecording: visible = latestState != .idle
+        case .hidden: visible = false
+        }
+        guard visible else {
+            panel.orderOut(nil)
+            return
+        }
+        present()
+    }
+
+    private func present() {
         fitToContent()
         if !hasPositioned {
             positionInitially()

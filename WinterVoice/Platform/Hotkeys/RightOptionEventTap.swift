@@ -23,6 +23,10 @@ protocol HotkeyReconciling: AnyObject {
 
 @MainActor
 final class RightOptionEventTap: HotkeyReconciling, HotkeyCaptureSuspending {
+    /// Fired on the fixed Cmd+Shift+Space chord — brings the floating widget
+    /// to the front without starting a recording.
+    var onShowWidget: (() -> Void)?
+
     private weak var interactor: DictationInteracting?
     private let relay: HotkeyHealthRelay
     private let binding: HotkeyBindingStore
@@ -127,8 +131,15 @@ final class RightOptionEventTap: HotkeyReconciling, HotkeyCaptureSuspending {
         case .keyChanged(let keyCode, let flags, let isDown):
             guard !isSuspended else { return }
             let selected = binding.selection
-            guard selected.matchesKeyEvent(keyCode: keyCode, flags: flags) else { return }
-            updatePressed(isDown)
+            if selected.matchesKeyEvent(keyCode: keyCode, flags: flags) {
+                updatePressed(isDown)
+                return
+            }
+            // Fixed Show Widget chord; a user binding on the same keys wins above.
+            if isDown, keyCode == Int64(kVK_Space),
+               flags.intersection(.hotkeyModifiers) == [.maskCommand, .maskShift] {
+                onShowWidget?()
+            }
         }
     }
 

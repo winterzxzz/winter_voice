@@ -2,22 +2,15 @@ import XCTest
 @testable import WinterVoice
 
 final class AppShellSemanticsTests: XCTestCase {
-    func testOperationalDestinationsAreAvailable() {
+    func testSidebarDestinationsAreAvailable() {
         let destinations: [AppShellDestination] = [
-            .overview, .permissions, .transcription, .hotkey, .privacy
-        ]
-        XCTAssertTrue(destinations.allSatisfy { $0.availability == .available })
-    }
-
-    func testDataDestinationsAreAvailable() {
-        let destinations: [AppShellDestination] = [
-            .history, .dictionary, .statistics
+            .overview, .history, .dictionary, .hotkey, .settings
         ]
         XCTAssertTrue(destinations.allSatisfy { $0.availability == .available })
     }
 
     func testEveryDestinationHasExactlyOneAvailability() {
-        XCTAssertEqual(AppShellDestination.allCases.count, 8)
+        XCTAssertEqual(AppShellDestination.allCases.count, 5)
         XCTAssertTrue(AppShellDestination.allCases.allSatisfy { $0.availability == .available })
     }
 }

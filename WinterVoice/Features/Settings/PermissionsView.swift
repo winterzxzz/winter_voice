@@ -16,11 +16,11 @@ struct PermissionsView: View {
             }
             .onAppear { presenter.refreshPermissions() }
         } else {
-            // Embedded (Settings scene): no page header, just the cards.
-            ScrollView {
-                cards.padding(4)
+            // Embedded (inside the Settings page or the Cmd+, window): no page
+            // header, just the cards; the host provides scrolling.
+            VStack(alignment: .leading, spacing: Theme.Space.md) {
+                cards
             }
-            .scrollContentBackground(.hidden)
             .onAppear { presenter.refreshPermissions() }
         }
     }

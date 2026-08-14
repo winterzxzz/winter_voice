@@ -50,6 +50,29 @@ struct OverviewView: View {
                 }
             }
 
+            if !permissionsReady {
+                WVCard {
+                    HStack(alignment: .top, spacing: Theme.Space.sm) {
+                        WVIconBadge(systemImage: "exclamationmark.triangle.fill", tint: Theme.warning)
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text("Permissions need attention")
+                                .font(.wvHeadline)
+                                .foregroundStyle(Theme.warning)
+                            Text("WinterVoice needs Microphone, Input Monitoring, and Accessibility for audio capture, the global hotkey, and safe insertion.")
+                                .font(.wvBody)
+                                .foregroundStyle(Theme.textSecondary)
+                                .fixedSize(horizontal: false, vertical: true)
+                            Button("Fix Permission Issues") { presenter.navigate(to: .settings) }
+                                .buttonStyle(.wvPrimary)
+                                .padding(.top, 2)
+                        }
+                        Spacer(minLength: 0)
+                    }
+                }
+            }
+
+            UsageStatsSection(store: presenter.usageStats)
+
             WVCard {
                 HStack(alignment: .top, spacing: Theme.Space.sm) {
                     WVIconBadge(systemImage: "lock.shield", tint: Theme.success)
@@ -64,219 +87,6 @@ struct OverviewView: View {
                     }
                 }
             }
-
-            WVCard {
-                HStack(alignment: .top, spacing: Theme.Space.sm) {
-                    WVIconBadge(
-                        systemImage: permissionsReady ? "checkmark.circle.fill" : "exclamationmark.triangle.fill",
-                        tint: permissionsReady ? Theme.success : Theme.warning
-                    )
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text(permissionsReady ? "Permissions ready" : "Permissions need attention")
-                            .font(.wvHeadline)
-                            .foregroundStyle(permissionsReady ? Theme.success : Theme.warning)
-                        Text(permissionsReady
-                            ? "Microphone, Input Monitoring, and Accessibility access are allowed. Provider: \(providerStatus.title) — \(providerStatus.stateLabel)."
-                            : "WinterVoice needs all three permissions for audio capture, the global hotkey, and safe insertion.")
-                            .font(.wvBody)
-                            .foregroundStyle(Theme.textSecondary)
-                            .fixedSize(horizontal: false, vertical: true)
-                        Group {
-                            if permissionsReady {
-                                Button("Review Permissions") { presenter.navigate(to: .permissions) }
-                                    .buttonStyle(.wvSecondary)
-                            } else {
-                                Button("Fix Permission Issues") { presenter.navigate(to: .permissions) }
-                                    .buttonStyle(.wvPrimary)
-                            }
-                        }
-                        .padding(.top, 2)
-                    }
-                    Spacer(minLength: 0)
-                }
-            }
-        }
-    }
-}
-
-// MARK: - Transcription
-
-struct TranscriptionView: View {
-    @ObservedObject var presenter: AppShellPresenter
-    @ObservedObject private var controller: TranscriptionSettingsController
-
-    init(presenter: AppShellPresenter) {
-        self.presenter = presenter
-        _controller = ObservedObject(wrappedValue: presenter.transcriptionSettings)
-    }
-
-    private var status: ProviderStatus { presenter.providerStatus }
-    private var configuration: ProviderConfigurationStore { presenter.providerConfiguration }
-    private var models: ModelManager { presenter.modelManager }
-
-    var body: some View {
-        WVPage(icon: "waveform", title: "Transcription", subtitle: "Choose where your speech is turned into text.") {
-            WVCard {
-                VStack(alignment: .leading, spacing: 14) {
-                    Picker("", selection: Binding(
-                        get: { configuration.mode },
-                        set: { configuration.mode = $0 }
-                    )) {
-                        ForEach(ProviderMode.allCases, id: \.self) { Text($0.title).tag($0) }
-                    }
-                    .pickerStyle(.segmented)
-                    .labelsHidden()
-
-                    WVDivider()
-                    infoLine("Provider", status.title)
-                    infoLine("Status", status.stateLabel)
-                    Text(status.readiness.detail)
-                        .font(.wvCaption)
-                        .foregroundStyle(Theme.textSecondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-            }
-
-            switch configuration.mode {
-            case .local:
-                localSections
-            case .remote:
-                remoteSections
-            }
-        }
-        .onAppear { controller.loadRemoteDraft() }
-    }
-
-    private func infoLine(_ label: String, _ value: String) -> some View {
-        HStack {
-            Text(label).font(.wvBody).foregroundStyle(Theme.textSecondary)
-            Spacer()
-            Text(value).font(.wvBody.weight(.medium)).foregroundStyle(Theme.textPrimary)
-        }
-    }
-
-    @ViewBuilder
-    private var localSections: some View {
-        modelGroup("Vietnamese and Multilingual", models.catalog.filter { !$0.isEnglishOnly })
-        modelGroup("English Only", models.catalog.filter(\.isEnglishOnly))
-        if let error = models.lastError {
-            WVCard { Text(error).font(.wvBody).foregroundStyle(Theme.danger) }
-        }
-        WVCard {
-            Text("Selected models run privately on this Mac with whisper.cpp. Multilingual models automatically detect Vietnamese, English, and other supported languages.")
-                .font(.wvCaption)
-                .foregroundStyle(Theme.textSecondary)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-    }
-
-    @ViewBuilder
-    private func modelGroup(_ title: String, _ descriptors: [ModelDescriptor]) -> some View {
-        if !descriptors.isEmpty {
-            VStack(alignment: .leading, spacing: 10) {
-                Text(title.uppercased())
-                    .font(.system(size: 11, weight: .semibold))
-                    .tracking(0.6)
-                    .foregroundStyle(Theme.textTertiary)
-                WVCard(padding: 6) {
-                    VStack(spacing: 0) {
-                        ForEach(Array(descriptors.enumerated()), id: \.element.id) { index, descriptor in
-                            if index > 0 { WVDivider().padding(.horizontal, 10) }
-                            modelRow(descriptor).padding(10)
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    private func modelRow(_ descriptor: ModelDescriptor) -> some View {
-        let installed = models.installed.first { $0.id == descriptor.id }
-        let isActive = models.activeModelID == descriptor.id
-        let busy = models.downloadingModelIDs.contains(descriptor.id)
-            || models.installingModelIDs.contains(descriptor.id)
-        return VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: Theme.Space.sm) {
-                WVIconBadge(systemImage: isActive ? "checkmark.circle.fill" : "cube.box",
-                            tint: isActive ? Theme.success : Theme.textSecondary)
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(descriptor.displayName)
-                        .font(.wvRowTitle)
-                        .foregroundStyle(Theme.textPrimary)
-                    Text("\(descriptor.languageLabel) · \(descriptor.formattedFileSize)")
-                        .font(.wvCaption)
-                        .foregroundStyle(Theme.textSecondary)
-                }
-                Spacer(minLength: Theme.Space.sm)
-                if isActive { WVStatusPill(text: "Selected", color: Theme.success, filled: true) }
-                if busy {
-                    Button("Cancel") { models.cancelInstall(descriptor.id) }
-                        .buttonStyle(.wvGhost(role: .destructive))
-                } else if installed != nil {
-                    Button("Select") { Task { await models.select(descriptor.id) } }
-                        .buttonStyle(.wvSecondary)
-                        .disabled(isActive)
-                    Button("Delete", role: .destructive) {
-                        if let installed { Task { await models.delete(installed) } }
-                    }
-                    .buttonStyle(.wvGhost(role: .destructive))
-                } else {
-                    Button("Download") { models.install(descriptor) }
-                        .buttonStyle(.wvPrimary)
-                }
-            }
-            if let progress = models.downloadProgress[descriptor.id] {
-                ProgressView(value: progress).tint(Theme.accent)
-            } else if models.downloadingModelIDs.contains(descriptor.id) {
-                ProgressView().controlSize(.small)
-            } else if models.installingModelIDs.contains(descriptor.id) {
-                ProgressView("Installing and verifying…").controlSize(.small)
-            }
-        }
-    }
-
-    @ViewBuilder
-    private var remoteSections: some View {
-        WVCard {
-            VStack(alignment: .leading, spacing: 12) {
-                Text("OpenAI-Compatible Endpoint")
-                    .font(.wvHeadline)
-                    .foregroundStyle(Theme.textPrimary)
-                WVField(label: "Base URL") {
-                    TextField("", text: $controller.baseURL, prompt: Text("https://host.example/v1"))
-                        .textFieldStyle(.wv)
-                }
-                WVField(label: "Model") {
-                    TextField("", text: $controller.remoteModel).textFieldStyle(.wv)
-                }
-                WVField(label: "Language (optional)") {
-                    TextField("", text: $controller.language).textFieldStyle(.wv)
-                }
-                WVField(label: configuration.hasAPIKey ? "API key (saved in Keychain)" : "API key (optional)") {
-                    SecureField("", text: $controller.apiKey).textFieldStyle(.wv)
-                }
-            }
-        }
-        WVCard {
-            VStack(alignment: .leading, spacing: 10) {
-                HStack(spacing: 10) {
-                    Button("Save Configuration") { controller.saveRemote() }.buttonStyle(.wvPrimary)
-                    Button("Test Connection") { controller.testRemoteConnection() }.buttonStyle(.wvSecondary)
-                    if configuration.hasAPIKey {
-                        Button("Use Without Authentication", role: .destructive) { controller.removeAPIKey() }
-                            .buttonStyle(.wvGhost(role: .destructive))
-                    }
-                }
-                if let remoteResult = controller.remoteResult {
-                    Text(remoteResult).font(.wvCaption).foregroundStyle(Theme.textSecondary)
-                }
-            }
-        }
-        WVCard {
-            Text("HTTPS is required except for localhost or a private LAN endpoint. API keys are stored in Keychain. Test Connection probes the draft above without saving it.")
-                .font(.wvCaption)
-                .foregroundStyle(Theme.textSecondary)
-                .fixedSize(horizontal: false, vertical: true)
         }
     }
 }
@@ -291,169 +101,235 @@ struct HotkeyView: View {
     private var listening: Bool { presenter.hotkeyHealth == .listening }
 
     var body: some View {
-        WVPage(icon: "keyboard", title: "Shortcuts", subtitle: "Set the keys that control recording.") {
-            WVCard {
-                VStack(alignment: .leading, spacing: 16) {
-                    HStack(spacing: Theme.Space.sm) {
-                        WVIconBadge(systemImage: "mic")
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("Push to Talk")
-                                .font(.wvRowTitle)
-                                .foregroundStyle(Theme.textPrimary)
-                            Text("Hold to record. Release to insert your words.")
-                                .font(.wvCaption)
-                                .foregroundStyle(Theme.textSecondary)
-                        }
-                        Spacer(minLength: Theme.Space.sm)
-                        HotkeyRecorder(binding: $binding.selection, captureSuspender: captureSuspender)
-                            .frame(width: 210, height: 30)
-                        Button("Reset") { binding.selection = .function }
-                            .buttonStyle(.wvGhost)
-                            .disabled(binding.selection == .function)
-                    }
-
-                    WVDivider()
-
-                    HStack {
-                        Text("Recording mode")
-                            .font(.wvBody)
-                            .foregroundStyle(Theme.textSecondary)
-                        Spacer()
-                        Picker("", selection: $binding.recordingMode) {
-                            ForEach(RecordingMode.allCases, id: \.self) { Text($0.title).tag($0) }
-                        }
-                        .pickerStyle(.segmented)
-                        .labelsHidden()
-                        .frame(width: 240)
-                    }
-                    Text(binding.recordingMode.instruction(binding: binding.selection))
-                        .font(.wvCaption)
-                        .foregroundStyle(Theme.textSecondary)
-
-                    WVDivider()
-
-                    HStack {
-                        Text("Listener status")
-                            .font(.wvBody)
-                            .foregroundStyle(Theme.textSecondary)
-                        Spacer()
-                        WVStatusPill(
-                            text: presenter.hotkeyHealthTitle,
-                            color: listening ? Theme.success : Theme.warning,
-                            filled: true
-                        )
-                    }
-                    Text(presenter.hotkeyHealthDetail)
-                        .font(.wvCaption)
-                        .foregroundStyle(Theme.textSecondary)
+        WVPage(
+            icon: "keyboard",
+            title: "Shortcuts",
+            subtitle: "Set the keys that control recording."
+        ) {
+            WVCard(padding: 6) {
+                VStack(spacing: 0) {
+                    recordingShortcutRow(
+                        icon: "mic",
+                        title: "Push-to-Talk",
+                        subtitle: "Hold to record. Release to insert your words.",
+                        mode: .holdToTalk,
+                        showsClear: true
+                    )
+                    WVDivider().padding(.horizontal, 12)
+                    recordingShortcutRow(
+                        icon: "record.circle",
+                        title: "Toggle Recording",
+                        subtitle: "Press once to start hands-free. Press again to stop and insert.",
+                        mode: .toggle,
+                        showsClear: false
+                    )
+                    WVDivider().padding(.horizontal, 12)
+                    showWidgetRow
                 }
             }
 
-            WVCard {
-                Text("Click Record Hotkey, then press a key, key combination, or hold multiple modifiers such as ⌥⇧ and release them together. Fn / Globe is the default. Hold to Talk records while the key is held; Toggle starts on one press and stops on the next. Changes apply immediately and are saved for future launches.")
+            resetLine
+
+            WVDisclosureCard(label: "Troubleshooting", chevronLeading: true) {
+                troubleshooting
+            }
+        } trailing: {
+            Button { presenter.refreshPermissions() } label: {
+                Label("Refresh", systemImage: "arrow.triangle.2.circlepath")
+            }
+            .buttonStyle(.wvGhost)
+        }
+    }
+
+    /// One reference-style shortcut row. Whichever row the user last captured a
+    /// key for becomes the active recording mode; the other reads "Not set".
+    private func recordingShortcutRow(
+        icon: String,
+        title: String,
+        subtitle: String,
+        mode: RecordingMode,
+        showsClear: Bool
+    ) -> some View {
+        let isActive = binding.recordingMode == mode
+        return HStack(alignment: .center, spacing: Theme.Space.sm) {
+            WVIconBadge(systemImage: icon)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.wvRowTitle)
+                    .foregroundStyle(Theme.textPrimary)
+                Text(subtitle)
                     .font(.wvCaption)
                     .foregroundStyle(Theme.textSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
             }
-        }
-    }
-}
-
-// MARK: - Privacy
-
-struct PrivacyView: View {
-    @ObservedObject var presenter: AppShellPresenter
-
-    var body: some View {
-        WVPage(icon: "hand.raised", title: "Privacy", subtitle: "How WinterVoice handles your audio and text.") {
-            card("Audio and Transcripts", rows: [
-                (presenter.providerStatus.privacySummary, "waveform.badge.mic"),
-                ("Audio is held in memory only. Successfully inserted transcription text is saved locally in History; audio and API keys are never logged.", "internaldrive"),
-                ("Local transcription runs on this Mac; Remote sends audio only to the endpoint you configure.", "network.slash"),
-            ])
-            card("Safe Insertion", rows: [
-                ("When the focused field is visible to Accessibility, WinterVoice targets that exact field and fails safely if it loses focus.", "scope"),
-                ("Direct Accessibility insertion is attempted before clipboard paste.", "accessibility"),
-                ("Apps that do not expose their focused field to Accessibility fall back to paste after verifying the same app is still frontmost — field-level verification is not possible there.", "questionmark.app"),
-                ("Clipboard fallback marks the transcription as concealed and transient for clipboard managers, restores prior contents, and will not overwrite a newer clipboard change.", "doc.on.clipboard"),
-                ("Text dictated into a detected password field is inserted but never saved to History.", "key"),
-            ])
-        }
-    }
-
-    private func card(_ title: String, rows: [(String, String)]) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text(title.uppercased())
-                .font(.system(size: 11, weight: .semibold))
-                .tracking(0.6)
-                .foregroundStyle(Theme.textTertiary)
-            WVCard {
-                VStack(alignment: .leading, spacing: 0) {
-                    ForEach(Array(rows.enumerated()), id: \.offset) { index, row in
-                        if index > 0 { WVDivider().padding(.vertical, 11) }
-                        HStack(alignment: .top, spacing: Theme.Space.sm) {
-                            WVIconBadge(systemImage: row.1, size: 30)
-                            Text(row.0)
-                                .font(.wvBody)
-                                .foregroundStyle(Theme.textSecondary)
-                                .fixedSize(horizontal: false, vertical: true)
-                            Spacer(minLength: 0)
+            Spacer(minLength: Theme.Space.md)
+            VStack(alignment: .trailing, spacing: 5) {
+                HStack(spacing: 8) {
+                    if isActive {
+                        WVKeycapChord(keys: binding.selection.keyLabels)
+                    } else {
+                        Text("Not set")
+                            .font(.wvKeycap)
+                            .foregroundStyle(Theme.textTertiary)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 5)
+                            .background(
+                                Theme.inset,
+                                in: RoundedRectangle(cornerRadius: Theme.Radius.chip, style: .continuous)
+                            )
+                    }
+                    HotkeyRecorder(
+                        captureSuspender: captureSuspender,
+                        onRecord: { recorded in
+                            binding.selection = recorded
+                            binding.recordingMode = mode
                         }
+                    )
+                    .fixedSize()
+                    if showsClear {
+                        Button("Clear") {
+                            binding.selection = .function
+                            binding.recordingMode = .holdToTalk
+                        }
+                        .buttonStyle(.wvGhost)
+                        .disabled(binding.selection == .function && binding.recordingMode == .holdToTalk)
+                    }
+                }
+                if isActive {
+                    HStack(spacing: 5) {
+                        Circle()
+                            .fill(listening ? Theme.success : Theme.warning)
+                            .frame(width: 5, height: 5)
+                        Text(listening ? "Active" : "Needs attention")
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundStyle(listening ? Theme.success : Theme.warning)
                     }
                 }
             }
+        }
+        .padding(12)
+    }
+
+    private var showWidgetRow: some View {
+        HStack(alignment: .center, spacing: Theme.Space.sm) {
+            WVIconBadge(systemImage: "macwindow.on.rectangle")
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Show Widget")
+                    .font(.wvRowTitle)
+                    .foregroundStyle(Theme.textPrimary)
+                Text("Brings the floating pill to the front. Doesn't start recording.")
+                    .font(.wvCaption)
+                    .foregroundStyle(Theme.textSecondary)
+            }
+            Spacer(minLength: Theme.Space.md)
+            WVKeycapChord(keys: ["Cmd", "Shift", "Space"])
+            Text("Fixed")
+                .font(.wvCaption)
+                .foregroundStyle(Theme.textTertiary)
+        }
+        .padding(12)
+    }
+
+    private var resetLine: some View {
+        HStack(spacing: 10) {
+            Text("Push-to-talk:")
+                .font(.wvBody)
+                .foregroundStyle(Theme.textSecondary)
+            Button("Reset to default · Fn / Globe") {
+                binding.selection = .function
+                binding.recordingMode = .holdToTalk
+            }
+            .buttonStyle(.wvSecondary)
+            .disabled(binding.selection == .function && binding.recordingMode == .holdToTalk)
+            Text("— or capture your own above.")
+                .font(.wvCaption)
+                .foregroundStyle(Theme.textTertiary)
+        }
+    }
+
+    private var troubleshooting: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Text("Listener status")
+                    .font(.wvBody)
+                    .foregroundStyle(Theme.textSecondary)
+                Spacer()
+                WVStatusPill(
+                    text: presenter.hotkeyHealthTitle,
+                    color: listening ? Theme.success : Theme.warning,
+                    filled: true
+                )
+            }
+            Text(presenter.hotkeyHealthDetail)
+                .font(.wvCaption)
+                .foregroundStyle(Theme.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+            Text("Click Change, then press a key, a combination, or hold modifiers such as ⌥⇧ and release them together. Fn / Globe is the default. Changes apply immediately and are saved for future launches. If the listener is not active, check Input Monitoring in Settings.")
+                .font(.wvCaption)
+                .foregroundStyle(Theme.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
         }
     }
 }
 
 // MARK: - Hotkey recorder (AppKit)
 
+/// The reference "Change" button. Clicking it captures the next key press or
+/// modifier chord globally; Escape cancels.
 private struct HotkeyRecorder: NSViewRepresentable {
-    @Binding var binding: HotkeyBinding
     var captureSuspender: HotkeyCaptureSuspending?
+    var onRecord: (HotkeyBinding) -> Void
 
     func makeNSView(context: Context) -> HotkeyRecorderView {
         let view = HotkeyRecorderView()
-        view.onRecord = { self.binding = $0 }
-        view.binding = binding
+        view.onRecord = onRecord
         view.captureSuspender = captureSuspender
         return view
     }
 
     func updateNSView(_ view: HotkeyRecorderView, context: Context) {
-        view.onRecord = { self.binding = $0 }
-        view.binding = binding
+        view.onRecord = onRecord
         view.captureSuspender = captureSuspender
     }
 }
 
 private final class HotkeyRecorderView: NSButton {
     var onRecord: ((HotkeyBinding) -> Void)?
-    var binding: HotkeyBinding = .function { didSet { refreshTitle() } }
     weak var captureSuspender: (any HotkeyCaptureSuspending & AnyObject)?
     private var isRecording = false
     private var pendingModifierFlags: CGEventFlags = []
 
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
-        bezelStyle = .rounded
+        isBordered = false
+        setButtonType(.momentaryChange)
+        wantsLayer = true
+        layer?.cornerRadius = 8
+        focusRingType = .none
         target = self
         action = #selector(beginRecording)
-        refreshTitle()
+        refreshAppearance()
     }
 
     required init?(coder: NSCoder) { nil }
 
     override var acceptsFirstResponder: Bool { true }
 
+    override var intrinsicContentSize: NSSize {
+        var size = super.intrinsicContentSize
+        size.width += 24
+        size.height = 28
+        return size
+    }
+
     @objc private func beginRecording() {
+        guard !isRecording else { return }
         isRecording = true
         pendingModifierFlags = []
         // The global tap keeps matching the CURRENT binding while a new one is
         // recorded; pressing its modifier here must not start a dictation.
         captureSuspender?.suspendMatching()
         window?.makeFirstResponder(self)
-        refreshTitle()
+        refreshAppearance()
     }
 
     override func viewWillMove(toWindow newWindow: NSWindow?) {
@@ -479,7 +355,11 @@ private final class HotkeyRecorderView: NSButton {
         let active = event.modifierFlags.cgEventFlags.intersection(.hotkeyModifiers)
         if !active.isEmpty {
             pendingModifierFlags.formUnion(active)
-            title = "\(HotkeyBinding.modifierChord(pendingModifierFlags).title)  ·  Release to save"
+            setTitle(
+                "\(HotkeyBinding.modifierChord(pendingModifierFlags).title) · release",
+                color: .white
+            )
+            invalidateIntrinsicContentSize()
             return
         }
         guard !pendingModifierFlags.isEmpty else { return }
@@ -490,7 +370,7 @@ private final class HotkeyRecorderView: NSButton {
     override func resignFirstResponder() -> Bool {
         isRecording = false
         captureSuspender?.resumeMatching()
-        refreshTitle()
+        refreshAppearance()
         return super.resignFirstResponder()
     }
 
@@ -498,11 +378,31 @@ private final class HotkeyRecorderView: NSButton {
         isRecording = false
         pendingModifierFlags = []
         captureSuspender?.resumeMatching()
-        refreshTitle()
+        refreshAppearance()
     }
 
-    private func refreshTitle() {
-        title = isRecording ? "Press hotkey…" : "\(binding.title)  ·  Record Hotkey"
+    private func refreshAppearance() {
+        if isRecording {
+            layer?.backgroundColor = NSColor(white: 1, alpha: 0.1).cgColor
+            layer?.borderWidth = 1
+            layer?.borderColor = NSColor(white: 1, alpha: 0.25).cgColor
+            setTitle("Press keys…", color: .white)
+        } else {
+            layer?.backgroundColor = NSColor.white.cgColor
+            layer?.borderWidth = 0
+            setTitle("Change", color: NSColor(srgbRed: 0.04, green: 0.04, blue: 0.043, alpha: 1))
+        }
+        invalidateIntrinsicContentSize()
+    }
+
+    private func setTitle(_ string: String, color: NSColor) {
+        attributedTitle = NSAttributedString(
+            string: string,
+            attributes: [
+                .font: NSFont.systemFont(ofSize: 12, weight: .semibold),
+                .foregroundColor: color,
+            ]
+        )
     }
 }
 

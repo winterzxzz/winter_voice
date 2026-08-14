@@ -2,79 +2,93 @@ import SwiftUI
 
 struct DictionaryView: View {
     @ObservedObject var store: DictionaryStore
-    @State private var source = ""
-    @State private var replacement = ""
-    @State private var errorMessage: String?
-    @State private var editingEntry: DictionaryEntry?
+    @State private var searchText = ""
+    @State private var sheet: TermSheetMode?
+
+    private var filteredEntries: [DictionaryEntry] {
+        let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !query.isEmpty else { return store.entries }
+        return store.entries.filter {
+            $0.source.localizedCaseInsensitiveContains(query)
+                || $0.replacement.localizedCaseInsensitiveContains(query)
+        }
+    }
 
     var body: some View {
         WVPage(
             icon: "character.book.closed",
             title: "Dictionary",
-            subtitle: "Fix words and phrases transcription often gets wrong."
+            subtitle: "Fix words WinterVoice gets wrong."
         ) {
-            addCard
-            replacementsCard
-            WVCard {
-                Text("Enabled replacements are applied to the transcription before it is inserted and saved in History. Longer phrases are matched before shorter ones.")
+            savedTermsCard
+        } trailing: {
+            Toggle(isOn: $store.isApplyEnabled) {
+                Text("Apply to transcripts")
                     .font(.wvCaption)
                     .foregroundStyle(Theme.textSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
             }
+            .toggleStyle(.wv)
+            .help("When off, saved terms are kept but not applied to new dictations.")
         }
-        .sheet(item: $editingEntry) { entry in
-            DictionaryEditView(store: store, entry: entry)
+        .sheet(item: $sheet) { mode in
+            DictionaryTermSheet(store: store, mode: mode)
         }
     }
 
-    private var addCard: some View {
+    private var savedTermsCard: some View {
         WVCard {
-            VStack(alignment: .leading, spacing: 12) {
-                Text("Add Replacement")
-                    .font(.wvHeadline)
-                    .foregroundStyle(Theme.textPrimary)
-                HStack(alignment: .bottom, spacing: 10) {
-                    WVField(label: "Word or phrase") {
-                        TextField("", text: $source).textFieldStyle(.wv)
+            VStack(alignment: .leading, spacing: 14) {
+                HStack(spacing: 8) {
+                    Text("Saved Terms (\(store.entries.count))")
+                        .font(.wvHeadline)
+                        .foregroundStyle(Theme.textPrimary)
+                    Spacer(minLength: Theme.Space.md)
+                    WVSearchField(prompt: "Search terms", text: $searchText, width: 190)
+                    WVIconButton(
+                        systemImage: "arrow.triangle.2.circlepath",
+                        help: "Reload saved terms from disk"
+                    ) {
+                        store.reload()
                     }
-                    WVField(label: "Replace with") {
-                        TextField("", text: $replacement).textFieldStyle(.wv)
+                    Button {
+                        sheet = .add
+                    } label: {
+                        Label("Add term", systemImage: "plus")
                     }
-                    Button("Add") { addEntry() }
-                        .buttonStyle(.wvPrimary)
+                    .buttonStyle(.wvPrimary)
                 }
-                if let errorMessage {
-                    Text(errorMessage).font(.wvCaption).foregroundStyle(Theme.danger)
-                }
+
+                termsContent
             }
         }
     }
 
     @ViewBuilder
-    private var replacementsCard: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("CUSTOM REPLACEMENTS")
-                .font(.system(size: 11, weight: .semibold))
-                .tracking(0.6)
-                .foregroundStyle(Theme.textTertiary)
-            if !store.isLoaded {
-                WVCard { HStack { Spacer(); ProgressView("Loading dictionary…"); Spacer() }.padding(.vertical, 16) }
-            } else if store.entries.isEmpty {
-                WVCard {
-                    Text("No replacements yet. Add names, product terms, or phrases that transcription often gets wrong.")
-                        .font(.wvBody)
-                        .foregroundStyle(Theme.textSecondary)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.vertical, 8)
-                }
-            } else {
-                WVCard(padding: 6) {
-                    VStack(spacing: 0) {
-                        ForEach(Array(store.entries.enumerated()), id: \.element.id) { index, entry in
-                            if index > 0 { WVDivider().padding(.horizontal, 10) }
-                            entryRow(entry).padding(10)
-                        }
-                    }
+    private var termsContent: some View {
+        if !store.isLoaded {
+            HStack {
+                Spacer()
+                ProgressView("Loading dictionary…").foregroundStyle(Theme.textSecondary)
+                Spacer()
+            }
+            .padding(.vertical, 24)
+        } else if store.entries.isEmpty {
+            WVDashedEmptyState(
+                icon: "character.book.closed",
+                title: "No terms saved yet",
+                message: "Click “Add term” to fix your first misheard word."
+            )
+        } else if filteredEntries.isEmpty {
+            WVDashedEmptyState(
+                icon: "magnifyingglass",
+                title: "No matches",
+                message: "No saved terms contain “\(searchText)”."
+            )
+        } else {
+            VStack(spacing: 0) {
+                ForEach(Array(filteredEntries.enumerated()), id: \.element.id) { index, entry in
+                    if index > 0 { WVDivider() }
+                    entryRow(entry).padding(.vertical, 10)
                 }
             }
         }
@@ -86,9 +100,9 @@ struct DictionaryView: View {
                 get: { entry.isEnabled },
                 set: { store.setEnabled($0, for: entry) }
             ))
-            .toggleStyle(.switch)
-            .tint(Theme.accent)
+            .toggleStyle(.wv)
             .labelsHidden()
+            .help(entry.isEnabled ? "Term is applied to transcripts" : "Term is paused")
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(entry.source)
@@ -99,7 +113,7 @@ struct DictionaryView: View {
                     .foregroundStyle(Theme.textSecondary)
             }
             Spacer(minLength: Theme.Space.sm)
-            Button("Edit") { editingEntry = entry }
+            Button("Edit") { sheet = .edit(entry) }
                 .buttonStyle(.wvSecondary)
             Button(action: { store.delete(entry) }) {
                 Image(systemName: "trash").font(.system(size: 13))
@@ -107,45 +121,57 @@ struct DictionaryView: View {
             .buttonStyle(.wvGhost(role: .destructive))
         }
     }
+}
 
-    private func addEntry() {
-        do {
-            try store.add(source: source, replacement: replacement)
-            source = ""
-            replacement = ""
-            errorMessage = nil
-        } catch let error as DictionaryStoreError {
-            errorMessage = error.message
-        } catch {
-            errorMessage = "Could not save this replacement."
+// MARK: - Add / edit sheet
+
+enum TermSheetMode: Identifiable {
+    case add
+    case edit(DictionaryEntry)
+
+    var id: String {
+        switch self {
+        case .add: "add"
+        case .edit(let entry): entry.id.uuidString
         }
     }
 }
 
-private struct DictionaryEditView: View {
+private struct DictionaryTermSheet: View {
     @Environment(\.dismiss) private var dismiss
     @ObservedObject var store: DictionaryStore
-    let entry: DictionaryEntry
+    let mode: TermSheetMode
     @State private var source: String
     @State private var replacement: String
     @State private var errorMessage: String?
 
-    init(store: DictionaryStore, entry: DictionaryEntry) {
+    init(store: DictionaryStore, mode: TermSheetMode) {
         self.store = store
-        self.entry = entry
-        _source = State(initialValue: entry.source)
-        _replacement = State(initialValue: entry.replacement)
+        self.mode = mode
+        switch mode {
+        case .add:
+            _source = State(initialValue: "")
+            _replacement = State(initialValue: "")
+        case .edit(let entry):
+            _source = State(initialValue: entry.source)
+            _replacement = State(initialValue: entry.replacement)
+        }
+    }
+
+    private var isEditing: Bool {
+        if case .edit = mode { return true }
+        return false
     }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text("Edit Replacement")
+            Text(isEditing ? "Edit Term" : "Add Term")
                 .font(.wvTitle)
                 .foregroundStyle(Theme.textPrimary)
-            WVField(label: "Word or phrase") {
+            WVField(label: "Word or phrase WinterVoice hears") {
                 TextField("", text: $source).textFieldStyle(.wv)
             }
-            WVField(label: "Replace with") {
+            WVField(label: "What it should type instead") {
                 TextField("", text: $replacement).textFieldStyle(.wv)
             }
             if let errorMessage {
@@ -167,12 +193,17 @@ private struct DictionaryEditView: View {
 
     private func save() {
         do {
-            try store.update(entry, source: source, replacement: replacement)
+            switch mode {
+            case .add:
+                try store.add(source: source, replacement: replacement)
+            case .edit(let entry):
+                try store.update(entry, source: source, replacement: replacement)
+            }
             dismiss()
         } catch let error as DictionaryStoreError {
             errorMessage = error.message
         } catch {
-            errorMessage = "Could not save this replacement."
+            errorMessage = "Could not save this term."
         }
     }
 }

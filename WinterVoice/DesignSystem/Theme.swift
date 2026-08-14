@@ -50,7 +50,7 @@ enum Theme {
     static let warning = Color(hex: 0xF5A623)
 
     /// Selected sidebar-row fill.
-    static let selectionFill = Color(white: 1.0, opacity: 0.07)
+    static let selectionFill = Color(white: 1.0, opacity: 0.09)
 
     // MARK: Metrics
 
@@ -83,7 +83,7 @@ extension Color {
 
 extension Font {
     /// Page/section title — semibold with the tight tracking of the reference UI.
-    static let wvTitle = Font.system(size: 20, weight: .semibold)
+    static let wvTitle = Font.system(size: 18, weight: .semibold)
     static let wvHeadline = Font.system(size: 15, weight: .semibold)
     static let wvBody = Font.system(size: 13, weight: .regular)
     static let wvRowTitle = Font.system(size: 14, weight: .medium)

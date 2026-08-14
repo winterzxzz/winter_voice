@@ -80,6 +80,7 @@ final class AppContainer {
             binding: hotkeyBinding
         )
         self.hotkey = hotkey
+        let widgetPreferences = WidgetPreferences()
         shellPresenter = AppShellPresenter(
             dictationPresenter: presenter,
             router: router,
@@ -89,6 +90,7 @@ final class AppContainer {
             dictionary: dictionary,
             hotkeyBinding: hotkeyBinding,
             usageStats: usageStats,
+            widgetPreferences: widgetPreferences,
             hotkeyCaptureSuspender: hotkey
         )
         onboardingPresenter = OnboardingPresenter(
@@ -101,10 +103,13 @@ final class AppContainer {
             presenter: presenter,
             hotkey: hotkey
         )
-        panelController = RecordingPanelController(
+        let panel = RecordingPanelController(
             presenter: presenter,
-            levelMeter: audioRecorder.levelMeter
+            levelMeter: audioRecorder.levelMeter,
+            preferences: widgetPreferences
         )
+        panelController = panel
+        hotkey.onShowWidget = { [weak panel] in panel?.showWidget() }
     }
 
     func start() {
