@@ -8,7 +8,7 @@
 
 Hold a key. Speak. Release. Your words appear in any app — 100% offline, no subscription, no account.
 
-🤖 **Built for vibe coding** — speak your prompts straight into Claude Code, Cursor, ChatGPT, or any AI agent, instead of typing them. [See how →](#-faq)
+🤖 **Built for vibe coding** — speak your prompts straight into Claude Code, Cursor, ChatGPT, or any AI agent, instead of typing them. [See how →](#-made-for-vibe-coding--talk-to-your-ai-agents)
 
 **English · Tiếng Việt · 90+ languages**
 
@@ -19,7 +19,7 @@ Hold a key. Speak. Release. Your words appear in any app — 100% offline, no su
 [![macOS 14+](https://img.shields.io/badge/macOS-14%2B-black?logo=apple)](https://github.com/winterzxzz/winter_voice/releases/latest)
 [![Apple Silicon](https://img.shields.io/badge/Apple%20Silicon-native-orange)](https://github.com/winterzxzz/winter_voice/releases/latest)
 [![Swift 6](https://img.shields.io/badge/Swift-6-F05138?logo=swift&logoColor=white)](WinterVoice)
-[![Voice input for AI agents](https://img.shields.io/badge/🎙️_voice_input_for-AI_agents-D97757)](#-faq)
+[![Voice input for AI agents](https://img.shields.io/badge/🎙️_voice_input_for-AI_agents-D97757)](#-made-for-vibe-coding--talk-to-your-ai-agents)
 [![GitHub stars](https://img.shields.io/github/stars/winterzxzz/winter_voice?style=social)](https://github.com/winterzxzz/winter_voice/stargazers)
 
 **English** · [Tiếng Việt](README.vi.md)
@@ -109,6 +109,24 @@ The floating widget sits above your work with two moods — resting, and listeni
 - **Apple Silicon** (M1/M2/M3/M4) first-class
 - ~80 MB–500 MB disk for a Whisper model (Tiny/Base/Small)
 
+## 🤖 Made for Vibe Coding — Talk to Your AI Agents
+
+Typing long prompts is the bottleneck of vibe coding. WinterVoice removes it: **hold a key, describe what you want, release** — your words land in the agent's input box, ready to send.
+
+Works with every agent, because WinterVoice types wherever your cursor is:
+
+- **Claude Code & terminal agents** — dictate instructions straight into the terminal
+- **Cursor · Windsurf · VS Code Copilot** — speak entire feature requests into the chat panel
+- **ChatGPT · Claude · Gemini** — brain-dump context, specs, and bug reports hands-free
+- **Code review & issues** — narrate PR comments and GitHub issues instead of typing them
+
+**Why voice-prompt your agents?**
+
+- Speaking is ~3× faster than typing — you give richer prompts with more context, and richer prompts get better output
+- Long prompts stop feeling like a chore, so you actually write them
+- The personal dictionary fixes misheard jargon once ("j son" → "JSON", "winter voice" → "WinterVoice")
+- Transcription runs 100% offline — your prompts stay on your Mac until you press Enter
+
 ## ❓ FAQ
 
 <details>
@@ -138,23 +156,7 @@ The build isn't notarized yet. Right-click the app → <b>Open</b> → <b>Open</
 
 <details>
 <summary><b>Can I use it to talk to Claude Code, Cursor, or ChatGPT?</b></summary>
-Yes — that's the headline use case. Hold a key, describe what you want, release — your words land in the agent's input box, ready to send. It works with every agent, because WinterVoice types wherever your cursor is:
-<ul>
-<li><b>Claude Code & terminal agents</b> — dictate instructions straight into the terminal</li>
-<li><b>Cursor · Windsurf · VS Code Copilot</b> — speak entire feature requests into the chat panel</li>
-<li><b>ChatGPT · Claude · Gemini</b> — brain-dump context, specs, and bug reports hands-free</li>
-<li><b>Code review & issues</b> — narrate PR comments and GitHub issues instead of typing them</li>
-</ul>
-</details>
-
-<details>
-<summary><b>Why voice-prompt my AI agents instead of typing?</b></summary>
-<ul>
-<li>Speaking is ~3× faster than typing — you give richer prompts with more context, and richer prompts get better output</li>
-<li>Long prompts stop feeling like a chore, so you actually write them</li>
-<li>The personal dictionary fixes misheard jargon once ("j son" → "JSON", "winter voice" → "WinterVoice")</li>
-<li>Transcription runs 100% offline — your prompts stay on your Mac until you press Enter</li>
-</ul>
+Yes — that's the headline use case. WinterVoice inserts text wherever your cursor is, so any agent input works: terminals, IDE chat panels, browser chatbots. Hold the key, speak the prompt, release, press Enter.
 </details>
 
 <details>
