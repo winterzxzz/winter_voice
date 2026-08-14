@@ -120,24 +120,17 @@ struct OnboardingView: View {
                 )
 
                 if status != .authorized {
-                    // A denied permission never re-prompts on request, so the
-                    // Request button only appears while macOS has not decided
-                    // yet; after denial the settings pane is the only path.
-                    HStack(spacing: 10) {
+                    // One action per state: request while macOS has not
+                    // decided yet, and the settings pane after a denial —
+                    // a denied permission never re-prompts on request.
+                    Group {
                         if status == .notDetermined {
                             Button("Request \(permission.title)") { presenter.request(permission) }
-                                .buttonStyle(.wvPrimary)
-                        }
-                        if status == .notDetermined {
-                            if requiresSystemManagedRequest(permission) {
-                                Button("Open System Settings") { presenter.openSystemSettings(for: permission) }
-                                    .buttonStyle(.wvSecondary)
-                            }
                         } else {
                             Button("Open System Settings") { presenter.openSystemSettings(for: permission) }
-                                .buttonStyle(.wvPrimary)
                         }
                     }
+                    .buttonStyle(.wvPrimary)
                     .padding(.top, 4)
 
                     Text(recoveryText(for: permission, status: status))
@@ -189,20 +182,16 @@ struct OnboardingView: View {
         }
     }
 
-    private func requiresSystemManagedRequest(_ permission: AppPermission) -> Bool {
-        permission == .inputMonitoring || permission == .accessibility
-    }
-
     private func recoveryText(for permission: AppPermission, status: PermissionStatus) -> String {
         switch permission {
         case .inputMonitoring:
             if status == .notDetermined {
-                return "Request access. If macOS does not show a prompt, use Open System Settings. Return to WinterVoice; the status rechecks automatically."
+                return "Request access and approve the macOS prompt. Return to WinterVoice; the status rechecks automatically."
             }
             return "macOS never shows the Input Monitoring prompt again after a denial. Open System Settings and turn on WinterVoice in the Input Monitoring list. If no entry appears, close other copies and relaunch this copy. Return to WinterVoice; the status rechecks automatically."
         case .accessibility:
             return status == .notDetermined
-                ? "Request access so macOS can evaluate this copy. If no prompt appears, use Open System Settings. Return to WinterVoice; the status rechecks automatically."
+                ? "Request access and approve the macOS prompt. Return to WinterVoice; the status rechecks automatically."
                 : "macOS never re-prompts after a denial. Open System Settings and turn on WinterVoice in the Accessibility list. If no entry appears, close other copies and relaunch this copy. Return to WinterVoice; the status rechecks automatically."
         case .microphone:
             return status == .notDetermined
