@@ -173,8 +173,6 @@ Works with every agent, because WinterVoice types wherever your cursor is:
 
 Stars, issues, and PRs are all welcome — if WinterVoice saves you typing, **give it a ⭐ so more people find it**.
 
-Developer setup, project generation, build/test commands, and the manual verification checklist live in [**docs/DEVELOPMENT.md**](docs/DEVELOPMENT.md).
-
 ## ⭐ Star history
 
 [![Star History Chart](https://api.star-history.com/svg?repos=winterzxzz/winter_voice&type=Date)](https://star-history.com/#winterzxzz/winter_voice&Date)

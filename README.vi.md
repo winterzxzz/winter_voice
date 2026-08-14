@@ -173,8 +173,6 @@ Chạy với mọi agent, vì WinterVoice gõ vào bất cứ đâu con trỏ đ
 
 Star, issue, PR đều rất hoan nghênh — nếu WinterVoice giúp bạn đỡ phải gõ, **hãy thả ⭐ để nhiều người biết tới hơn**.
 
-Hướng dẫn dành cho developer (build, test, checklist kiểm thử thủ công): [**docs/DEVELOPMENT.md**](docs/DEVELOPMENT.md).
-
 ## ⭐ Lịch sử star
 
 [![Star History Chart](https://api.star-history.com/svg?repos=winterzxzz/winter_voice&type=Date)](https://star-history.com/#winterzxzz/winter_voice&Date)
