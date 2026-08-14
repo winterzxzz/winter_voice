@@ -5,13 +5,11 @@ import XCTest
 
 @MainActor
 final class ModelManagerTests: XCTestCase {
-    func testPublishedCatalogIncludesVietnameseCapableAndEnglishModelsWithChecksums() throws {
+    func testPublishedCatalogShipsEnglishModelsWithChecksums() throws {
         let catalog = PublishedModelCatalog.models
 
-        XCTAssertEqual(catalog.count, 6)
-        XCTAssertEqual(catalog.filter { !$0.isEnglishOnly }.map(\.variant), ["tiny", "base", "small"])
-        XCTAssertEqual(catalog.filter(\.isEnglishOnly).map(\.variant), ["tiny.en", "base.en", "small.en"])
-        XCTAssertTrue(catalog.filter { !$0.isEnglishOnly }.allSatisfy { $0.languageLabel.contains("Vietnamese") })
+        XCTAssertEqual(catalog.map(\.variant), ["tiny.en", "base.en", "small.en"])
+        XCTAssertTrue(catalog.allSatisfy(\.isEnglishOnly))
         for descriptor in catalog {
             try descriptor.validateForDownload()
             XCTAssertEqual(descriptor.downloadURL.host, "huggingface.co")

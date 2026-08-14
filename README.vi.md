@@ -122,7 +122,7 @@ Có. Chế độ Local chạy whisper.cpp hoàn toàn trên máy. Chỉ cần m�
 
 <details>
 <summary><b>Nhận dạng tiếng Việt có tốt không?</b></summary>
-Có — chọn model Whisper đa ngôn ngữ và đặt ngôn ngữ là tiếng Việt (hoặc để tự nhận diện). Model Small cho kết quả tiếng Việt tốt hơn Tiny/Base.
+Có — import model Whisper đa ngôn ngữ (Settings → Transcription → Import Model…) hoặc dùng chế độ Remote, rồi đặt ngôn ngữ là tiếng Việt (hoặc để tự nhận diện).
 </details>
 
 <details>
@@ -147,7 +147,7 @@ Có — chạy một router API chuẩn OpenAI trên máy như 9router rồi tr�
 
 <details>
 <summary><b>Có những model Whisper nào?</b></summary>
-Tiny, Base và Small — mỗi loại có bản đa ngôn ngữ (gồm tiếng Việt) và bản chỉ tiếng Anh, tải từ nguồn whisper.cpp chính thức và kiểm SHA-256. Muốn hơn thế? Dùng <b>Import Model…</b> trong Settings → Transcription để nạp bất kỳ file ggml whisper <code>.bin</code> nào — Medium, Large-v3, bản quantized, bản fine-tune.
+Catalog có sẵn bộ ba Tiny, Base, Small bản tiếng Anh, tải từ nguồn whisper.cpp chính thức và kiểm SHA-256. Với các ngôn ngữ khác — hoặc model xịn hơn — dùng <b>Import Model…</b> trong Settings → Transcription để nạp bất kỳ file ggml whisper <code>.bin</code> nào: Medium/Large-v3 đa ngôn ngữ, bản quantized, bản fine-tune.
 </details>
 
 ## 🤝 Đóng góp

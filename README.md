@@ -122,7 +122,7 @@ Yes. Local mode runs whisper.cpp entirely on your Mac. Internet is only needed o
 
 <details>
 <summary><b>Does it support Vietnamese speech-to-text?</b></summary>
-Yes — pick a multilingual Whisper model and set the language to Vietnamese (or leave auto-detect on). Tiếng Việt hoạt động tốt với model multilingual.
+Yes — import a multilingual Whisper model (Settings → Transcription → Import Model…) or use Remote mode, then set the language to Vietnamese (or leave auto-detect on). Tiếng Việt hoạt động tốt với model multilingual.
 </details>
 
 <details>
@@ -147,7 +147,7 @@ Yes — run a local OpenAI-compatible router like 9router and point it at a prov
 
 <details>
 <summary><b>Which Whisper models are available?</b></summary>
-Tiny, Base, and Small — each in multilingual (incl. Vietnamese) and English-only variants, downloaded from official whisper.cpp sources and verified against published SHA-256 checksums. Want more? Use <b>Import Model…</b> in Settings → Transcription to bring any ggml whisper <code>.bin</code> — Medium, Large-v3, quantized builds, fine-tunes.
+The built-in catalog ships English Tiny, Base, and Small, downloaded from official whisper.cpp sources and verified against published SHA-256 checksums. For every other language — or bigger brains — use <b>Import Model…</b> in Settings → Transcription to bring any ggml whisper <code>.bin</code>: multilingual Medium, Large-v3, quantized builds, fine-tunes.
 </details>
 
 ## 🤝 Contributing

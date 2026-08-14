@@ -201,8 +201,12 @@ struct AppSettingsView: View {
         }
         WVDisclosureCard(label: "All models") {
             VStack(alignment: .leading, spacing: 14) {
-                modelGroup("Vietnamese and Multilingual", models.catalog.filter { !$0.isEnglishOnly })
-                modelGroup("English Only", models.catalog.filter(\.isEnglishOnly))
+                VStack(spacing: 0) {
+                    ForEach(Array(models.catalog.enumerated()), id: \.element.id) { index, descriptor in
+                        if index > 0 { WVDivider() }
+                        modelRow(descriptor).padding(.vertical, 10)
+                    }
+                }
                 WVDivider()
                 HStack(spacing: Theme.Space.sm) {
                     Button("Import Model…") { isImportingModel = true }
@@ -268,9 +272,9 @@ struct AppSettingsView: View {
 
     // MARK: Model presets
 
-    /// The reference quality chips. Each named preset maps to a multilingual
-    /// whisper.cpp model; `custom` lights up when the active model was picked
-    /// under All models (e.g. an English-only variant).
+    /// The reference quality chips. Each named preset maps to a catalog
+    /// whisper.cpp model; `custom` lights up when the active model came from
+    /// elsewhere (e.g. an imported ggml file).
     private enum ModelPreset: CaseIterable, Hashable {
         case fast, balanced, accurate, custom
 
@@ -285,9 +289,9 @@ struct AppSettingsView: View {
 
         var modelID: String? {
             switch self {
-            case .fast: "whisper-tiny"
-            case .balanced: "whisper-base"
-            case .accurate: "whisper-small"
+            case .fast: "whisper-tiny-en"
+            case .balanced: "whisper-base-en"
+            case .accurate: "whisper-small-en"
             case .custom: nil
             }
         }
@@ -340,24 +344,6 @@ struct AppSettingsView: View {
         }
         guard let descriptor = models.catalog.first(where: { $0.id == id }) else { return "" }
         return descriptor.formattedFileSize
-    }
-
-    @ViewBuilder
-    private func modelGroup(_ title: String, _ descriptors: [ModelDescriptor]) -> some View {
-        if !descriptors.isEmpty {
-            VStack(alignment: .leading, spacing: 8) {
-                Text(title.uppercased())
-                    .font(.wvOverline)
-                    .tracking(0.6)
-                    .foregroundStyle(Theme.textTertiary)
-                VStack(spacing: 0) {
-                    ForEach(Array(descriptors.enumerated()), id: \.element.id) { index, descriptor in
-                        if index > 0 { WVDivider() }
-                        modelRow(descriptor).padding(.vertical, 10)
-                    }
-                }
-            }
-        }
     }
 
     private func modelRow(_ descriptor: ModelDescriptor) -> some View {
