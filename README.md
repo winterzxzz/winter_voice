@@ -19,6 +19,7 @@ Hold a key. Speak. Release. Your words appear in any app — 100% offline, no su
 [![macOS 14+](https://img.shields.io/badge/macOS-14%2B-black?logo=apple)](https://github.com/winterzxzz/winter_voice/releases/latest)
 [![Apple Silicon](https://img.shields.io/badge/Apple%20Silicon-native-orange)](https://github.com/winterzxzz/winter_voice/releases/latest)
 [![Swift 6](https://img.shields.io/badge/Swift-6-F05138?logo=swift&logoColor=white)](WinterVoice)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Voice input for AI agents](https://img.shields.io/badge/🎙️_voice_input_for-AI_agents-D97757)](#-made-for-vibe-coding--talk-to-your-ai-agents)
 [![GitHub stars](https://img.shields.io/github/stars/winterzxzz/winter_voice?style=social)](https://github.com/winterzxzz/winter_voice/stargazers)
 
@@ -68,26 +69,6 @@ It's the free, private alternative to paid dictation tools — built with SwiftU
 | 📚 **Personal dictionary** | Auto-replace phrases before insertion — fix names, jargon, and Whisper quirks once. |
 | 🕘 **Local history** | Searchable dictation history stored only on your Mac. Secure fields are never recorded. |
 | 🖥️ **Native & lightweight** | SwiftUI menu-bar app with a floating recording overlay. No Electron, no telemetry, no account. |
-
-## 📸 Screenshots
-
-The floating widget sits above your work with two moods — resting, and listening with a live waveform:
-
-<p align="center"><img src="docs/assets/widget-states.png" alt="WinterVoice floating widget states: resting brand pill and listening with a live voice waveform" /></p>
-
-<details>
-<summary><b>▶ App tour (main window)</b></summary>
-<br/>
-<img src="docs/assets/demo.gif" width="760" alt="WinterVoice app tour — home dashboard with usage stats, searchable dictation history, personal dictionary, and shortcut settings" />
-</details>
-
-| Searchable local history | Personal dictionary |
-|---|---|
-| ![Dictation history with search in WinterVoice, a free macOS speech-to-text app](docs/assets/history.png) | ![Personal auto-correct dictionary in WinterVoice for fixing misheard words](docs/assets/dictionary.png) |
-
-| Usage stats at a glance | Configurable shortcuts |
-|---|---|
-| ![WinterVoice home dashboard with dictation stats: words, speaking time, words per minute](docs/assets/home.png) | ![Push-to-talk and toggle recording keyboard shortcuts in WinterVoice](docs/assets/shortcuts.png) |
 
 ## 🚀 How it works
 
@@ -179,7 +160,7 @@ Stars, issues, and PRs are all welcome — if WinterVoice saves you typing, **gi
 
 ## 📄 License
 
-No license has been selected yet.
+[MIT](LICENSE) — free to use, modify, and distribute.
 
 ---
 

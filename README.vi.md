@@ -19,6 +19,7 @@ Giữ phím. Nói. Thả tay. Chữ hiện ra trong bất kỳ app nào — 100%
 [![macOS 14+](https://img.shields.io/badge/macOS-14%2B-black?logo=apple)](https://github.com/winterzxzz/winter_voice/releases/latest)
 [![Apple Silicon](https://img.shields.io/badge/Apple%20Silicon-native-orange)](https://github.com/winterzxzz/winter_voice/releases/latest)
 [![Swift 6](https://img.shields.io/badge/Swift-6-F05138?logo=swift&logoColor=white)](WinterVoice)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Voice input cho AI agent](https://img.shields.io/badge/🎙️_voice_input_cho-AI_agents-D97757)](#-sinh-ra-cho-vibe-coding--nói-chuyện-với-ai-agent)
 [![GitHub stars](https://img.shields.io/github/stars/winterzxzz/winter_voice?style=social)](https://github.com/winterzxzz/winter_voice/stargazers)
 
@@ -68,26 +69,6 @@ WinterVoice là **ứng dụng nhận dạng giọng nói native cho macOS**: b�
 | 📚 **Từ điển cá nhân** | Tự thay thế cụm từ trước khi chèn — sửa tên riêng, thuật ngữ, lỗi Whisper hay gặp, chỉ cần cài một lần. |
 | 🕘 **Lịch sử cục bộ** | Lịch sử dictation có tìm kiếm, lưu ngay trên Mac. Ô nhập mật khẩu không bao giờ bị ghi lại. |
 | 🖥️ **Native & nhẹ** | App menu bar viết bằng SwiftUI, overlay ghi âm nổi. Không Electron, không telemetry, không tài khoản. |
-
-## 📸 Ảnh màn hình
-
-Widget nổi luôn nằm trên công việc của bạn với 2 trạng thái — nghỉ, và đang nghe với waveform trực tiếp:
-
-<p align="center"><img src="docs/assets/widget-states.png" alt="Hai trạng thái widget nổi của WinterVoice: pill logo khi nghỉ và đang nghe với waveform theo giọng nói" /></p>
-
-<details>
-<summary><b>▶ Tour ứng dụng (cửa sổ chính)</b></summary>
-<br/>
-<img src="docs/assets/demo.gif" width="760" alt="Tour WinterVoice — trang chủ với thống kê, lịch sử đọc chính tả tìm kiếm được, từ điển cá nhân và cài đặt phím tắt" />
-</details>
-
-| Lịch sử cục bộ, tìm kiếm được | Từ điển cá nhân |
-|---|---|
-| ![Lịch sử đọc chính tả có tìm kiếm trong WinterVoice, app chuyển giọng nói thành văn bản miễn phí cho Mac](docs/assets/history.png) | ![Từ điển tự sửa lỗi cá nhân trong WinterVoice để sửa từ nhận sai](docs/assets/dictionary.png) |
-
-| Thống kê sử dụng | Phím tắt tuỳ chỉnh |
-|---|---|
-| ![Trang chủ WinterVoice với thống kê: số từ, thời gian nói, tốc độ từ mỗi phút](docs/assets/home.png) | ![Phím tắt push-to-talk và toggle recording trong WinterVoice](docs/assets/shortcuts.png) |
 
 ## 🚀 Cách hoạt động
 
@@ -179,7 +160,7 @@ Star, issue, PR đều rất hoan nghênh — nếu WinterVoice giúp bạn đ�
 
 ## 📄 Giấy phép
 
-Chưa chọn giấy phép.
+[MIT](LICENSE) — tự do dùng, sửa và phân phối.
 
 ---
 
