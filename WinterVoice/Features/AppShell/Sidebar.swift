@@ -1,7 +1,8 @@
 import SwiftUI
 
-/// A single navigation entry in the sidebar: icon + label, with a filled
-/// selection state and a hover highlight — the reference app's sidebar row.
+/// A single navigation entry in the sidebar. The selected row is a solid white
+/// pill with dark text — the reference app's signature selection state; other
+/// rows are gray with a faint hover fill.
 struct WVNavRow: View {
     let destination: AppShellDestination
     let isSelected: Bool
@@ -11,24 +12,23 @@ struct WVNavRow: View {
 
     var body: some View {
         Button(action: action) {
-            HStack(spacing: 11) {
+            HStack(spacing: 10) {
                 Image(systemName: destination.icon)
                     .font(.system(size: 14, weight: .medium))
-                    .frame(width: 20)
-                    .foregroundStyle(isSelected ? Theme.textPrimary : Theme.textSecondary)
+                    .frame(width: 19)
                 Text(destination.title)
-                    .font(.system(size: 13.5, weight: isSelected ? .semibold : .medium))
-                    .foregroundStyle(isSelected ? Theme.textPrimary : Theme.textSecondary)
+                    .font(.wv(14, isSelected ? .semibold : .medium))
                 Spacer(minLength: 0)
             }
-            .padding(.horizontal, 11)
-            .padding(.vertical, 8)
+            .foregroundStyle(isSelected ? Theme.textOnWhite : Theme.textSecondary)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 9)
             .background {
                 let shape = RoundedRectangle(cornerRadius: Theme.Radius.control, style: .continuous)
                 if isSelected {
-                    shape.fill(Theme.selectionFill)
+                    shape.fill(Color.white)
                 } else if isHovering {
-                    shape.fill(Color.white.opacity(0.035))
+                    shape.fill(Theme.hoverFill)
                 }
             }
             .contentShape(Rectangle())
@@ -39,8 +39,8 @@ struct WVNavRow: View {
     }
 }
 
-/// The full sidebar: brand mark beside the traffic lights, a flat navigation
-/// list, and the words/account footer of the reference app.
+/// The navigation rail below the titlebar strip: a flat list of destinations,
+/// then the words counter and account card of the reference app.
 struct WVSidebar: View {
     @ObservedObject var presenter: AppShellPresenter
     @ObservedObject private var dictationPresenter: DictationPresenter
@@ -58,15 +58,8 @@ struct WVSidebar: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            // Title-bar row: the sidebar ignores the top safe area, so this
-            // sits on the same line as the traffic lights, brand to their right.
-            brand
-                .padding(.leading, 76)
-                .frame(height: 30, alignment: .leading)
-                .padding(.bottom, 12)
-
             ScrollView {
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: 3) {
                     ForEach(items, id: \.self) { destination in
                         WVNavRow(
                             destination: destination,
@@ -76,6 +69,7 @@ struct WVSidebar: View {
                     }
                 }
                 .padding(.horizontal, 10)
+                .padding(.top, 14)
                 .padding(.bottom, 12)
             }
 
@@ -84,32 +78,10 @@ struct WVSidebar: View {
             footer
         }
         .frame(width: 208)
+        .frame(maxHeight: .infinity)
         .background(Theme.sidebar)
         .overlay(alignment: .trailing) {
             Rectangle().fill(Theme.separator).frame(width: 1)
-        }
-        .ignoresSafeArea(.container, edges: .top)
-    }
-
-    private var brand: some View {
-        HStack(spacing: 7) {
-            RoundedRectangle(cornerRadius: 6, style: .continuous)
-                .fill(
-                    LinearGradient(
-                        colors: [Theme.accent, Color(hex: 0x1D4ED8)],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
-                .frame(width: 20, height: 20)
-                .overlay(
-                    Image(systemName: "waveform")
-                        .font(.system(size: 10, weight: .bold))
-                        .foregroundStyle(.white)
-                )
-            Text("WinterVoice")
-                .font(.system(size: 13, weight: .semibold))
-                .foregroundStyle(Theme.textPrimary)
         }
     }
 
@@ -118,37 +90,37 @@ struct WVSidebar: View {
         return VStack(alignment: .leading, spacing: 0) {
             WVDivider()
 
-            HStack(spacing: 9) {
+            HStack(spacing: 10) {
                 Image(systemName: "text.word.spacing")
                     .font(.system(size: 12, weight: .medium))
                     .foregroundStyle(Theme.textSecondary)
-                    .frame(width: 20)
+                    .frame(width: 19)
                 Text("Words")
-                    .font(.system(size: 13, weight: .medium))
+                    .font(.wv(13.5, .medium))
                     .foregroundStyle(Theme.textSecondary)
                 Spacer(minLength: 0)
                 Text(usageStats.totals.totalWords.formatted())
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(.wv(13, .semibold))
                     .foregroundStyle(Theme.textPrimary)
                     .monospacedDigit()
             }
             .padding(.horizontal, 16)
             .padding(.top, 14)
-            .padding(.bottom, 10)
+            .padding(.bottom, 12)
 
-            HStack(spacing: 9) {
+            HStack(spacing: 10) {
                 Circle()
                     .fill(Theme.surfaceElevated)
                     .overlay(Circle().strokeBorder(Theme.borderStrong, lineWidth: 1))
                     .overlay(
                         Text("WV")
-                            .font(.system(size: 10.5, weight: .semibold))
+                            .font(.wv(10.5, .semibold))
                             .foregroundStyle(Theme.textPrimary)
                     )
-                    .frame(width: 30, height: 30)
-                VStack(alignment: .leading, spacing: 1) {
+                    .frame(width: 32, height: 32)
+                VStack(alignment: .leading, spacing: 2) {
                     Text("WinterVoice")
-                        .font(.system(size: 12.5, weight: .medium))
+                        .font(.wv(13, .medium))
                         .foregroundStyle(Theme.textPrimary)
                         .lineLimit(1)
                     HStack(spacing: 5) {
@@ -156,7 +128,7 @@ struct WVSidebar: View {
                             .fill(listening ? Theme.success : Theme.warning)
                             .frame(width: 5, height: 5)
                         Text(presenter.providerStatus.title)
-                            .font(.system(size: 11))
+                            .font(.wv(11.5))
                             .foregroundStyle(Theme.textSecondary)
                             .lineLimit(1)
                     }

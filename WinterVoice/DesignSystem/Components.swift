@@ -133,7 +133,7 @@ struct WVStatusPill: View {
                 .fill(color)
                 .frame(width: 6, height: 6)
             Text(text)
-                .font(.wvCaption.weight(.medium))
+                .font(.wvCaptionMedium)
                 .foregroundStyle(filled ? color : Theme.textSecondary)
         }
         .padding(.horizontal, filled ? 9 : 0)
@@ -167,6 +167,7 @@ struct WVRow<Trailing: View>: View {
                     Text(subtitle)
                         .font(.wvCaption)
                         .foregroundStyle(Theme.textSecondary)
+                        .lineSpacing(2.5)
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }
@@ -204,7 +205,7 @@ struct WVToggleStyle: ToggleStyle {
                     .frame(width: 38, height: 22)
                     .overlay(alignment: configuration.isOn ? .trailing : .leading) {
                         Circle()
-                            .fill(configuration.isOn ? Color(hex: 0x0A0A0B) : Color(hex: 0xA8A8AD))
+                            .fill(configuration.isOn ? Theme.textOnWhite : Color(hex: 0xA8A8AD))
                             .frame(width: 16, height: 16)
                             .padding(3)
                     }
@@ -234,7 +235,7 @@ struct WVDashedEmptyState: View {
         VStack(spacing: 10) {
             WVIconBadge(systemImage: icon, tint: Theme.textPrimary, size: 34)
             Text(title)
-                .font(.system(size: 13.5, weight: .semibold))
+                .font(.wv(13.5, .semibold))
                 .foregroundStyle(Theme.textPrimary)
             Text(message)
                 .font(.wvCaption)
@@ -295,8 +296,9 @@ struct WVChipPicker<Option: Hashable>: View {
     }
 }
 
-/// A single chip: white with dark text when selected, plain gray text with a
-/// hover hint otherwise — the reference chip treatment.
+/// A single chip: an elevated dark fill with a brighter border when selected,
+/// plain gray text with a hover hint otherwise — the reference chip treatment
+/// (`Custom`, `Always`).
 private struct ChipButton: View {
     let isSelected: Bool
     let title: String
@@ -314,18 +316,23 @@ private struct ChipButton: View {
                         .font(.system(size: 11, weight: .medium))
                 }
                 Text(title)
-                    .font(.system(size: 12.5, weight: isSelected ? .semibold : .medium))
+                    .font(.wv(12.5, isSelected ? .semibold : .medium))
                     .lineLimit(1)
             }
             .fixedSize()
-            .foregroundStyle(isSelected ? Color(hex: 0x0A0A0B) : Theme.textSecondary)
+            .foregroundStyle(isSelected ? Theme.textPrimary : Theme.textSecondary)
             .padding(.horizontal, 11)
             .padding(.vertical, 6)
             .background {
                 if isSelected {
-                    shape.fill(Color.white)
+                    shape.fill(Theme.chipSelected)
                 } else if isHovering {
                     shape.fill(Theme.inset)
+                }
+            }
+            .overlay {
+                if isSelected {
+                    shape.strokeBorder(Theme.chipSelectedBorder, lineWidth: 1)
                 }
             }
             .contentShape(Rectangle())
@@ -381,7 +388,7 @@ struct WVSearchField: View {
                 .foregroundStyle(Theme.textTertiary)
             TextField("", text: $text, prompt: Text(prompt).foregroundColor(Theme.textTertiary))
                 .textFieldStyle(.plain)
-                .font(.system(size: 13))
+                .font(.wv(13))
                 .foregroundStyle(Theme.textPrimary)
         }
         .padding(.horizontal, 10)
@@ -441,7 +448,7 @@ struct WVDisclosureCard<Content: View>: View {
 
     private var labelText: some View {
         Text(label)
-            .font(.system(size: 13))
+            .font(.wv(13))
             .foregroundStyle(Theme.textSecondary)
     }
 

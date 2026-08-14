@@ -67,11 +67,11 @@ private struct SplashView: View {
 
                 VStack(spacing: 8) {
                     Text("WinterVoice")
-                        .font(.system(size: 30, weight: .semibold))
+                        .font(.wv(30, .semibold))
                         .tracking(-0.5)
                         .foregroundStyle(Theme.textPrimary)
                     Text("Speak anywhere. It types for you.")
-                        .font(.system(size: 13))
+                        .font(.wv(13))
                         .foregroundStyle(Theme.textSecondary)
                 }
                 .opacity(showTitle ? 1 : 0)

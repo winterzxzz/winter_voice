@@ -200,7 +200,7 @@ struct HotkeyView: View {
                             .fill(listening ? Theme.success : Theme.warning)
                             .frame(width: 5, height: 5)
                         Text(listening ? "Active" : "Needs attention")
-                            .font(.system(size: 11, weight: .medium))
+                            .font(.wv(11, .medium))
                             .foregroundStyle(listening ? Theme.success : Theme.warning)
                     }
                 }
@@ -399,7 +399,8 @@ private final class HotkeyRecorderView: NSButton {
         attributedTitle = NSAttributedString(
             string: string,
             attributes: [
-                .font: NSFont.systemFont(ofSize: 12, weight: .semibold),
+                .font: NSFont(name: "Inter-SemiBold", size: 12)
+                    ?? NSFont.systemFont(ofSize: 12, weight: .semibold),
                 .foregroundColor: color,
             ]
         )

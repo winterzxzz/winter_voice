@@ -7,7 +7,7 @@ struct WVTextFieldStyle: TextFieldStyle {
         let shape = RoundedRectangle(cornerRadius: Theme.Radius.control, style: .continuous)
         return configuration
             .textFieldStyle(.plain)
-            .font(.system(size: 13))
+            .font(.wv(13))
             .foregroundStyle(Theme.textPrimary)
             .padding(.horizontal, 11)
             .padding(.vertical, 8)
@@ -28,7 +28,7 @@ struct WVField<Field: View>: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             Text(label)
-                .font(.wvCaption.weight(.medium))
+                .font(.wvCaptionMedium)
                 .foregroundStyle(Theme.textSecondary)
             field
         }

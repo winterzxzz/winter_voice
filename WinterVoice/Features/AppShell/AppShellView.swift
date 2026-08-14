@@ -11,10 +11,11 @@ struct AppShellView: View {
 
             detail
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-                .background(Theme.canvas)
+                // The background must respect the top safe area so the titlebar
+                // strip above the content stays pure black like the reference.
+                .background(Theme.canvas, ignoresSafeAreaEdges: [])
         }
         .frame(minWidth: 860, minHeight: 560)
-        .background(Theme.canvas)
         .tint(Theme.accent)
         .preferredColorScheme(.dark)
         .wvWindowChrome()
@@ -62,7 +63,7 @@ struct WVPage<Content: View, Trailing: View>: View {
     let icon: String
     let title: String
     var subtitle: String?
-    var maxWidth: CGFloat = 1000
+    var maxWidth: CGFloat = 1120
     @ViewBuilder var content: Content
     @ViewBuilder var trailing: Trailing
 
@@ -70,7 +71,7 @@ struct WVPage<Content: View, Trailing: View>: View {
         icon: String,
         title: String,
         subtitle: String? = nil,
-        maxWidth: CGFloat = 1000,
+        maxWidth: CGFloat = 1120,
         @ViewBuilder content: () -> Content,
         @ViewBuilder trailing: () -> Trailing
     ) {
@@ -92,8 +93,8 @@ struct WVPage<Content: View, Trailing: View>: View {
             }
             .frame(maxWidth: maxWidth, alignment: .leading)
             .frame(maxWidth: .infinity)
-            .padding(.horizontal, 30)
-            .padding(.top, 28)
+            .padding(.horizontal, 34)
+            .padding(.top, 26)
             .padding(.bottom, 44)
         }
         .scrollContentBackground(.hidden)
@@ -106,7 +107,7 @@ extension WVPage where Trailing == EmptyView {
         icon: String,
         title: String,
         subtitle: String? = nil,
-        maxWidth: CGFloat = 1000,
+        maxWidth: CGFloat = 1120,
         @ViewBuilder content: () -> Content
     ) {
         self.init(

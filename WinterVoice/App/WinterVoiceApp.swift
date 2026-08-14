@@ -20,6 +20,7 @@ struct WinterVoiceApp: App {
             )
         }
         .defaultSize(width: 920, height: 640)
+        .windowStyle(.hiddenTitleBar)
         .windowResizability(.contentMinSize)
         .commands {
             WinterVoiceCommands()

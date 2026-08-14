@@ -21,7 +21,7 @@ struct OnboardingView: View {
                     .frame(width: 34, height: 34)
                     .overlay(Image(systemName: "waveform").font(.system(size: 16, weight: .bold)).foregroundStyle(.white))
                 VStack(alignment: .leading, spacing: 1) {
-                    Text("Set up WinterVoice").font(.system(size: 22, weight: .semibold)).foregroundStyle(Theme.textPrimary)
+                    Text("Set up WinterVoice").font(.wv(22, .semibold)).foregroundStyle(Theme.textPrimary)
                     Text("Step \(presenter.pageIndex + 1) of \(total)").font(.wvCaption).foregroundStyle(Theme.textSecondary)
                 }
                 Spacer()
@@ -33,9 +33,9 @@ struct OnboardingView: View {
             WVCard(padding: 24) {
                 VStack(alignment: .leading, spacing: 14) {
                     WVIconBadge(systemImage: icon(for: permission), tint: Theme.accent, size: 48)
-                    Text(permission.title).font(.system(size: 20, weight: .semibold)).foregroundStyle(Theme.textPrimary)
+                    Text(permission.title).font(.wv(20, .semibold)).foregroundStyle(Theme.textPrimary)
                     Text(permission.explanation)
-                        .font(.system(size: 14))
+                        .font(.wv(14))
                         .foregroundStyle(Theme.textSecondary)
                         .fixedSize(horizontal: false, vertical: true)
                     WVStatusPill(

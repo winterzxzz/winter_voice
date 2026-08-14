@@ -103,10 +103,10 @@ struct RecordingPanelView: View {
                 .padding(.top, 1)
             VStack(alignment: .leading, spacing: 3) {
                 Text(failure.message)
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(.wv(13, .semibold))
                     .foregroundStyle(.white)
                 Text(failure.recovery)
-                    .font(.system(size: 11))
+                    .font(.wv(11))
                     .foregroundStyle(.white.opacity(0.65))
                     .lineLimit(2)
             }
@@ -127,7 +127,7 @@ struct RecordingPanelView: View {
 
     private func statusText(_ value: String) -> some View {
         Text(value)
-            .font(.system(size: 13, weight: .medium))
+            .font(.wv(13, .medium))
             .foregroundStyle(.white)
     }
 }

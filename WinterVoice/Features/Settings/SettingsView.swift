@@ -253,7 +253,7 @@ struct AppSettingsView: View {
         if !descriptors.isEmpty {
             VStack(alignment: .leading, spacing: 8) {
                 Text(title.uppercased())
-                    .font(.system(size: 10.5, weight: .semibold))
+                    .font(.wvOverline)
                     .tracking(0.6)
                     .foregroundStyle(Theme.textTertiary)
                 VStack(spacing: 0) {
@@ -392,7 +392,7 @@ struct AppSettingsView: View {
         } label: {
             HStack(spacing: 10) {
                 Text("System Default")
-                    .font(.system(size: 13, weight: .medium))
+                    .font(.wv(13, .medium))
                     .foregroundStyle(Theme.textPrimary)
                 Image(systemName: "chevron.down")
                     .font(.system(size: 9, weight: .semibold))

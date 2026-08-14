@@ -7,8 +7,8 @@ struct WVPrimaryButtonStyle: ButtonStyle {
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .font(.system(size: 13, weight: .semibold))
-            .foregroundStyle(Color(hex: 0x0A0A0B))
+            .font(.wv(13, .semibold))
+            .foregroundStyle(Theme.textOnWhite)
             .padding(.horizontal, 14)
             .padding(.vertical, 7)
             .background(
@@ -32,7 +32,7 @@ struct WVSecondaryButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         let shape = RoundedRectangle(cornerRadius: Theme.Radius.chip, style: .continuous)
         return configuration.label
-            .font(.system(size: 13, weight: .medium))
+            .font(.wv(13, .medium))
             .foregroundStyle(foreground)
             .padding(.horizontal, 12)
             .padding(.vertical, 6)
@@ -53,7 +53,7 @@ struct WVGhostButtonStyle: ButtonStyle {
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .font(.system(size: 13, weight: .medium))
+            .font(.wv(13, .medium))
             .foregroundStyle(role == .destructive ? Theme.danger : Theme.textSecondary)
             .padding(.horizontal, 8)
             .padding(.vertical, 6)

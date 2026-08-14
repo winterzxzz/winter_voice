@@ -8,7 +8,7 @@ struct UsageStatsSection: View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
                 Text("USAGE")
-                    .font(.system(size: 10.5, weight: .semibold))
+                    .font(.wvOverline)
                     .tracking(0.6)
                     .foregroundStyle(Theme.textTertiary)
                 Spacer()
@@ -18,7 +18,7 @@ struct UsageStatsSection: View {
                 }
             }
             LazyVGrid(
-                columns: [GridItem(.adaptive(minimum: 180), spacing: 12)],
+                columns: [GridItem(.adaptive(minimum: 150), spacing: 12)],
                 spacing: 12
             ) {
                 statTile(title: "Words dictated", value: store.totals.totalWords.formatted(), icon: "text.word.spacing")
@@ -57,7 +57,7 @@ struct UsageStatsSection: View {
                         .foregroundStyle(Theme.textSecondary)
                 }
                 Text(value)
-                    .font(.system(size: 26, weight: .semibold, design: .rounded))
+                    .font(.wv(26, .semibold))
                     .foregroundStyle(Theme.textPrimary)
                     .monospacedDigit()
             }

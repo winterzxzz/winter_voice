@@ -32,7 +32,10 @@ end
 resources = app_group.new_group('Resources', 'Resources')
 resources.new_file('Info.plist')
 asset_catalog = resources.new_file('Assets.xcassets')
-app.add_resources([asset_catalog])
+# Bundled UI typeface (Inter); registered via ATSApplicationFontsPath = Fonts.
+fonts_folder = resources.new_file('Fonts')
+fonts_folder.last_known_file_type = 'folder'
+app.add_resources([asset_catalog, fonts_folder])
 
 test_group = project.main_group.new_group('WinterVoiceTests', 'WinterVoiceTests')
 Dir.glob(File.join(root, 'WinterVoiceTests', '**', '*.swift')).sort.each do |path|
