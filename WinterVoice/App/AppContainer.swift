@@ -201,8 +201,7 @@ final class AppContainer {
                             )
                             RecordingPanelView(
                                 presenter: framesPresenter,
-                                levelMeter: demoLevelMeter,
-                                usesSnapshotSpinner: true
+                                levelMeter: demoLevelMeter
                             )
                         }
                         .frame(width: 360, height: 110)

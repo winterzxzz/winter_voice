@@ -4,9 +4,6 @@ struct RecordingPanelView: View {
     @ObservedObject var presenter: DictationPresenter
     let levelMeter: AudioLevelMeter
     var style: WidgetStyle = .labeled
-    /// `ImageRenderer` snapshots cannot draw `ProgressView`'s AppKit-backed
-    /// spinner; the `-WVWidgetFrames` shoot swaps in a drawn arc instead.
-    var usesSnapshotSpinner = false
     var onToggle: () -> Void = {}
     var onDragMoved: () -> Void = {}
     var onDragEnded: () -> Void = {}
@@ -28,34 +25,19 @@ struct RecordingPanelView: View {
             )
     }
 
+    /// Two visual modes only — the resting pill and the listening waveform.
+    /// Preparing joins listening so holding the key gives instant feedback;
+    /// processing/inserting keep the resting pill because flashing a
+    /// different layout for each short phase made the widget feel noisy.
     @ViewBuilder
     private var content: some View {
         switch presenter.state {
-        case .idle:
+        case .idle, .processing, .inserting:
             idlePill
-        case .preparing:
-            pill {
-                spinner
-                statusText("Preparing…")
-            }
-        case .recording:
+        case .preparing, .recording:
             pill {
                 PulsingMicDot()
                 WaveformBars(levelMeter: levelMeter)
-                statusText(presenter.hotkeyBinding.selection.title)
-                    .opacity(0.55)
-            }
-        case .processing:
-            pill {
-                spinner
-                statusText("Transcribing…")
-            }
-        case .inserting:
-            pill {
-                Image(systemName: "text.insert")
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(.white)
-                statusText("Inserting…")
             }
         case .failed(let failure):
             failureCard(failure)
@@ -98,17 +80,6 @@ struct RecordingPanelView: View {
         }
         .opacity(0.95)
         .help("Double-click to start dictation. \(presenter.hotkeyInstruction).")
-    }
-
-    @ViewBuilder
-    private var spinner: some View {
-        if usesSnapshotSpinner {
-            SnapshotSpinner()
-        } else {
-            ProgressView()
-                .controlSize(.small)
-                .tint(.white)
-        }
     }
 
     private func pill(@ViewBuilder body: () -> some View) -> some View {
@@ -156,32 +127,6 @@ struct RecordingPanelView: View {
                 .background(.ultraThinMaterial, in: shape)
                 .overlay(shape.strokeBorder(Color.white.opacity(0.12), lineWidth: 1))
         }
-    }
-
-    private func statusText(_ value: String) -> some View {
-        Text(value)
-            .font(.wv(13, .medium))
-            .foregroundStyle(.white)
-    }
-}
-
-/// A drawn indeterminate spinner for `ImageRenderer` shoots, where the
-/// AppKit-backed `ProgressView` renders as a missing-view placeholder.
-private struct SnapshotSpinner: View {
-    var body: some View {
-        TimelineView(.animation) { timeline in
-            let turn = timeline.date.timeIntervalSinceReferenceDate
-                .truncatingRemainder(dividingBy: 1)
-            Circle()
-                .trim(from: 0, to: 0.72)
-                .stroke(
-                    Color.white.opacity(0.9),
-                    style: StrokeStyle(lineWidth: 2, lineCap: .round)
-                )
-                .frame(width: 13, height: 13)
-                .rotationEffect(.degrees(turn * 360))
-        }
-        .frame(width: 20, height: 20)
     }
 }
 

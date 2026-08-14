@@ -53,7 +53,7 @@ It's the free, private alternative to paid dictation tools — built with SwiftU
 
 | | |
 |---|---|
-| 🌊 **Floating widget with live waveform** | A draggable, always-on-top pill follows your dictation: brand mark at rest, a 7-band voice-reactive waveform while you speak, then transcribe/insert progress. |
+| 🌊 **Floating widget with live waveform** | A draggable, always-on-top pill with exactly two moods: the brand mark at rest, and a 7-band voice-reactive waveform while you speak. |
 | 🔒 **100% private, offline speech-to-text** | On-device Whisper transcription. Audio is never persisted, never uploaded, never logged. |
 | ⌨️ **Global push-to-talk hotkey** | Hold Fn/Globe (or any key/modifier chord you record) to dictate into whatever app is focused. |
 | 🌍 **90+ languages, Vietnamese included** | Multilingual Whisper models with a dedicated language picker — great for Vietnamese speech-to-text on Mac. |
@@ -65,9 +65,9 @@ It's the free, private alternative to paid dictation tools — built with SwiftU
 
 ## 📸 Screenshots
 
-The floating widget sits above your work and follows your dictation — idle, listening with a live waveform, transcribing, inserting:
+The floating widget sits above your work with two moods — resting, and listening with a live waveform:
 
-<img src="docs/assets/widget-states.png" alt="WinterVoice floating widget states: idle brand pill, recording with live voice waveform, transcribing spinner, and inserting text" />
+<img src="docs/assets/widget-states.png" alt="WinterVoice floating widget states: resting brand pill and listening with a live voice waveform" />
 
 <details>
 <summary><b>▶ App tour (main window)</b></summary>

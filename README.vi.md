@@ -53,7 +53,7 @@ WinterVoice là **ứng dụng nhận dạng giọng nói native cho macOS**: b�
 
 | | |
 |---|---|
-| 🌊 **Widget nổi với waveform trực tiếp** | Viên pill kéo-thả, luôn nổi trên cùng, đổi theo phiên đọc: logo khi nghỉ, waveform 7 thanh nhảy theo giọng khi nói, rồi tiến trình transcribe/chèn chữ. |
+| 🌊 **Widget nổi với waveform trực tiếp** | Viên pill kéo-thả, luôn nổi trên cùng, chỉ có đúng 2 trạng thái: logo khi nghỉ, và waveform 7 thanh nhảy theo giọng khi bạn nói. |
 | 🔒 **Nhận dạng giọng nói 100% offline** | Whisper chạy trên máy. Âm thanh không bao giờ được lưu, không upload, không log. |
 | ⌨️ **Phím tắt push-to-talk toàn hệ thống** | Giữ Fn/Globe (hoặc tự gán phím/tổ hợp phím bất kỳ) để đọc vào app đang focus. |
 | 🇻🇳 **Hỗ trợ tiếng Việt + 90 ngôn ngữ** | Model Whisper đa ngôn ngữ kèm bộ chọn ngôn ngữ riêng — nhận dạng tiếng Việt trên Mac rất ổn. |
@@ -65,9 +65,9 @@ WinterVoice là **ứng dụng nhận dạng giọng nói native cho macOS**: b�
 
 ## 📸 Ảnh màn hình
 
-Widget nổi luôn nằm trên công việc của bạn và đổi theo phiên đọc — nghỉ, đang nghe với waveform trực tiếp, đang transcribe, đang chèn chữ:
+Widget nổi luôn nằm trên công việc của bạn với 2 trạng thái — nghỉ, và đang nghe với waveform trực tiếp:
 
-<img src="docs/assets/widget-states.png" alt="Các trạng thái widget nổi của WinterVoice: pill logo khi nghỉ, ghi âm với waveform theo giọng nói, spinner transcribe, và chèn văn bản" />
+<img src="docs/assets/widget-states.png" alt="Hai trạng thái widget nổi của WinterVoice: pill logo khi nghỉ và đang nghe với waveform theo giọng nói" />
 
 <details>
 <summary><b>▶ Tour ứng dụng (cửa sổ chính)</b></summary>
