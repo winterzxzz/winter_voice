@@ -46,7 +46,7 @@ struct ProviderStatus: Equatable, Sendable {
     var privacySummary: String {
         switch (mode, isReady) {
         case (.remote, true):
-            "Audio is sent only to your configured remote endpoint when you dictate. Optional API keys remain in Keychain, unauthenticated endpoints receive no Authorization header, and audio or transcripts are not logged."
+            "Audio is sent only to your configured remote endpoint when you dictate. Optional API keys are stored locally on this Mac, unauthenticated endpoints receive no Authorization header, and audio or transcripts are not logged."
         case (.remote, false):
             "Remote mode is not ready, so dictation attempts do not record or send audio."
         case (.local, true):

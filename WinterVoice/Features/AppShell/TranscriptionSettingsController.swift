@@ -19,7 +19,7 @@ final class RemoteConnectionTester: RemoteConnectionTesting {
 }
 
 /// Owns the Transcription page's remote-configuration flow so the view only
-/// renders state and emits actions; HTTP, Keychain, and persistence never run
+/// renders state and emits actions; HTTP, credential storage, and persistence never run
 /// in view code.
 @MainActor
 final class TranscriptionSettingsController: ObservableObject {
@@ -63,7 +63,7 @@ final class TranscriptionSettingsController: ObservableObject {
     }
 
     /// Tests the DRAFT configuration. Testing must never persist the draft or
-    /// write the typed key to Keychain — only Save Configuration commits.
+    /// persist the typed key — only Save Configuration commits.
     func testRemoteConnection() {
         let draft = draft
         do {

@@ -388,7 +388,7 @@ struct AppSettingsView: View {
             WVField(label: "Model") {
                 TextField("", text: $controller.remoteModel).textFieldStyle(.wv)
             }
-            WVField(label: configuration.hasAPIKey ? "API key (saved in Keychain)" : "API key (optional)") {
+            WVField(label: configuration.hasAPIKey ? "API key (saved)" : "API key (optional)") {
                 SecureField("", text: $controller.apiKey).textFieldStyle(.wv)
             }
             HStack(spacing: 10) {
@@ -402,7 +402,7 @@ struct AppSettingsView: View {
             if let remoteResult = controller.remoteResult {
                 Text(remoteResult).font(.wvCaption).foregroundStyle(Theme.textSecondary)
             }
-            Text("HTTPS is required except for localhost or a private LAN endpoint. API keys are stored in Keychain. Test Connection probes the draft above without saving it.")
+            Text("HTTPS is required except for localhost or a private LAN endpoint. The API key is stored locally in Application Support with owner-only file permissions. Test Connection probes the draft above without saving it.")
                 .font(.wvCaption)
                 .foregroundStyle(Theme.textTertiary)
                 .fixedSize(horizontal: false, vertical: true)

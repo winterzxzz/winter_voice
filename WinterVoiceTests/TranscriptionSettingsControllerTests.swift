@@ -12,7 +12,7 @@ final class TranscriptionSettingsControllerTests: XCTestCase {
         let store = ProviderConfigurationStore(defaults: defaults, credentials: credentials)
         try store.saveRemote(savedConfiguration, apiKey: "stored-key")
         let tester = ConnectionTesterSpy()
-        tester.failure = DictationFailure(message: "Remote authentication failed.", recovery: "Check the API key stored in Keychain.")
+        tester.failure = DictationFailure(message: "Remote authentication failed.", recovery: "Check the saved API key in Transcription settings.")
         let subject = TranscriptionSettingsController(configuration: store, connectionTester: tester)
         subject.loadRemoteDraft()
         subject.baseURL = "https://draft.example/v1"

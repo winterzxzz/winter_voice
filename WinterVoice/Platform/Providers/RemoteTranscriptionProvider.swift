@@ -20,7 +20,7 @@ struct RemoteTranscriptionProvider: Sendable {
             throw DictationFailure(message: "Enter a valid remote base URL.", recovery: "Use HTTPS, or explicit HTTP for localhost or a LAN address.")
         }
         guard components.user == nil, components.password == nil else {
-            throw DictationFailure(message: "Remote URL credentials are not allowed.", recovery: "Store API credentials in Keychain instead.")
+            throw DictationFailure(message: "Remote URL credentials are not allowed.", recovery: "Enter the API key in Transcription settings instead.")
         }
         guard components.fragment == nil else {
             throw DictationFailure(message: "Remote URL fragments are not allowed.", recovery: "Remove the fragment and try again.")
@@ -169,7 +169,7 @@ struct RemoteTranscriptionProvider: Sendable {
         switch http.statusCode {
         case 200..<300: break
         case 401, 403:
-            throw DictationFailure(message: "Remote authentication failed.", recovery: "Check the API key stored in Keychain.")
+            throw DictationFailure(message: "Remote authentication failed.", recovery: "Check the saved API key in Transcription settings.")
         case 404:
             throw DictationFailure(message: "Remote transcription endpoint was not found.", recovery: "Check the base URL.")
         default:

@@ -1,6 +1,5 @@
 import Combine
 import Foundation
-import Security
 
 protocol CredentialStoring: AnyObject {
     func read() throws -> String?
@@ -8,83 +7,62 @@ protocol CredentialStoring: AnyObject {
     func delete() throws
 }
 
-protocol KeychainOperating: AnyObject {
-    func copyMatching(_ query: CFDictionary, result: UnsafeMutablePointer<CFTypeRef?>?) -> OSStatus
-    func update(_ query: CFDictionary, attributes: CFDictionary) -> OSStatus
-    func add(_ attributes: CFDictionary) -> OSStatus
-    func delete(_ query: CFDictionary) -> OSStatus
-}
+/// Stores the remote API key in an owner-only file under Application Support.
+/// Deliberately not the Keychain: Keychain access is bound to the code
+/// signature, so every ad-hoc or development rebuild is a different Keychain
+/// client and each launch interrupts with a login-password prompt.
+final class FileCredentialStore: CredentialStoring {
+    private let url: URL
+    private let fileManager = FileManager.default
 
-final class SystemKeychainOperations: KeychainOperating {
-    func copyMatching(_ query: CFDictionary, result: UnsafeMutablePointer<CFTypeRef?>?) -> OSStatus {
-        SecItemCopyMatching(query, result)
-    }
-    func update(_ query: CFDictionary, attributes: CFDictionary) -> OSStatus {
-        SecItemUpdate(query, attributes)
-    }
-    func add(_ attributes: CFDictionary) -> OSStatus { SecItemAdd(attributes, nil) }
-    func delete(_ query: CFDictionary) -> OSStatus { SecItemDelete(query) }
-}
-
-final class KeychainCredentialStore: CredentialStoring {
-    private let service = "com.winterzxzz.WinterVoice.remote-provider"
-    private let account = "api-key"
-    private let operations: KeychainOperating
-
-    init(operations: KeychainOperating = SystemKeychainOperations()) {
-        self.operations = operations
+    init(root: URL? = nil) {
+        let applicationSupport = FileManager.default.urls(
+            for: .applicationSupportDirectory, in: .userDomainMask
+        )[0]
+        let directory = root
+            ?? applicationSupport.appendingPathComponent("WinterVoice", isDirectory: true)
+        url = directory.appendingPathComponent("remote-api-key")
     }
 
     func read() throws -> String? {
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: service,
-            kSecAttrAccount as String: account,
-            kSecReturnData as String: true,
-            kSecMatchLimit as String: kSecMatchLimitOne
-        ]
-        var item: CFTypeRef?
-        let status = operations.copyMatching(query as CFDictionary, result: &item)
-        if status == errSecItemNotFound { return nil }
-        guard status == errSecSuccess, let data = item as? Data else {
-            throw DictationFailure(message: "Could not read the API key.", recovery: "Check Keychain access and try again.")
+        guard fileManager.fileExists(atPath: url.path) else { return nil }
+        guard let data = try? Data(contentsOf: url),
+              let value = String(data: data, encoding: .utf8) else {
+            throw DictationFailure(
+                message: "Could not read the API key.",
+                recovery: "Re-enter the API key in Transcription settings."
+            )
         }
-        return String(data: data, encoding: .utf8)
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? nil : trimmed
     }
 
     func write(_ value: String) throws {
-        let identity: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: service,
-            kSecAttrAccount as String: account
-        ]
-        // No kSecAttrAccessible here: it only applies to the data-protection
-        // keychain; on the default file-based login keychain it is silently
-        // ignored, and declaring it would misstate the item's real protection.
-        let valueAttributes: [String: Any] = [
-            kSecValueData as String: Data(value.utf8)
-        ]
-        let updateStatus = operations.update(identity as CFDictionary, attributes: valueAttributes as CFDictionary)
-        if updateStatus == errSecSuccess { return }
-        guard updateStatus == errSecItemNotFound else {
-            throw DictationFailure(message: "Could not save the API key.", recovery: "Check Keychain access and try again.")
-        }
-        var newItem = identity
-        newItem.merge(valueAttributes) { _, new in new }
-        guard operations.add(newItem as CFDictionary) == errSecSuccess else {
-            throw DictationFailure(message: "Could not save the API key.", recovery: "Check Keychain access and try again.")
+        do {
+            try fileManager.createDirectory(
+                at: url.deletingLastPathComponent(), withIntermediateDirectories: true
+            )
+            try Data(value.utf8).write(to: url, options: .atomic)
+            try fileManager.setAttributes(
+                [.posixPermissions: 0o600], ofItemAtPath: url.path
+            )
+        } catch {
+            throw DictationFailure(
+                message: "Could not save the API key.",
+                recovery: "Check disk access and try again."
+            )
         }
     }
 
     func delete() throws {
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: service,
-            kSecAttrAccount as String: account
-        ]
-        let status = operations.delete(query as CFDictionary)
-        guard status == errSecSuccess || status == errSecItemNotFound else {
-            throw DictationFailure(message: "Could not remove the API key.", recovery: "Check Keychain access and try again.")
+        guard fileManager.fileExists(atPath: url.path) else { return }
+        do {
+            try fileManager.removeItem(at: url)
+        } catch {
+            throw DictationFailure(
+                message: "Could not remove the API key.",
+                recovery: "Remove the remote-api-key file in Application Support/WinterVoice."
+            )
         }
     }
 }
@@ -118,7 +96,7 @@ final class ProviderConfigurationStore: ObservableObject {
     private let defaults: UserDefaults
     private let credentials: CredentialStoring
 
-    init(defaults: UserDefaults = .standard, credentials: CredentialStoring = KeychainCredentialStore()) {
+    init(defaults: UserDefaults = .standard, credentials: CredentialStoring = FileCredentialStore()) {
         self.defaults = defaults
         self.credentials = credentials
         mode = defaults.string(forKey: Keys.mode).flatMap(ProviderMode.init(rawValue:)) ?? .local
@@ -164,7 +142,7 @@ final class ProviderConfigurationStore: ObservableObject {
             do {
                 _ = try RemoteTranscriptionProvider.endpoint(for: remote)
                 return .ready(hasAPIKey
-                    ? "Generic OpenAI-compatible remote provider is configured with Keychain authentication."
+                    ? "Generic OpenAI-compatible remote provider is configured with a saved API key."
                     : "Generic OpenAI-compatible remote provider is configured without authentication.")
             } catch let error as DictationFailure {
                 return .unavailable(error.message)

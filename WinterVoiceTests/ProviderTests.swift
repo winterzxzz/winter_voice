@@ -1,7 +1,6 @@
 import Foundation
 import AVFoundation
 import CryptoKit
-import Security
 import XCTest
 @testable import WinterVoice
 
@@ -200,7 +199,7 @@ final class ProviderConfigurationTests: XCTestCase {
         XCTAssertTrue(remote.isReady)
         XCTAssertTrue(remote.overviewSummary.contains("Transcription is ready"))
         XCTAssertTrue(remote.privacySummary.contains("configured remote endpoint"))
-        XCTAssertTrue(remote.readiness.detail.contains("Keychain authentication"))
+        XCTAssertTrue(remote.readiness.detail.contains("saved API key"))
     }
 
     func testExplicitCredentialRemovalChangesStatusAndSubsequentRequestIsUnauthenticated() async throws {
@@ -245,33 +244,37 @@ final class ProviderConfigurationTests: XCTestCase {
         XCTAssertThrowsError(try store.removeAPIKey())
         XCTAssertTrue(store.hasAPIKey)
         XCTAssertEqual(try store.apiKey(), "secret")
-        XCTAssertTrue(store.status(localModels: models).readiness.detail.contains("Keychain authentication"))
+        XCTAssertTrue(store.status(localModels: models).readiness.detail.contains("saved API key"))
     }
 
-    func testKeychainWriteUpdatesWithoutDeletingExistingCredential() throws {
-        let operations = KeychainOperationsSpy(updateStatus: errSecSuccess, addStatus: errSecSuccess)
-        let subject = KeychainCredentialStore(operations: operations)
-        try subject.write("replacement")
-        XCTAssertEqual(operations.updateCallCount, 1)
-        XCTAssertEqual(operations.addCallCount, 0)
-        XCTAssertEqual(operations.deleteCallCount, 0)
+    func testFileCredentialStoreRoundTripsAndDeletes() throws {
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent("wv-credentials-\(UUID().uuidString)", isDirectory: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let subject = FileCredentialStore(root: root)
+        XCTAssertNil(try subject.read())
+        try subject.write("secret-key")
+        XCTAssertEqual(try subject.read(), "secret-key")
+        try subject.write("rotated")
+        XCTAssertEqual(try subject.read(), "rotated")
+        try subject.delete()
+        XCTAssertNil(try subject.read())
+        try subject.delete()
     }
 
-    func testKeychainFailedUpdatePreservesExistingCredential() {
-        let operations = KeychainOperationsSpy(updateStatus: errSecAuthFailed, addStatus: errSecSuccess)
-        let subject = KeychainCredentialStore(operations: operations)
-        XCTAssertThrowsError(try subject.write("replacement"))
-        XCTAssertEqual(operations.addCallCount, 0)
-        XCTAssertEqual(operations.deleteCallCount, 0)
-    }
-
-    func testKeychainAddsOnlyWhenItemIsNotFound() throws {
-        let operations = KeychainOperationsSpy(updateStatus: errSecItemNotFound, addStatus: errSecSuccess)
-        let subject = KeychainCredentialStore(operations: operations)
-        try subject.write("first")
-        XCTAssertEqual(operations.updateCallCount, 1)
-        XCTAssertEqual(operations.addCallCount, 1)
-        XCTAssertEqual(operations.deleteCallCount, 0)
+    func testFileCredentialStoreWritesOwnerOnlyPermissionsAndTrimsWhitespace() throws {
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent("wv-credentials-\(UUID().uuidString)", isDirectory: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let subject = FileCredentialStore(root: root)
+        try subject.write("  padded-key\n")
+        XCTAssertEqual(try subject.read(), "padded-key")
+        let attributes = try FileManager.default.attributesOfItem(
+            atPath: root.appendingPathComponent("remote-api-key").path
+        )
+        XCTAssertEqual((attributes[.posixPermissions] as? NSNumber)?.int16Value, 0o600)
+        try subject.write("   \n")
+        XCTAssertNil(try subject.read())
     }
 }
 
@@ -571,32 +574,6 @@ private final class CredentialStoreSpy: CredentialStoring {
     }
 }
 
-private final class KeychainOperationsSpy: KeychainOperating {
-    let updateStatus: OSStatus
-    let addStatus: OSStatus
-    private(set) var updateCallCount = 0
-    private(set) var addCallCount = 0
-    private(set) var deleteCallCount = 0
-
-    init(updateStatus: OSStatus, addStatus: OSStatus) {
-        self.updateStatus = updateStatus
-        self.addStatus = addStatus
-    }
-
-    func copyMatching(_ query: CFDictionary, result: UnsafeMutablePointer<CFTypeRef?>?) -> OSStatus { errSecItemNotFound }
-    func update(_ query: CFDictionary, attributes: CFDictionary) -> OSStatus {
-        updateCallCount += 1
-        return updateStatus
-    }
-    func add(_ attributes: CFDictionary) -> OSStatus {
-        addCallCount += 1
-        return addStatus
-    }
-    func delete(_ query: CFDictionary) -> OSStatus {
-        deleteCallCount += 1
-        return errSecSuccess
-    }
-}
 
 private actor RemoteTransportSpy: RemoteTransport {
     let status: Int

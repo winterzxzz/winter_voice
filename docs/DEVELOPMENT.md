@@ -10,7 +10,7 @@ The original future-platform architecture, domain, roadmap, and security specifi
 
 - Native primary window with a `NavigationSplitView` sidebar for Overview, Permissions, Transcription, Hotkey, and Privacy. The window opens at launch and can be reopened from the menu bar or with Command-0.
 - First-launch page wizard for Microphone, Input Monitoring, and Accessibility. Each page shows live shared status and explicit request/settings actions; deferral never marks setup complete.
-- Local and Remote configuration are unified on the Transcription page. Local shows official downloadable whisper.cpp artifacts grouped into multilingual models with Vietnamese support and English-only models; downloads are verified with published SHA-256 values and run through the pinned upstream whisper.cpp v1.8.3 XCFramework. Remote configures a generic OpenAI-compatible base URL, model, optional language, and optional Keychain API key.
+- Local and Remote configuration are unified on the Transcription page. Local shows official downloadable whisper.cpp artifacts grouped into multilingual models with Vietnamese support and English-only models; downloads are verified with published SHA-256 values and run through the pinned upstream whisper.cpp v1.8.3 XCFramework. Remote configures a generic OpenAI-compatible base URL, model, optional language, and an optional API key stored as an owner-only file in Application Support.
 - Successfully inserted dictations are stored locally in a bounded History list with search, deletion, and clear-all actions. History stores text and timestamps only; audio is never persisted.
 - Dictionary stores enabled source/replacement pairs locally, rejects duplicate source phrases, applies longer matches first without replacement cascades, and runs before insertion and History recording.
 - Native menu-bar menu with a monochrome microphone/waveform template symbol, live dictation and hotkey-health rows, the configured push-to-talk instruction, and actions to open WinterVoice, reopen the permission guide, open Settings, or quit.
@@ -39,7 +39,7 @@ AppContainer
 └── Platform adapters
     ├── RightOptionEventTap
     ├── SystemAudioRecorder + ConfiguredTranscriber
-    ├── RemoteTranscriptionProvider + KeychainCredentialStore
+    ├── RemoteTranscriptionProvider + FileCredentialStore
     ├── ModelManager
     ├── SystemTextInjector
     └── SystemPermissionManager
@@ -114,7 +114,7 @@ The identifier must be `com.winterzxzz.WinterVoice`. If the output says `TeamIde
 
 8. With fewer than three Allowed statuses, confirm **Start Using WinterVoice** is unavailable. Once all three are Allowed, complete setup and confirm relaunch skips the wizard.
 9. From the completed app, choose **Permissions → Open Permission Guide**. Confirm setup reappears with live Allowed statuses, the saved completion marker is reset, and completing it again restores direct-to-main launches. Also close and reopen the main window from the menu bar and with Command-0.
-10. Confirm Transcription switches persisted Local/Remote mode in one page. Local must show Tiny, Base, and Small for multilingual/Vietnamese and English-only variants, with Download/Select/Delete actions. Remote must accept a generic endpoint with no vendor default and store its key in Keychain. Add a Dictionary entry, verify it is applied before insertion, then confirm the processed text appears in History and survives relaunch.
+10. Confirm Transcription switches persisted Local/Remote mode in one page. Local must show Tiny, Base, and Small for multilingual/Vietnamese and English-only variants, with Download/Select/Delete actions. Remote must accept a generic endpoint with no vendor default and store its key locally. Add a Dictionary entry, verify it is applied before insertion, then confirm the processed text appears in History and survives relaunch.
 11. Before Input Monitoring is enabled, confirm Overview, Hotkey, Permissions, and the menu bar do not claim the hotkey is listening even if the process can create a listen-only event tap. After enabling it and returning to the app, confirm the status names the configured key when macOS applies trust; change the binding and verify both the UI and listener update immediately and survive relaunch.
 12. With no ready provider, press the configured push-to-talk key and confirm the panel reports **No transcription provider is configured** without requesting Microphone, recording, or capturing a target. With a compatible Remote configured, verify Preparing → Recording → Processing → Inserting into TextEdit.
 13. Repeat dictation at least five times to exercise audio/event-tap cleanup. Also press Left Option and verify it never starts dictation. Leave both Option keys released when returning from System Settings so no modifier edge is ambiguous.
@@ -131,7 +131,7 @@ Remote transcription is generic and operational; no vendor is named or defaulted
 
 ## Privacy and limitations
 
-Audio is captured only when the selected provider is ready. Remote multipart encoding is created in memory; optional API keys live in Keychain and keys are never logged. Successfully inserted transcript text is stored locally in History (except text dictated into detected secure fields); audio is not persisted and transcript text is not logged. Unauthenticated compatible endpoints receive no Authorization header. HTTPS is required except for explicitly configured localhost/private-LAN HTTP endpoints; the HTTP exception requires the host to be a loopback, RFC1918, or `.local` literal (public DNS names that merely embed an address, such as `10.1.2.3.attacker.com`, are rejected), and App Transport Security permits only local networking. The app builds with Hardened Runtime enabled.
+Audio is captured only when the selected provider is ready. Remote multipart encoding is created in memory; the optional API key lives in an owner-only (0600) file under Application Support/WinterVoice and keys are never logged. It is deliberately not in Keychain: Keychain items bind to the code signature, so every development rebuild would prompt for the login password. Successfully inserted transcript text is stored locally in History (except text dictated into detected secure fields); audio is not persisted and transcript text is not logged. Unauthenticated compatible endpoints receive no Authorization header. HTTPS is required except for explicitly configured localhost/private-LAN HTTP endpoints; the HTTP exception requires the host to be a loopback, RFC1918, or `.local` literal (public DNS names that merely embed an address, such as `10.1.2.3.attacker.com`, are rejected), and App Transport Security permits only local networking. The app builds with Hardened Runtime enabled.
 
 The Local catalog currently pins official whisper.cpp model artifacts, their authoritative download URLs, sizes, and SHA-256 checksums. Any future model or runtime revision must receive the same artifact and license review before publication.
 

@@ -58,7 +58,7 @@ It's the free, private alternative to paid dictation tools — built with SwiftU
 | ⌨️ **Global push-to-talk hotkey** | Hold Fn/Globe (or any key/modifier chord you record) to dictate into whatever app is focused. |
 | 🌍 **90+ languages, Vietnamese included** | Multilingual Whisper models with a dedicated language picker — great for Vietnamese speech-to-text on Mac. |
 | 📝 **Types into any app** | Inserts text directly at your cursor via Accessibility, with a safe clipboard fallback that restores your clipboard afterwards. |
-| ☁️ **Bring your own API (optional)** | Any OpenAI-compatible `/audio/transcriptions` endpoint — your server, your key (stored in Keychain). |
+| ☁️ **Bring your own API (optional)** | Any OpenAI-compatible `/audio/transcriptions` endpoint — your server, your key (stored locally on your Mac). |
 | 📚 **Personal dictionary** | Auto-replace phrases before insertion — fix names, jargon, and Whisper quirks once. |
 | 🕘 **Local history** | Searchable dictation history stored only on your Mac. Secure fields are never recorded. |
 | 🖥️ **Native & lightweight** | SwiftUI menu-bar app with a floating recording overlay. No Electron, no telemetry, no account. |
@@ -94,7 +94,7 @@ The floating widget sits above your work and follows your dictation — idle, li
 - Local transcription runs on the pinned, checksum-verified **whisper.cpp v1.8.3** XCFramework; models are official artifacts verified by SHA-256.
 - Audio lives in memory only — it is **never written to disk**.
 - History stores text + timestamps locally; text dictated into password/secure fields is never recorded.
-- Remote mode is opt-in, generic, HTTPS-first, and keeps API keys in the macOS **Keychain**.
+- Remote mode is opt-in, generic, HTTPS-first, and stores the API key **locally on your Mac** with owner-only file permissions.
 - Exactly three permissions, each explained in-app: Microphone, Input Monitoring, Accessibility.
 
 ## 💻 Requirements

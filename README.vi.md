@@ -58,7 +58,7 @@ WinterVoice là **ứng dụng nhận dạng giọng nói native cho macOS**: b�
 | ⌨️ **Phím tắt push-to-talk toàn hệ thống** | Giữ Fn/Globe (hoặc tự gán phím/tổ hợp phím bất kỳ) để đọc vào app đang focus. |
 | 🇻🇳 **Hỗ trợ tiếng Việt + 90 ngôn ngữ** | Model Whisper đa ngôn ngữ kèm bộ chọn ngôn ngữ riêng — nhận dạng tiếng Việt trên Mac rất ổn. |
 | 📝 **Gõ vào mọi ứng dụng** | Chèn chữ thẳng vào vị trí con trỏ qua Accessibility, có cơ chế dán dự phòng an toàn và tự khôi phục clipboard. |
-| ☁️ **Tự chọn API (tuỳ chọn)** | Bất kỳ endpoint `/audio/transcriptions` kiểu OpenAI nào — server của bạn, key của bạn (lưu trong Keychain). |
+| ☁️ **Tự chọn API (tuỳ chọn)** | Bất kỳ endpoint `/audio/transcriptions` kiểu OpenAI nào — server của bạn, key của bạn (lưu ngay trên máy). |
 | 📚 **Từ điển cá nhân** | Tự thay thế cụm từ trước khi chèn — sửa tên riêng, thuật ngữ, lỗi Whisper hay gặp, chỉ cần cài một lần. |
 | 🕘 **Lịch sử cục bộ** | Lịch sử dictation có tìm kiếm, lưu ngay trên Mac. Ô nhập mật khẩu không bao giờ bị ghi lại. |
 | 🖥️ **Native & nhẹ** | App menu bar viết bằng SwiftUI, overlay ghi âm nổi. Không Electron, không telemetry, không tài khoản. |
@@ -94,7 +94,7 @@ Widget nổi luôn nằm trên công việc của bạn và đổi theo phiên �
 - Nhận dạng cục bộ dùng **whisper.cpp v1.8.3** (XCFramework pin checksum); model là bản chính thức, kiểm SHA-256.
 - Âm thanh chỉ tồn tại trong RAM — **không bao giờ ghi ra đĩa**.
 - Lịch sử chỉ lưu văn bản + thời gian trên máy; chữ đọc vào ô mật khẩu không bao giờ được lưu.
-- Chế độ Remote là tuỳ chọn, ưu tiên HTTPS, API key nằm trong **Keychain** của macOS.
+- Chế độ Remote là tuỳ chọn, ưu tiên HTTPS, API key lưu **ngay trên máy của bạn** trong file chỉ chủ máy đọc được.
 - Đúng 3 quyền hệ thống, đều được giải thích trong app: Micro, Input Monitoring, Accessibility.
 
 ## 💻 Yêu cầu
