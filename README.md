@@ -151,16 +151,6 @@ Yes — run a local OpenAI-compatible router like 9router and point it at a prov
 Tiny, Base, and Small — each in multilingual (incl. Vietnamese) and English-only variants, downloaded from official whisper.cpp sources and verified against published SHA-256 checksums.
 </details>
 
-## 🗺️ Roadmap
-
-- [ ] Signed & notarized releases
-- [ ] LLM post-processing (punctuation, formatting, commands)
-- [ ] Live waveform visualization
-- [ ] Launch at login
-- [ ] Homebrew cask
-
-Full architecture & product spec: [docs/architecture-spec.md](docs/architecture-spec.md)
-
 ## 🤖 Made for Vibe Coding — Talk to Your AI Agents
 
 Typing long prompts is the bottleneck of vibe coding. WinterVoice removes it: **hold a key, describe what you want, release** — your words land in the agent's input box, ready to send.

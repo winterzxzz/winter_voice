@@ -151,16 +151,6 @@ Có — chạy một router API chuẩn OpenAI trên máy như 9router rồi tr�
 Tiny, Base và Small — mỗi loại có bản đa ngôn ngữ (gồm tiếng Việt) và bản chỉ tiếng Anh, tải từ nguồn whisper.cpp chính thức và kiểm SHA-256.
 </details>
 
-## 🗺️ Lộ trình
-
-- [ ] Bản phát hành có ký & notarize
-- [ ] Hậu xử lý bằng LLM (dấu câu, định dạng, lệnh giọng nói)
-- [ ] Hiển thị sóng âm trực tiếp
-- [ ] Khởi động cùng máy
-- [ ] Homebrew cask
-
-Tài liệu kiến trúc đầy đủ: [docs/architecture-spec.md](docs/architecture-spec.md)
-
 ## 🤖 Sinh Ra Cho Vibe Coding — Nói Chuyện Với AI Agent
 
 Gõ prompt dài chính là nút thắt của vibe coding. WinterVoice gỡ nút đó: **giữ phím, mô tả thứ bạn muốn, thả tay** — chữ nằm sẵn trong ô nhập của agent, chỉ việc Enter.
