@@ -94,24 +94,7 @@ private struct SplashView: View {
     }
 
     private var logoMark: some View {
-        RoundedRectangle(cornerRadius: 20, style: .continuous)
-            .fill(
-                LinearGradient(
-                    colors: [Theme.accent, Color(hex: 0x1D4ED8)],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-            )
-            .frame(width: 76, height: 76)
-            .overlay(
-                RoundedRectangle(cornerRadius: 20, style: .continuous)
-                    .strokeBorder(Color.white.opacity(0.18), lineWidth: 1)
-            )
-            .overlay(
-                Image(systemName: "waveform")
-                    .font(.system(size: 34, weight: .bold))
-                    .foregroundStyle(.white)
-            )
+        WVBrandMark(size: 76)
             .shadow(color: Theme.accent.opacity(0.5), radius: 30, y: 10)
     }
 

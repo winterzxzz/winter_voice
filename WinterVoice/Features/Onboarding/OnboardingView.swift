@@ -15,11 +15,7 @@ struct OnboardingView: View {
         let total = AppPermission.allCases.count
         VStack(alignment: .leading, spacing: 24) {
             HStack(spacing: 12) {
-                RoundedRectangle(cornerRadius: 10, style: .continuous)
-                    .fill(LinearGradient(colors: [Theme.accent, Color(hex: 0x1D4ED8)],
-                                         startPoint: .topLeading, endPoint: .bottomTrailing))
-                    .frame(width: 34, height: 34)
-                    .overlay(Image(systemName: "waveform").font(.system(size: 16, weight: .bold)).foregroundStyle(.white))
+                WVBrandMark(size: 34)
                 VStack(alignment: .leading, spacing: 1) {
                     Text("Set up WinterVoice").font(.wv(22, .semibold)).foregroundStyle(Theme.textPrimary)
                     Text("Step \(presenter.pageIndex + 1) of \(total)").font(.wvCaption).foregroundStyle(Theme.textSecondary)

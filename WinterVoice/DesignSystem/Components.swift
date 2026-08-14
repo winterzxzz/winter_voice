@@ -46,26 +46,18 @@ struct WVIconBadge: View {
 
 // MARK: - Brand mark
 
-/// The app logo square: a blue gradient tile with the waveform glyph. Used in
-/// the titlebar, the floating widget, and the widget style previews.
+/// The app logo square: the real app icon artwork (rounded tile and glyph are
+/// baked into the asset). Used in the titlebar, the floating widget, and the
+/// widget style previews.
 struct WVBrandMark: View {
     var size: CGFloat = 19
 
     var body: some View {
-        RoundedRectangle(cornerRadius: size * 0.29, style: .continuous)
-            .fill(
-                LinearGradient(
-                    colors: [Theme.accent, Color(hex: 0x1D4ED8)],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-            )
+        Image("BrandIcon")
+            .resizable()
+            .interpolation(.high)
+            .scaledToFit()
             .frame(width: size, height: size)
-            .overlay(
-                Image(systemName: "waveform")
-                    .font(.system(size: size * 0.5, weight: .bold))
-                    .foregroundStyle(.white)
-            )
     }
 }
 
