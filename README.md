@@ -21,6 +21,8 @@ Hold a key. Speak. Release. Your words appear in any app — 100% offline, no su
 
 **English** · [Tiếng Việt](README.vi.md)
 
+<img src="docs/assets/demo.gif" width="760" alt="WinterVoice demo — macOS dictation app with usage stats, searchable history, personal dictionary, and push-to-talk shortcuts" />
+
 </div>
 
 ---
@@ -59,6 +61,20 @@ It's the free, private alternative to paid dictation tools — built with SwiftU
 | 📚 **Personal dictionary** | Auto-replace phrases before insertion — fix names, jargon, and Whisper quirks once. |
 | 🕘 **Local history** | Searchable dictation history stored only on your Mac. Secure fields are never recorded. |
 | 🖥️ **Native & lightweight** | SwiftUI menu-bar app with a floating recording overlay. No Electron, no telemetry, no account. |
+
+## 📸 Screenshots
+
+The floating pill sits above your work and follows your dictation state:
+
+<img src="docs/assets/pill.png" alt="WinterVoice floating recording pill overlay on macOS" />
+
+| Searchable local history | Personal dictionary |
+|---|---|
+| ![Dictation history with search in WinterVoice, a free macOS speech-to-text app](docs/assets/history.png) | ![Personal auto-correct dictionary in WinterVoice for fixing misheard words](docs/assets/dictionary.png) |
+
+| Usage stats at a glance | Configurable shortcuts |
+|---|---|
+| ![WinterVoice home dashboard with dictation stats: words, speaking time, words per minute](docs/assets/home.png) | ![Push-to-talk and toggle recording keyboard shortcuts in WinterVoice](docs/assets/shortcuts.png) |
 
 ## 🚀 How it works
 

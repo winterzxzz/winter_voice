@@ -21,6 +21,8 @@ Giữ phím. Nói. Thả tay. Chữ hiện ra trong bất kỳ app nào — 100%
 
 [English](README.md) · **Tiếng Việt**
 
+<img src="docs/assets/demo.gif" width="760" alt="Demo WinterVoice — app đọc chính tả macOS với thống kê sử dụng, lịch sử tìm kiếm được, từ điển cá nhân và phím tắt push-to-talk" />
+
 </div>
 
 ---
@@ -59,6 +61,20 @@ WinterVoice là **ứng dụng nhận dạng giọng nói native cho macOS**: b�
 | 📚 **Từ điển cá nhân** | Tự thay thế cụm từ trước khi chèn — sửa tên riêng, thuật ngữ, lỗi Whisper hay gặp, chỉ cần cài một lần. |
 | 🕘 **Lịch sử cục bộ** | Lịch sử dictation có tìm kiếm, lưu ngay trên Mac. Ô nhập mật khẩu không bao giờ bị ghi lại. |
 | 🖥️ **Native & nhẹ** | App menu bar viết bằng SwiftUI, overlay ghi âm nổi. Không Electron, không telemetry, không tài khoản. |
+
+## 📸 Ảnh màn hình
+
+Viên pill nổi luôn nằm trên công việc của bạn và đổi trạng thái theo phiên đọc:
+
+<img src="docs/assets/pill.png" alt="Pill ghi âm nổi của WinterVoice trên macOS" />
+
+| Lịch sử cục bộ, tìm kiếm được | Từ điển cá nhân |
+|---|---|
+| ![Lịch sử đọc chính tả có tìm kiếm trong WinterVoice, app chuyển giọng nói thành văn bản miễn phí cho Mac](docs/assets/history.png) | ![Từ điển tự sửa lỗi cá nhân trong WinterVoice để sửa từ nhận sai](docs/assets/dictionary.png) |
+
+| Thống kê sử dụng | Phím tắt tuỳ chỉnh |
+|---|---|
+| ![Trang chủ WinterVoice với thống kê: số từ, thời gian nói, tốc độ từ mỗi phút](docs/assets/home.png) | ![Phím tắt push-to-talk và toggle recording trong WinterVoice](docs/assets/shortcuts.png) |
 
 ## 🚀 Cách hoạt động
 
