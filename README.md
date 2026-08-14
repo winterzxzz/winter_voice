@@ -21,7 +21,7 @@ Hold a key. Speak. Release. Your words appear in any app — 100% offline, no su
 
 **English** · [Tiếng Việt](README.vi.md)
 
-<img src="docs/assets/demo.gif" width="760" alt="WinterVoice demo — macOS dictation app with usage stats, searchable history, personal dictionary, and push-to-talk shortcuts" />
+<img src="docs/assets/widget-demo.gif" width="640" alt="WinterVoice floating widget demo — hold a key, speak into the live waveform, and the transcribed text is inserted into any macOS app" />
 
 </div>
 
@@ -53,6 +53,7 @@ It's the free, private alternative to paid dictation tools — built with SwiftU
 
 | | |
 |---|---|
+| 🌊 **Floating widget with live waveform** | A draggable, always-on-top pill follows your dictation: brand mark at rest, a 7-band voice-reactive waveform while you speak, then transcribe/insert progress. |
 | 🔒 **100% private, offline speech-to-text** | On-device Whisper transcription. Audio is never persisted, never uploaded, never logged. |
 | ⌨️ **Global push-to-talk hotkey** | Hold Fn/Globe (or any key/modifier chord you record) to dictate into whatever app is focused. |
 | 🌍 **90+ languages, Vietnamese included** | Multilingual Whisper models with a dedicated language picker — great for Vietnamese speech-to-text on Mac. |
@@ -64,9 +65,15 @@ It's the free, private alternative to paid dictation tools — built with SwiftU
 
 ## 📸 Screenshots
 
-The floating pill sits above your work and follows your dictation state:
+The floating widget sits above your work and follows your dictation — idle, listening with a live waveform, transcribing, inserting:
 
-<img src="docs/assets/pill.png" alt="WinterVoice floating recording pill overlay on macOS" />
+<img src="docs/assets/widget-states.png" alt="WinterVoice floating widget states: idle brand pill, recording with live voice waveform, transcribing spinner, and inserting text" />
+
+<details>
+<summary><b>▶ App tour (main window)</b></summary>
+<br/>
+<img src="docs/assets/demo.gif" width="760" alt="WinterVoice app tour — home dashboard with usage stats, searchable dictation history, personal dictionary, and shortcut settings" />
+</details>
 
 | Searchable local history | Personal dictionary |
 |---|---|
@@ -137,6 +144,16 @@ Tiny, Base, and Small — each in multilingual (incl. Vietnamese) and English-on
 - [ ] Homebrew cask
 
 Full architecture & product spec: [docs/architecture-spec.md](docs/architecture-spec.md)
+
+## 🤖 Vibe-coded with AI
+
+WinterVoice is built end-to-end with **vibe coding** — [Claude Code](https://claude.com/claude-code) (Anthropic's Claude, Fable 5) writes the Swift, the tests, the release tooling, this README, and even the demo GIF pipeline, with [Winter](https://github.com/winterzxzz) steering the product. Tools in the loop:
+
+- **[Claude Code](https://claude.com/claude-code)** — AI pair programmer driving the whole codebase
+- **codegraph MCP** — a code-intelligence graph the AI queries instead of grepping
+- **[whisper.cpp](https://github.com/ggml-org/whisper.cpp)** — the on-device speech engine underneath it all
+
+If you're curious what a fully vibe-coded native macOS app looks like, read the commit history — every commit is co-authored with the AI.
 
 ## 🤝 Contributing
 

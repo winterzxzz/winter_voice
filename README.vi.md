@@ -21,7 +21,7 @@ Giữ phím. Nói. Thả tay. Chữ hiện ra trong bất kỳ app nào — 100%
 
 [English](README.md) · **Tiếng Việt**
 
-<img src="docs/assets/demo.gif" width="760" alt="Demo WinterVoice — app đọc chính tả macOS với thống kê sử dụng, lịch sử tìm kiếm được, từ điển cá nhân và phím tắt push-to-talk" />
+<img src="docs/assets/widget-demo.gif" width="640" alt="Demo widget nổi của WinterVoice — giữ phím, nói vào waveform trực tiếp, văn bản được chèn vào bất kỳ app macOS nào" />
 
 </div>
 
@@ -53,6 +53,7 @@ WinterVoice là **ứng dụng nhận dạng giọng nói native cho macOS**: b�
 
 | | |
 |---|---|
+| 🌊 **Widget nổi với waveform trực tiếp** | Viên pill kéo-thả, luôn nổi trên cùng, đổi theo phiên đọc: logo khi nghỉ, waveform 7 thanh nhảy theo giọng khi nói, rồi tiến trình transcribe/chèn chữ. |
 | 🔒 **Nhận dạng giọng nói 100% offline** | Whisper chạy trên máy. Âm thanh không bao giờ được lưu, không upload, không log. |
 | ⌨️ **Phím tắt push-to-talk toàn hệ thống** | Giữ Fn/Globe (hoặc tự gán phím/tổ hợp phím bất kỳ) để đọc vào app đang focus. |
 | 🇻🇳 **Hỗ trợ tiếng Việt + 90 ngôn ngữ** | Model Whisper đa ngôn ngữ kèm bộ chọn ngôn ngữ riêng — nhận dạng tiếng Việt trên Mac rất ổn. |
@@ -64,9 +65,15 @@ WinterVoice là **ứng dụng nhận dạng giọng nói native cho macOS**: b�
 
 ## 📸 Ảnh màn hình
 
-Viên pill nổi luôn nằm trên công việc của bạn và đổi trạng thái theo phiên đọc:
+Widget nổi luôn nằm trên công việc của bạn và đổi theo phiên đọc — nghỉ, đang nghe với waveform trực tiếp, đang transcribe, đang chèn chữ:
 
-<img src="docs/assets/pill.png" alt="Pill ghi âm nổi của WinterVoice trên macOS" />
+<img src="docs/assets/widget-states.png" alt="Các trạng thái widget nổi của WinterVoice: pill logo khi nghỉ, ghi âm với waveform theo giọng nói, spinner transcribe, và chèn văn bản" />
+
+<details>
+<summary><b>▶ Tour ứng dụng (cửa sổ chính)</b></summary>
+<br/>
+<img src="docs/assets/demo.gif" width="760" alt="Tour WinterVoice — trang chủ với thống kê, lịch sử đọc chính tả tìm kiếm được, từ điển cá nhân và cài đặt phím tắt" />
+</details>
 
 | Lịch sử cục bộ, tìm kiếm được | Từ điển cá nhân |
 |---|---|
@@ -137,6 +144,16 @@ Tiny, Base và Small — mỗi loại có bản đa ngôn ngữ (gồm tiếng V
 - [ ] Homebrew cask
 
 Tài liệu kiến trúc đầy đủ: [docs/architecture-spec.md](docs/architecture-spec.md)
+
+## 🤖 Vibe-code cùng AI
+
+WinterVoice được xây từ đầu đến cuối bằng **vibe coding** — [Claude Code](https://claude.com/claude-code) (Claude Fable 5 của Anthropic) viết Swift, viết test, làm tooling phát hành, viết cả README này và cả pipeline dựng GIF demo; [Winter](https://github.com/winterzxzz) cầm lái sản phẩm. Bộ đồ nghề:
+
+- **[Claude Code](https://claude.com/claude-code)** — AI pair programmer gánh toàn bộ codebase
+- **codegraph MCP** — graph code-intelligence để AI tra cứu thay vì grep
+- **[whisper.cpp](https://github.com/ggml-org/whisper.cpp)** — engine nhận dạng giọng nói on-device bên dưới
+
+Muốn xem một app macOS native thuần vibe-code trông thế nào, đọc commit history — commit nào cũng có AI co-author.
 
 ## 🤝 Đóng góp
 
