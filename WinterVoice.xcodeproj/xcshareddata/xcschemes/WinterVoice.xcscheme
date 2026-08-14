@@ -28,7 +28,7 @@
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "0FE63B58AC56E34FB5F54A7A5DD7DA59"
+               BlueprintIdentifier = "147E0CD0F504578F1E34AB99B5586730"
                BuildableName = "WinterVoiceTests.xctest"
                BlueprintName = "WinterVoiceTests"
                ReferencedContainer = "container:WinterVoice.xcodeproj">
@@ -55,7 +55,7 @@
             skipped = "NO">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "0FE63B58AC56E34FB5F54A7A5DD7DA59"
+               BlueprintIdentifier = "147E0CD0F504578F1E34AB99B5586730"
                BuildableName = "WinterVoiceTests.xctest"
                BlueprintName = "WinterVoiceTests"
                ReferencedContainer = "container:WinterVoice.xcodeproj">

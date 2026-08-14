@@ -55,7 +55,7 @@ struct RecordingPanelView: View {
                 HStack(spacing: 7) {
                     WVBrandMark(size: 17)
                     Text("WinterVoice")
-                        .font(.wv(12.5, .semibold))
+                        .font(.wv(11, .semibold))
                         .foregroundStyle(.white)
                 }
                 .padding(.horizontal, 12)
@@ -82,40 +82,38 @@ struct RecordingPanelView: View {
         .help("Double-click to start dictation. \(presenter.hotkeyInstruction).")
     }
 
+    /// Matches the idle pill's metrics so switching between resting and
+    /// listening never changes the widget's height.
     private func pill(@ViewBuilder body: () -> some View) -> some View {
-        HStack(spacing: 10) { body() }
-            .padding(.horizontal, 18)
-            .padding(.vertical, 12)
-            .frame(minHeight: 44)
+        HStack(spacing: 8) { body() }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 7)
+            .frame(minHeight: 32)
             .background(panelBackground(in: Capsule()))
     }
 
     private func failureCard(_ failure: DictationFailure) -> some View {
-        HStack(alignment: .top, spacing: 10) {
-            Image(systemName: "exclamationmark.triangle.fill")
-                .font(.system(size: 14, weight: .semibold))
-                .foregroundStyle(.orange)
-                .padding(.top, 1)
-            VStack(alignment: .leading, spacing: 3) {
-                // The panel is sized from `fittingSize`, which measures at the
-                // ideal width — for plain Text that is one unwrapped line, so
-                // longer failures rendered as a single truncated "…" line.
-                // Pinning the ideal width and letting the text take its full
-                // wrapped height keeps every failure fully readable.
-                Text(failure.message)
-                    .font(.wv(13, .semibold))
-                    .foregroundStyle(.white)
-                    .fixedSize(horizontal: false, vertical: true)
-                Text(failure.recovery)
-                    .font(.wv(11))
-                    .foregroundStyle(.white.opacity(0.65))
-                    .fixedSize(horizontal: false, vertical: true)
-            }
+        VStack(alignment: .leading, spacing: 3) {
+            // The panel is sized from `fittingSize`, which measures at the
+            // ideal width — for plain Text that is one unwrapped line, so
+            // longer failures rendered as a single truncated "…" line.
+            // Pinning the ideal width and letting the text wrap (capped at
+            // two lines) keeps failures readable without an oversized card.
+            Text(failure.message)
+                .font(.wv(11.5, .semibold))
+                .foregroundStyle(.white)
+                .lineLimit(2)
+                .fixedSize(horizontal: false, vertical: true)
+            Text(failure.recovery)
+                .font(.wv(10))
+                .foregroundStyle(.white.opacity(0.65))
+                .lineLimit(2)
+                .fixedSize(horizontal: false, vertical: true)
         }
-        .padding(.horizontal, 18)
-        .padding(.vertical, 12)
-        .frame(idealWidth: 400, maxWidth: 400, alignment: .leading)
-        .background(panelBackground(in: RoundedRectangle(cornerRadius: 18, style: .continuous)))
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
+        .frame(idealWidth: 200, maxWidth: 200, alignment: .leading)
+        .background(panelBackground(in: RoundedRectangle(cornerRadius: 14, style: .continuous)))
     }
 
     /// On macOS 26+ the pill is true Liquid Glass refracting whatever is
@@ -143,14 +141,14 @@ private struct PulsingMicDot: View {
             ZStack {
                 Circle()
                     .fill(Color.red.opacity(0.35))
-                    .frame(width: 18, height: 18)
+                    .frame(width: 14, height: 14)
                     .scaleEffect(1 + 0.18 * phase)
                 Circle()
                     .fill(Color.red)
-                    .frame(width: 10, height: 10)
+                    .frame(width: 8, height: 8)
             }
         }
-        .frame(width: 20, height: 20)
+        .frame(width: 16, height: 16)
     }
 }
 
@@ -174,14 +172,14 @@ private struct WaveformBars: View {
                     // A faint idle breath keeps the pill alive between words;
                     // the real excursion is driven by the mic level.
                     let target = 0.06 + 0.1 * wave + energy * (0.35 + 0.65 * wave)
-                    let height = 4 + 18 * min(1, target)
+                    let height = 3 + 13 * min(1, target)
                     Capsule()
                         .fill(Color.white)
-                        .frame(width: 3, height: max(4, height))
+                        .frame(width: 3, height: max(3, height))
                         .animation(.spring(response: 0.15, dampingFraction: 0.7), value: height)
                 }
             }
-            .frame(height: 22)
+            .frame(height: 16)
         }
     }
 }
