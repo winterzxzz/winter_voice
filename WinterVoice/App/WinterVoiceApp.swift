@@ -26,7 +26,7 @@ struct WinterVoiceApp: App {
             WinterVoiceCommands()
         }
 
-        MenuBarExtra("WinterVoice", systemImage: "waveform.and.mic") {
+        MenuBarExtra("WinterVoice", image: "MenuBarIcon") {
             MenuBarView(
                 presenter: container.presenter,
                 shellPresenter: container.shellPresenter,
