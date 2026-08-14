@@ -185,8 +185,15 @@ private struct WaveformBars: View {
             let level = CGFloat(levelMeter.level)
             HStack(spacing: 3) {
                 ForEach(0..<Self.weights.count, id: \.self) { index in
-                    let wobble = CGFloat(sin(time * 9 + Double(index) * 1.3)) * 0.2
-                    let height = 4 + 18 * min(1, max(0, level * Self.weights[index] + wobble * level))
+                    // Each bar dances on its own phase and speed so voice
+                    // energy reads as a wave, not seven bars in lockstep.
+                    let phase = time * (7.5 + Double(index) * 0.9) + Double(index) * 1.7
+                    let wave = (CGFloat(sin(phase)) + 1) / 2
+                    let energy = min(1, level * Self.weights[index])
+                    // A faint idle breath keeps the pill alive between words;
+                    // the real excursion is driven by the mic level.
+                    let target = 0.06 + 0.1 * wave + energy * (0.35 + 0.65 * wave)
+                    let height = 4 + 18 * min(1, target)
                     Capsule()
                         .fill(Color.white)
                         .frame(width: 3, height: max(4, height))

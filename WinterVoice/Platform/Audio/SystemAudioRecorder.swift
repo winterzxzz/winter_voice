@@ -11,7 +11,9 @@ final class AudioLevelMeter: @unchecked Sendable {
 
     func update(_ newValue: Float) {
         lock.lock()
-        value = newValue
+        // Fast attack, slower release: peaks land instantly so speech reads
+        // as movement, while the falloff keeps the waveform from flickering.
+        value = newValue > value ? newValue : value * 0.72 + newValue * 0.28
         lock.unlock()
     }
 
@@ -21,7 +23,11 @@ final class AudioLevelMeter: @unchecked Sendable {
         return value
     }
 
-    func reset() { update(0) }
+    func reset() {
+        lock.lock()
+        value = 0
+        lock.unlock()
+    }
 }
 
 @MainActor
@@ -208,7 +214,12 @@ private final class TapConversionPipeline: @unchecked Sendable {
         guard count > 0 else { return }
         var sum: Float = 0
         for index in 0..<count { sum += channel[index] * channel[index] }
-        levelMeter.update(min(1, (sum / Float(count)).squareRoot() * 6))
+        // Perceptual mapping: linear RMS leaves normal speech (~0.01–0.1)
+        // near the floor, so the bars barely move. -50…-8 dBFS onto 0…1
+        // makes quiet speech visible and loud speech peg the bars.
+        let rms = (sum / Float(count)).squareRoot()
+        let decibels = 20 * log10(max(rms, .leastNormalMagnitude))
+        levelMeter.update(min(1, max(0, (decibels + 50) / 42)))
     }
 }
 
