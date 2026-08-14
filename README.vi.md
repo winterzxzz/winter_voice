@@ -40,7 +40,7 @@ WinterVoice là **ứng dụng nhận dạng giọng nói native cho macOS**: b�
 
 **[Tải file `.dmg` mới nhất tại trang Releases →](https://github.com/winterzxzz/winter_voice/releases/latest)**
 
-<img src="docs/assets/installer.png" width="560" alt="Cửa sổ cài đặt dmg của WinterVoice — kéo app vào Applications" />
+<p align="center"><img src="docs/assets/installer.png" width="560" alt="Cửa sổ cài đặt dmg của WinterVoice — kéo app vào Applications" /></p>
 
 1. Mở `WinterVoice.dmg`, kéo **WinterVoice** vào thư mục **Applications**.
 2. Lần chạy đầu: app chưa được notarize nên macOS có thể cảnh báo. Hãy **chuột phải → Open → Open**, hoặc chạy:
@@ -73,7 +73,7 @@ WinterVoice là **ứng dụng nhận dạng giọng nói native cho macOS**: b�
 
 Widget nổi luôn nằm trên công việc của bạn với 2 trạng thái — nghỉ, và đang nghe với waveform trực tiếp:
 
-<img src="docs/assets/widget-states.png" alt="Hai trạng thái widget nổi của WinterVoice: pill logo khi nghỉ và đang nghe với waveform theo giọng nói" />
+<p align="center"><img src="docs/assets/widget-states.png" alt="Hai trạng thái widget nổi của WinterVoice: pill logo khi nghỉ và đang nghe với waveform theo giọng nói" /></p>
 
 <details>
 <summary><b>▶ Tour ứng dụng (cửa sổ chính)</b></summary>
