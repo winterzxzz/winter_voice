@@ -13,9 +13,19 @@ final class RecordingSessionFeedback {
     private var cancellable: AnyCancellable?
     private var muteTask: Task<Void, Never>?
 
-    // NSSound caches by name; stop() before play() so rapid sessions retrigger.
-    private let startSound = NSSound(named: "Tink")
-    private let stopSound = NSSound(named: "Pop")
+    // Bundled chimes; the system sounds remain as a fallback if the
+    // resources ever go missing from the bundle.
+    private let startSound = RecordingSessionFeedback.bundledSound("RecordStart")
+        ?? NSSound(named: "Tink")
+    private let stopSound = RecordingSessionFeedback.bundledSound("RecordStop")
+        ?? NSSound(named: "Pop")
+
+    private static func bundledSound(_ name: String) -> NSSound? {
+        guard let url = Bundle.main.url(
+            forResource: name, withExtension: "wav", subdirectory: "Sounds"
+        ) else { return nil }
+        return NSSound(contentsOf: url, byReference: true)
+    }
 
     init(relay: DictationStateRelay, preferences: BehaviorPreferences) {
         self.preferences = preferences

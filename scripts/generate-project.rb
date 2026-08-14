@@ -35,7 +35,11 @@ asset_catalog = resources.new_file('Assets.xcassets')
 # Bundled UI typeface (Inter); registered via ATSApplicationFontsPath = Fonts.
 fonts_folder = resources.new_file('Fonts')
 fonts_folder.last_known_file_type = 'folder'
-app.add_resources([asset_catalog, fonts_folder])
+# Recording chimes; copied as a folder reference so they land in
+# Contents/Resources/Sounds and load via url(forResource:subdirectory:).
+sounds_folder = resources.new_file('Sounds')
+sounds_folder.last_known_file_type = 'folder'
+app.add_resources([asset_catalog, fonts_folder, sounds_folder])
 
 test_group = project.main_group.new_group('WinterVoiceTests', 'WinterVoiceTests')
 Dir.glob(File.join(root, 'WinterVoiceTests', '**', '*.swift')).sort.each do |path|
