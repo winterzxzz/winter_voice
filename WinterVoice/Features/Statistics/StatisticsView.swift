@@ -15,8 +15,7 @@ struct UsageStatsSection: View {
             cellDivider
             statCell(label: "Avg pace", value: averagePace, icon: "waveform")
         }
-        .background(Theme.surface, in: shape)
-        .overlay(shape.strokeBorder(Theme.border, lineWidth: 1))
+        .wvSurface(in: shape, fill: Theme.surface, border: Theme.border)
     }
 
     private var shape: RoundedRectangle {

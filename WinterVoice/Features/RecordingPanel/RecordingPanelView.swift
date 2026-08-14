@@ -131,11 +131,21 @@ struct RecordingPanelView: View {
         .background(panelBackground(in: RoundedRectangle(cornerRadius: 18, style: .continuous)))
     }
 
+    /// On macOS 26+ the pill is true Liquid Glass refracting whatever is
+    /// behind the panel; a dark tint keeps the fixed white text legible on
+    /// any wallpaper. Older systems keep the black-over-material capsule.
+    @ViewBuilder
     private func panelBackground(in shape: some InsettableShape) -> some View {
-        shape
-            .fill(Color.black.opacity(0.78))
-            .background(.ultraThinMaterial, in: shape)
-            .overlay(shape.strokeBorder(Color.white.opacity(0.12), lineWidth: 1))
+        if #available(macOS 26.0, *) {
+            shape
+                .fill(.clear)
+                .glassEffect(.regular.tint(.black.opacity(0.5)).interactive(), in: shape)
+        } else {
+            shape
+                .fill(Color.black.opacity(0.78))
+                .background(.ultraThinMaterial, in: shape)
+                .overlay(shape.strokeBorder(Color.white.opacity(0.12), lineWidth: 1))
+        }
     }
 
     private func statusText(_ value: String) -> some View {

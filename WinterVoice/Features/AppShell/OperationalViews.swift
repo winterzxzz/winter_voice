@@ -96,8 +96,7 @@ struct OverviewView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal, 14)
         .padding(.vertical, 10)
-        .background(Theme.surface, in: shape)
-        .overlay(shape.strokeBorder(Theme.border, lineWidth: 1))
+        .wvSurface(in: shape, fill: Theme.surface, border: Theme.border)
     }
 }
 

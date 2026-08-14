@@ -11,9 +11,11 @@ struct WVPrimaryButtonStyle: ButtonStyle {
             .foregroundStyle(Theme.textOnEmphasis)
             .padding(.horizontal, 14)
             .padding(.vertical, 7)
-            .background(
-                Theme.emphasis.opacity(configuration.isPressed ? 0.82 : (isEnabled ? 1 : 0.35)),
-                in: RoundedRectangle(cornerRadius: Theme.Radius.control, style: .continuous)
+            .wvSurface(
+                in: RoundedRectangle(cornerRadius: Theme.Radius.control, style: .continuous),
+                fill: Theme.emphasis.opacity(configuration.isPressed ? 0.82 : (isEnabled ? 1 : 0.35)),
+                glassTint: Theme.emphasis.opacity(configuration.isPressed ? 0.75 : (isEnabled ? 0.95 : 0.35)),
+                interactive: true
             )
             .contentShape(Rectangle())
             .opacity(isEnabled ? 1 : 0.7)
@@ -36,11 +38,12 @@ struct WVSecondaryButtonStyle: ButtonStyle {
             .foregroundStyle(foreground)
             .padding(.horizontal, 12)
             .padding(.vertical, 6)
-            .background(
-                (configuration.isPressed ? Theme.surfaceElevated : Theme.inset),
-                in: shape
+            .wvSurface(
+                in: shape,
+                fill: configuration.isPressed ? Theme.surfaceElevated : Theme.inset,
+                border: Theme.border,
+                interactive: true
             )
-            .overlay(shape.strokeBorder(Theme.border, lineWidth: 1))
             .contentShape(Rectangle())
             .opacity(isEnabled ? 1 : 0.4)
     }

@@ -29,19 +29,38 @@ struct WVNavRow: View {
             .padding(.horizontal, iconOnly ? 10 : 12)
             .padding(.vertical, 9)
             .background {
-                let shape = RoundedRectangle(cornerRadius: Theme.Radius.control, style: .continuous)
-                if isSelected {
-                    shape.fill(Theme.navPillFill)
-                } else if isHovering {
-                    shape.fill(Theme.hoverFill)
+                if !isSelected, isHovering {
+                    RoundedRectangle(cornerRadius: Theme.Radius.control, style: .continuous)
+                        .fill(Theme.hoverFill)
                 }
             }
+            .modifier(NavPillSurface(isSelected: isSelected))
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .focusEffectDisabled()
         .onHover { isHovering = $0 }
         .help(iconOnly ? destination.title : "")
+    }
+}
+
+/// The selected row's pill surface — Liquid Glass tinted with the pill color
+/// on macOS 26+, the classic solid pill otherwise. Unselected rows pass
+/// through untouched so hover keeps its faint fill.
+private struct NavPillSurface: ViewModifier {
+    let isSelected: Bool
+
+    func body(content: Content) -> some View {
+        if isSelected {
+            content.wvSurface(
+                in: RoundedRectangle(cornerRadius: Theme.Radius.control, style: .continuous),
+                fill: Theme.navPillFill,
+                glassTint: Theme.navPillFill.opacity(0.9),
+                interactive: true
+            )
+        } else {
+            content
+        }
     }
 }
 

@@ -12,8 +12,7 @@ struct WVCard<Content: View>: View {
         content
             .padding(padding)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Theme.surface, in: shape)
-            .overlay(shape.strokeBorder(Theme.border, lineWidth: 1))
+            .wvSurface(in: shape, fill: Theme.surface, border: Theme.border)
     }
 
     private var shape: RoundedRectangle {
@@ -117,8 +116,7 @@ struct WVKeycap: View {
             .foregroundStyle(Theme.textPrimary)
             .padding(.horizontal, 10)
             .padding(.vertical, 5)
-            .background(Theme.surfaceElevated, in: shape)
-            .overlay(shape.strokeBorder(Theme.borderStrong, lineWidth: 1))
+            .wvSurface(in: shape, fill: Theme.surfaceElevated, border: Theme.borderStrong)
     }
 
     private var shape: RoundedRectangle {
@@ -225,9 +223,14 @@ struct WVToggleStyle: ToggleStyle {
         } label: {
             HStack(spacing: 8) {
                 configuration.label
-                Capsule()
-                    .fill(configuration.isOn ? Theme.emphasis : Theme.toggleOffFill)
+                Color.clear
                     .frame(width: 38, height: 22)
+                    .wvSurface(
+                        in: Capsule(),
+                        fill: configuration.isOn ? Theme.emphasis : Theme.toggleOffFill,
+                        glassTint: configuration.isOn ? Theme.emphasis : nil,
+                        interactive: true
+                    )
                     .overlay(alignment: configuration.isOn ? .trailing : .leading) {
                         Circle()
                             .fill(configuration.isOn ? Theme.textOnEmphasis : Theme.toggleKnobOff)
@@ -349,22 +352,36 @@ private struct ChipButton: View {
             .padding(.horizontal, 11)
             .padding(.vertical, 6)
             .background {
-                if isSelected {
-                    shape.fill(Theme.chipSelected)
-                } else if isHovering {
+                if !isSelected, isHovering {
                     shape.fill(Theme.inset)
                 }
             }
-            .overlay {
-                if isSelected {
-                    shape.strokeBorder(Theme.chipSelectedBorder, lineWidth: 1)
-                }
-            }
+            .modifier(SelectedChipSurface(isSelected: isSelected, shape: shape))
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .focusEffectDisabled()
         .onHover { isHovering = $0 }
+    }
+}
+
+/// The selected chip's surface, applied only when selected so unselected
+/// chips keep their transparent/hover treatment.
+private struct SelectedChipSurface: ViewModifier {
+    let isSelected: Bool
+    let shape: RoundedRectangle
+
+    func body(content: Content) -> some View {
+        if isSelected {
+            content.wvSurface(
+                in: shape,
+                fill: Theme.chipSelected,
+                border: Theme.chipSelectedBorder,
+                interactive: true
+            )
+        } else {
+            content
+        }
     }
 }
 
@@ -386,8 +403,12 @@ struct WVIconButton: View {
                 .font(.system(size: 12, weight: .medium))
                 .foregroundStyle(isHovering ? Theme.textPrimary : Theme.textSecondary)
                 .frame(width: 30, height: 30)
-                .background(isHovering ? Theme.surfaceElevated : Theme.inset, in: shape)
-                .overlay(shape.strokeBorder(Theme.border, lineWidth: 1))
+                .wvSurface(
+                    in: shape,
+                    fill: isHovering ? Theme.surfaceElevated : Theme.inset,
+                    border: Theme.border,
+                    interactive: true
+                )
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
@@ -467,8 +488,7 @@ struct WVDisclosureCard<Content: View>: View {
                     .padding(14)
             }
         }
-        .background(Theme.surface, in: shape)
-        .overlay(shape.strokeBorder(Theme.border, lineWidth: 1))
+        .wvSurface(in: shape, fill: Theme.surface, border: Theme.border)
     }
 
     private var labelText: some View {
