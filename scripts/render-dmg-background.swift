@@ -2,6 +2,10 @@
 // Usage: swift scripts/render-dmg-background.swift <output.png>
 // The PNG is written at 2x pixels with a 660x400pt logical size so Finder
 // draws it retina-sharp at the window size set by scripts/build-dmg.sh.
+//
+// Layout (reference-app style): brand header with tagline, numbered dashed
+// rings around the two drop targets, a gradient drag arrow between them,
+// nameplate capsules under the icons, and a brand strip along the bottom.
 import AppKit
 
 let arguments = CommandLine.arguments
@@ -41,135 +45,228 @@ func color(_ hex: UInt32, _ alpha: CGFloat = 1) -> NSColor {
     )
 }
 
+func lerp(_ a: CGFloat, _ b: CGFloat, _ t: CGFloat) -> CGFloat { a + (b - a) * t }
+
+func blend(_ from: UInt32, _ to: UInt32, _ t: CGFloat, _ alpha: CGFloat = 1) -> NSColor {
+    NSColor(
+        red: lerp(CGFloat((from >> 16) & 0xFF), CGFloat((to >> 16) & 0xFF), t) / 255,
+        green: lerp(CGFloat((from >> 8) & 0xFF), CGFloat((to >> 8) & 0xFF), t) / 255,
+        blue: lerp(CGFloat(from & 0xFF), CGFloat(to & 0xFF), t) / 255,
+        alpha: alpha
+    )
+}
+
 // AppKit coordinates: origin bottom-left. Design positions are given from
 // the window top, so convert through `fromTop`.
 func fromTop(_ y: CGFloat) -> CGFloat { pointSize.height - y }
 
-// Canvas gradient with a faint blue bloom rising from the bottom edge.
-let bounds = NSRect(origin: .zero, size: pointSize)
-NSGradient(colors: [color(0x1A1A21), color(0x0C0C10)])!.draw(in: bounds, angle: -90)
-NSGradient(
-    starting: color(0x3B82F6, 0.10), ending: color(0x3B82F6, 0)
-)!.draw(
-    fromCenter: NSPoint(x: pointSize.width / 2, y: -80), radius: 0,
-    toCenter: NSPoint(x: pointSize.width / 2, y: -80), radius: 340,
-    options: []
-)
+let accentBlue: UInt32 = 0x3B82F6
+let accentSky: UInt32 = 0x60A5FA
 
-// Brand waveform mark, top center.
+// Deep navy canvas with glows seated behind each drop target.
+let bounds = NSRect(origin: .zero, size: pointSize)
+NSGradient(colors: [color(0x151824), color(0x0A0B10)])!.draw(in: bounds, angle: -90)
+
+func glow(_ hex: UInt32, alpha: CGFloat, centerTopY: NSPoint, radius: CGFloat) {
+    let center = NSPoint(x: centerTopY.x, y: fromTop(centerTopY.y))
+    NSGradient(starting: color(hex, alpha), ending: color(hex, 0))!
+        .draw(fromCenter: center, radius: 0, toCenter: center, radius: radius, options: [])
+}
+
+glow(accentBlue, alpha: 0.10, centerTopY: NSPoint(x: 330, y: 40), radius: 240)
+glow(accentSky, alpha: 0.08, centerTopY: NSPoint(x: 165, y: 200), radius: 170)
+glow(accentBlue, alpha: 0.10, centerTopY: NSPoint(x: 495, y: 200), radius: 170)
+
+// Faint blueprint grid.
+color(0xFFFFFF, 0.022).setStroke()
+var gridX: CGFloat = 30
+while gridX < pointSize.width {
+    let line = NSBezierPath()
+    line.move(to: NSPoint(x: gridX, y: 0))
+    line.line(to: NSPoint(x: gridX, y: pointSize.height))
+    line.lineWidth = 0.5
+    line.stroke()
+    gridX += 60
+}
+var gridY: CGFloat = 20
+while gridY < pointSize.height {
+    let line = NSBezierPath()
+    line.move(to: NSPoint(x: 0, y: gridY))
+    line.line(to: NSPoint(x: pointSize.width, y: gridY))
+    line.lineWidth = 0.5
+    line.stroke()
+    gridY += 60
+}
+
+// Corner brackets framing the canvas.
+let bracketInset: CGFloat = 22
+let bracketArm: CGFloat = 16
+color(0xFFFFFF, 0.22).setStroke()
+for (cornerX, cornerY, dirX, dirY) in [
+    (bracketInset, bracketInset, 1.0, 1.0),
+    (pointSize.width - bracketInset, bracketInset, -1.0, 1.0),
+    (bracketInset, pointSize.height - bracketInset, 1.0, -1.0),
+    (pointSize.width - bracketInset, pointSize.height - bracketInset, -1.0, -1.0),
+] {
+    let bracket = NSBezierPath()
+    bracket.move(to: NSPoint(x: cornerX + CGFloat(dirX) * bracketArm, y: cornerY))
+    bracket.line(to: NSPoint(x: cornerX, y: cornerY))
+    bracket.line(to: NSPoint(x: cornerX, y: cornerY + CGFloat(dirY) * bracketArm))
+    bracket.lineWidth = 1.5
+    bracket.stroke()
+}
+
+func attributedText(
+    _ string: String, size: CGFloat, weight: NSFont.Weight, alpha: CGFloat, kern: CGFloat = 0
+) -> NSAttributedString {
+    NSAttributedString(string: string, attributes: [
+        .font: NSFont.systemFont(ofSize: size, weight: weight),
+        .foregroundColor: color(0xFFFFFF, alpha),
+        .kern: kern,
+    ])
+}
+
+func drawCentered(_ text: NSAttributedString, centerX: CGFloat, topY: CGFloat) {
+    let textSize = text.size()
+    text.draw(at: NSPoint(x: centerX - textSize.width / 2, y: fromTop(topY) - textSize.height / 2))
+}
+
+// Brand header: waveform mark beside the wordmark, tagline underneath.
+let wordmark = attributedText("WinterVoice", size: 24, weight: .bold, alpha: 0.95, kern: 0.3)
 let waveWeights: [CGFloat] = [0.45, 0.7, 1.0, 1.2, 1.0, 0.7, 0.45]
-let waveMaxHeight: CGFloat = 20
-let waveBarWidth: CGFloat = 4
-let waveSpacing: CGFloat = 4
+let waveBarWidth: CGFloat = 3.5
+let waveSpacing: CGFloat = 3.5
+let waveMaxHeight: CGFloat = 22
 let waveTotalWidth = CGFloat(waveWeights.count) * waveBarWidth
     + CGFloat(waveWeights.count - 1) * waveSpacing
-let waveCenterY = fromTop(52)
-var waveX = (pointSize.width - waveTotalWidth) / 2
+let headerGap: CGFloat = 12
+let headerWidth = waveTotalWidth + headerGap + wordmark.size().width
+let headerCenterTopY: CGFloat = 58
+var waveX = (pointSize.width - headerWidth) / 2
 for weight in waveWeights {
     let barHeight = waveMaxHeight * weight
     let bar = NSBezierPath(
         roundedRect: NSRect(
-            x: waveX, y: waveCenterY - barHeight / 2,
+            x: waveX, y: fromTop(headerCenterTopY) - barHeight / 2,
             width: waveBarWidth, height: barHeight
         ),
         xRadius: waveBarWidth / 2, yRadius: waveBarWidth / 2
     )
-    NSGradient(colors: [color(0x60A5FA), color(0x2563EB)])!
-        .draw(in: bar, angle: -90)
+    NSGradient(colors: [color(accentSky), color(0x2563EB)])!.draw(in: bar, angle: -90)
     waveX += waveBarWidth + waveSpacing
 }
+wordmark.draw(at: NSPoint(
+    x: (pointSize.width - headerWidth) / 2 + waveTotalWidth + headerGap,
+    y: fromTop(headerCenterTopY) - wordmark.size().height / 2
+))
+drawCentered(
+    attributedText("SPEAK ANYWHERE. IT TYPES FOR YOU.", size: 10, weight: .semibold, alpha: 0.42, kern: 3.2),
+    centerX: 330, topY: 92
+)
 
-func drawCenteredText(_ string: String, size: CGFloat, weight: NSFont.Weight, alpha: CGFloat, topY: CGFloat) {
-    let attributes: [NSAttributedString.Key: Any] = [
-        .font: NSFont.systemFont(ofSize: size, weight: weight),
-        .foregroundColor: color(0xFFFFFF, alpha),
-        .kern: weight == .semibold ? 0.2 : 0,
-    ]
-    let text = NSAttributedString(string: string, attributes: attributes)
-    let textSize = text.size()
-    text.draw(at: NSPoint(
-        x: (pointSize.width - textSize.width) / 2,
-        y: fromTop(topY) - textSize.height / 2
+// Numbered dashed rings around the two drop targets. Finder seats the app
+// icon and the Applications folder (100pt icons) at these centers.
+let targetCenters: [(x: CGFloat, hex: UInt32)] = [(165, accentSky), (495, accentBlue)]
+let targetCenterTopY: CGFloat = 192
+let ringRadius: CGFloat = 78
+for (index, target) in targetCenters.enumerated() {
+    let center = NSPoint(x: target.x, y: fromTop(targetCenterTopY))
+    let ring = NSBezierPath(ovalIn: NSRect(
+        x: center.x - ringRadius, y: center.y - ringRadius,
+        width: ringRadius * 2, height: ringRadius * 2
+    ))
+    ring.lineWidth = 1.5
+    ring.setLineDash([4, 6], count: 2, phase: 0)
+    color(target.hex, 0.45).setStroke()
+    ring.stroke()
+
+    // Step badge riding the top of the ring.
+    let badgeCenter = NSPoint(x: center.x, y: center.y + ringRadius)
+    let badgeRadius: CGFloat = 13
+    let badge = NSBezierPath(ovalIn: NSRect(
+        x: badgeCenter.x - badgeRadius, y: badgeCenter.y - badgeRadius,
+        width: badgeRadius * 2, height: badgeRadius * 2
+    ))
+    color(0x0A0B10, 0.9).setFill()
+    badge.fill()
+    badge.lineWidth = 1.5
+    color(target.hex, 0.9).setStroke()
+    badge.stroke()
+    let number = NSAttributedString(string: "\(index + 1)", attributes: [
+        .font: NSFont.systemFont(ofSize: 12, weight: .semibold),
+        .foregroundColor: color(target.hex, 0.95),
+    ])
+    let numberSize = number.size()
+    number.draw(at: NSPoint(
+        x: badgeCenter.x - numberSize.width / 2,
+        y: badgeCenter.y - numberSize.height / 2
     ))
 }
 
-drawCenteredText("Install WinterVoice", size: 19, weight: .semibold, alpha: 0.92, topY: 86)
-
-// Icon wells: rounded plates that seat the app icon and the Applications
-// folder so the drop targets read as intentional slots.
-let wellCenters: [CGFloat] = [165, 495]
-let wellCenterYFromTop: CGFloat = 200
-for (index, centerX) in wellCenters.enumerated() {
-    let well = NSRect(
-        x: centerX - 76, y: fromTop(wellCenterYFromTop) - 76,
-        width: 152, height: 152
+// Nameplate capsules where Finder draws the icon labels. Finder colors the
+// label text from the SYSTEM appearance (black in Light Mode, white in Dark
+// Mode), not from the background picture — a ~50% gray is the only tone
+// that stays readable under both.
+for target in targetCenters {
+    let capsule = NSBezierPath(
+        roundedRect: NSRect(x: target.x - 76, y: fromTop(288) - 15, width: 152, height: 30),
+        xRadius: 15, yRadius: 15
     )
-    let path = NSBezierPath(roundedRect: well, xRadius: 32, yRadius: 32)
-    // Soft blue lift behind the well, stronger on the app side.
-    NSGradient(
-        starting: color(0x3B82F6, index == 0 ? 0.14 : 0.08),
-        ending: color(0x3B82F6, 0)
-    )!.draw(
-        fromCenter: NSPoint(x: centerX, y: fromTop(wellCenterYFromTop)), radius: 0,
-        toCenter: NSPoint(x: centerX, y: fromTop(wellCenterYFromTop)), radius: 150,
-        options: []
-    )
-    color(0xFFFFFF, 0.045).setFill()
-    path.fill()
-
-    // Nameplate band across the well bottom, where Finder draws the icon
-    // label. Finder colors labels from the SYSTEM appearance (black in
-    // Light Mode, white in Dark Mode), not from the background picture —
-    // a ~50% gray is the only tone that stays readable under both.
-    let bandHeight: CGFloat = 34
-    let band = NSBezierPath()
-    let wellBottom = well.minY
-    band.move(to: NSPoint(x: well.minX, y: wellBottom + bandHeight))
-    band.line(to: NSPoint(x: well.maxX, y: wellBottom + bandHeight))
-    band.line(to: NSPoint(x: well.maxX, y: wellBottom + 32))
-    band.appendArc(
-        from: NSPoint(x: well.maxX, y: wellBottom),
-        to: NSPoint(x: well.maxX - 32, y: wellBottom),
-        radius: 32
-    )
-    band.line(to: NSPoint(x: well.minX + 32, y: wellBottom))
-    band.appendArc(
-        from: NSPoint(x: well.minX, y: wellBottom),
-        to: NSPoint(x: well.minX, y: wellBottom + 32),
-        radius: 32
-    )
-    band.close()
     color(0x7A7A83, 0.92).setFill()
-    band.fill()
-
-    color(0xFFFFFF, 0.10).setStroke()
-    path.lineWidth = 1
-    path.stroke()
+    capsule.fill()
+    color(0xFFFFFF, 0.14).setStroke()
+    capsule.lineWidth = 1
+    capsule.stroke()
 }
 
-// Arrow between the wells.
-let arrowY = fromTop(wellCenterYFromTop)
-let shaft = NSBezierPath()
-shaft.move(to: NSPoint(x: 272, y: arrowY))
-shaft.line(to: NSPoint(x: 376, y: arrowY))
-shaft.lineWidth = 4
-shaft.lineCapStyle = .round
-shaft.setLineDash([0.1, 12], count: 2, phase: 0)
-color(0xFFFFFF, 0.35).setStroke()
-shaft.stroke()
-
+// "DRAG TO INSTALL" with a gradient arc sweeping toward Applications.
+drawCentered(
+    attributedText("DRAG TO INSTALL", size: 11, weight: .bold, alpha: 0.75, kern: 3),
+    centerX: 330, topY: 172
+)
+let arcStart = NSPoint(x: 252, y: fromTop(206))
+let arcControl = NSPoint(x: 330, y: fromTop(222))
+let arcEnd = NSPoint(x: 402, y: fromTop(196))
+let arcSegments = 48
+var previousPoint = arcStart
+for segment in 1...arcSegments {
+    let t = CGFloat(segment) / CGFloat(arcSegments)
+    let mt = 1 - t
+    let point = NSPoint(
+        x: mt * mt * arcStart.x + 2 * mt * t * arcControl.x + t * t * arcEnd.x,
+        y: mt * mt * arcStart.y + 2 * mt * t * arcControl.y + t * t * arcEnd.y
+    )
+    let stroke = NSBezierPath()
+    stroke.move(to: previousPoint)
+    stroke.line(to: point)
+    stroke.lineWidth = 3
+    stroke.lineCapStyle = .round
+    blend(accentSky, accentBlue, t, 0.35 + 0.6 * t).setStroke()
+    stroke.stroke()
+    previousPoint = point
+}
 let head = NSBezierPath()
-head.move(to: NSPoint(x: 377, y: arrowY + 11))
-head.line(to: NSPoint(x: 392, y: arrowY))
-head.line(to: NSPoint(x: 377, y: arrowY - 11))
-head.lineWidth = 4
+head.move(to: NSPoint(x: arcEnd.x - 9, y: arcEnd.y + 12))
+head.line(to: NSPoint(x: arcEnd.x + 4, y: arcEnd.y + 1))
+head.line(to: NSPoint(x: arcEnd.x - 12, y: arcEnd.y - 6))
+head.lineWidth = 3
 head.lineCapStyle = .round
 head.lineJoinStyle = .round
-color(0xFFFFFF, 0.35).setStroke()
+color(accentBlue, 0.95).setStroke()
 head.stroke()
 
-drawCenteredText("Drag WinterVoice into Applications", size: 13.5, weight: .medium, alpha: 0.55, topY: 320)
-drawCenteredText("Speak anywhere. It types for you.", size: 11.5, weight: .regular, alpha: 0.28, topY: 344)
+// Bottom brand strip: letterspaced name over a gradient hairline.
+drawCentered(
+    attributedText("WINTERVOICE", size: 9, weight: .semibold, alpha: 0.35, kern: 4),
+    centerX: 330, topY: 348
+)
+let hairline = NSBezierPath(
+    roundedRect: NSRect(x: 150, y: fromTop(364) - 1.25, width: 360, height: 2.5),
+    xRadius: 1.25, yRadius: 1.25
+)
+NSGradient(colors: [
+    color(accentSky, 0), color(accentSky, 0.8), color(accentBlue, 0.8), color(accentBlue, 0),
+])!.draw(in: hairline, angle: 0)
 
 NSGraphicsContext.restoreGraphicsState()
 

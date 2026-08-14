@@ -47,6 +47,11 @@ ln -s /Applications "$STAGING_DIR/Applications"
 mkdir "$STAGING_DIR/.background"
 swift scripts/render-dmg-background.swift "$STAGING_DIR/.background/background.png"
 cp "$APP_PATH/Contents/Resources/AppIcon.icns" "$STAGING_DIR/.VolumeIcon.icns"
+# Pre-seed .fseventsd with no_log so fseventsd writes no event store into the
+# mounted image — without this an .fseventsd folder ships inside the DMG and
+# shows up for anyone browsing with hidden files visible.
+mkdir "$STAGING_DIR/.fseventsd"
+touch "$STAGING_DIR/.fseventsd/no_log"
 
 # Style the installer window on a writable image, then compress. Finder
 # scripting stores the layout in the volume's .DS_Store; the first run on a
@@ -91,6 +96,18 @@ tell application "Finder"
     set background picture of viewOptions to file ".background:background.png"
     set position of item "WinterVoice.app" of container window to {165, 192}
     set position of item "Applications" of container window to {495, 192}
+    -- Park the helper entries far below the window so they stay out of
+    -- sight even when the user browses with hidden files visible. Finder
+    -- only lists them when hidden files are shown, hence the try blocks.
+    try
+      set position of item ".background" of container window to {165, 700}
+    end try
+    try
+      set position of item ".fseventsd" of container window to {330, 700}
+    end try
+    try
+      set position of item ".VolumeIcon.icns" of container window to {495, 700}
+    end try
     update without registering applications
     delay 1
     -- Re-assert the bounds after the update so the final size is what
@@ -103,6 +120,13 @@ end tell
 OSA
 
 sync
+# Mark the helper entries Finder-invisible on the volume itself, and drop
+# any Finder/Spotlight droppings picked up while the image was mounted.
+chflags hidden \
+  "$MOUNT_POINT/.background" \
+  "$MOUNT_POINT/.fseventsd" \
+  "$MOUNT_POINT/.VolumeIcon.icns" 2>/dev/null || true
+rm -rf "$MOUNT_POINT/.Trashes" "$MOUNT_POINT/.TemporaryItems" 2>/dev/null || true
 hdiutil detach "$MOUNT_POINT" >/dev/null
 hdiutil convert "$RW_DMG" -format UDZO -o "$DMG_PATH" >/dev/null
 rm -f "$RW_DMG"
