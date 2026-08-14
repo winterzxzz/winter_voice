@@ -37,6 +37,8 @@ It's the free, private alternative to paid dictation tools — built with SwiftU
 
 **[Grab the latest `.dmg` from Releases →](https://github.com/winterzxzz/winter_voice/releases/latest)**
 
+<img src="docs/assets/installer.png" width="560" alt="WinterVoice dmg installer window — drag the app into Applications" />
+
 1. Open `WinterVoice.dmg` and drag **WinterVoice** into **Applications**.
 2. First launch: the app is not notarized yet, so macOS may warn you. Either **right‑click → Open → Open**, or run:
 

@@ -44,12 +44,55 @@ STAGING_DIR="$(mktemp -d)"
 trap 'rm -rf "$STAGING_DIR"' EXIT
 cp -R "$APP_PATH" "$STAGING_DIR/"
 ln -s /Applications "$STAGING_DIR/Applications"
+mkdir "$STAGING_DIR/.background"
+swift scripts/render-dmg-background.swift "$STAGING_DIR/.background/background.png"
+cp "$APP_PATH/Contents/Resources/AppIcon.icns" "$STAGING_DIR/.VolumeIcon.icns"
 
-rm -f "$DMG_PATH"
+# Style the installer window on a writable image, then compress. Finder
+# scripting stores the layout in the volume's .DS_Store; the first run on a
+# machine prompts once for Automation permission over Finder.
+RW_DMG="build/WinterVoice-rw.dmg"
+rm -f "$DMG_PATH" "$RW_DMG"
 hdiutil create \
   -volname "$VOLUME_NAME" \
   -srcfolder "$STAGING_DIR" \
-  -ov -format UDZO \
-  "$DMG_PATH"
+  -ov -format UDRW \
+  "$RW_DMG"
+
+MOUNT_POINT="/Volumes/$VOLUME_NAME"
+hdiutil attach "$RW_DMG" -readwrite -noverify -noautoopen >/dev/null
+SetFile -a C "$MOUNT_POINT" 2>/dev/null || true
+
+osascript <<OSA
+tell application "Finder"
+  tell disk "$VOLUME_NAME"
+    open
+    set current view of container window to icon view
+    set toolbar visible of container window to false
+    set statusbar visible of container window to false
+    set pathbar visible of container window to false
+    set the bounds of container window to {200, 120, 860, 548}
+    set viewOptions to the icon view options of container window
+    set arrangement of viewOptions to not arranged
+    set icon size of viewOptions to 110
+    set text size of viewOptions to 13
+    set background picture of viewOptions to file ".background:background.png"
+    set position of item "WinterVoice.app" of container window to {165, 170}
+    set position of item "Applications" of container window to {495, 170}
+    update without registering applications
+    delay 1
+    -- Re-assert the bounds after the update so the final size is what
+    -- Finder writes into .DS_Store on close.
+    set the bounds of container window to {200, 120, 860, 548}
+    delay 1
+    close
+  end tell
+end tell
+OSA
+
+sync
+hdiutil detach "$MOUNT_POINT" >/dev/null
+hdiutil convert "$RW_DMG" -format UDZO -o "$DMG_PATH" >/dev/null
+rm -f "$RW_DMG"
 
 echo "Created $DMG_PATH"

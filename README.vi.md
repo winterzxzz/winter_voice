@@ -37,6 +37,8 @@ WinterVoice là **ứng dụng nhận dạng giọng nói native cho macOS**: b�
 
 **[Tải file `.dmg` mới nhất tại trang Releases →](https://github.com/winterzxzz/winter_voice/releases/latest)**
 
+<img src="docs/assets/installer.png" width="560" alt="Cửa sổ cài đặt dmg của WinterVoice — kéo app vào Applications" />
+
 1. Mở `WinterVoice.dmg`, kéo **WinterVoice** vào thư mục **Applications**.
 2. Lần chạy đầu: app chưa được notarize nên macOS có thể cảnh báo. Hãy **chuột phải → Open → Open**, hoặc chạy:
 
