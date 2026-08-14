@@ -120,14 +120,22 @@ struct OnboardingView: View {
                 )
 
                 if status != .authorized {
+                    // A denied permission never re-prompts on request, so the
+                    // Request button only appears while macOS has not decided
+                    // yet; after denial the settings pane is the only path.
                     HStack(spacing: 10) {
-                        if status == .notDetermined || requiresSystemManagedRequest(permission) {
+                        if status == .notDetermined {
                             Button("Request \(permission.title)") { presenter.request(permission) }
                                 .buttonStyle(.wvPrimary)
                         }
-                        if status != .notDetermined || requiresSystemManagedRequest(permission) {
+                        if status == .notDetermined {
+                            if requiresSystemManagedRequest(permission) {
+                                Button("Open System Settings") { presenter.openSystemSettings(for: permission) }
+                                    .buttonStyle(.wvSecondary)
+                            }
+                        } else {
                             Button("Open System Settings") { presenter.openSystemSettings(for: permission) }
-                                .buttonStyle(.wvSecondary)
+                                .buttonStyle(.wvPrimary)
                         }
                     }
                     .padding(.top, 4)
@@ -191,15 +199,15 @@ struct OnboardingView: View {
             if status == .notDetermined {
                 return "Request access. If macOS does not show a prompt, use Open System Settings. Return to WinterVoice; the status rechecks automatically."
             }
-            return "macOS reports this running WinterVoice copy is not authorized. Input Monitoring may not show another prompt after denial; use Open System Settings to inspect the matching entry and enable it only if this copy is listed. If no entry appears, close other copies and relaunch this copy. Return to WinterVoice; the status rechecks automatically."
+            return "macOS never shows the Input Monitoring prompt again after a denial. Open System Settings and turn on WinterVoice in the Input Monitoring list. If no entry appears, close other copies and relaunch this copy. Return to WinterVoice; the status rechecks automatically."
         case .accessibility:
             return status == .notDetermined
                 ? "Request access so macOS can evaluate this copy. If no prompt appears, use Open System Settings. Return to WinterVoice; the status rechecks automatically."
-                : "macOS reports this running WinterVoice copy is not authorized. Use Open System Settings to inspect the matching entry and enable it only if this copy is listed. If no entry appears, close other copies and relaunch this copy. Return to WinterVoice; the status rechecks automatically."
+                : "macOS never re-prompts after a denial. Open System Settings and turn on WinterVoice in the Accessibility list. If no entry appears, close other copies and relaunch this copy. Return to WinterVoice; the status rechecks automatically."
         case .microphone:
             return status == .notDetermined
                 ? "macOS will show the Microphone privacy prompt."
-                : "Access was declined or restricted. Use the explicit System Settings action to recover."
+                : "macOS never re-prompts after a denial. Open System Settings and enable WinterVoice under Microphone."
         }
     }
 
