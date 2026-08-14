@@ -8,7 +8,7 @@
 
 Giữ phím. Nói. Thả tay. Chữ hiện ra trong bất kỳ app nào — 100% offline, không tài khoản, không trả phí.
 
-🤖 **Sinh ra cho vibe coding** — nói prompt thẳng vào Claude Code, Cursor, ChatGPT hay bất kỳ AI agent nào, thay vì gõ. [Xem cách dùng →](#-sinh-ra-cho-vibe-coding--nói-chuyện-với-ai-agent)
+🤖 **Sinh ra cho vibe coding** — nói prompt thẳng vào Claude Code, Cursor, ChatGPT hay bất kỳ AI agent nào, thay vì gõ. [Xem cách dùng →](#-câu-hỏi-thường-gặp)
 
 **Tiếng Việt · English · hơn 90 ngôn ngữ**
 
@@ -19,7 +19,7 @@ Giữ phím. Nói. Thả tay. Chữ hiện ra trong bất kỳ app nào — 100%
 [![macOS 14+](https://img.shields.io/badge/macOS-14%2B-black?logo=apple)](https://github.com/winterzxzz/winter_voice/releases/latest)
 [![Apple Silicon](https://img.shields.io/badge/Apple%20Silicon-native-orange)](https://github.com/winterzxzz/winter_voice/releases/latest)
 [![Swift 6](https://img.shields.io/badge/Swift-6-F05138?logo=swift&logoColor=white)](WinterVoice)
-[![Voice input cho AI agent](https://img.shields.io/badge/🎙️_voice_input_cho-AI_agents-D97757)](#-sinh-ra-cho-vibe-coding--nói-chuyện-với-ai-agent)
+[![Voice input cho AI agent](https://img.shields.io/badge/🎙️_voice_input_cho-AI_agents-D97757)](#-câu-hỏi-thường-gặp)
 [![GitHub stars](https://img.shields.io/github/stars/winterzxzz/winter_voice?style=social)](https://github.com/winterzxzz/winter_voice/stargazers)
 
 [English](README.md) · **Tiếng Việt**
@@ -138,7 +138,23 @@ Bản build chưa được notarize. Chuột phải vào app → <b>Open</b> →
 
 <details>
 <summary><b>Dùng để nói chuyện với Claude Code, Cursor, ChatGPT được không?</b></summary>
-Được — đó chính là use case số một. WinterVoice chèn chữ vào bất cứ đâu con trỏ đang đứng: terminal, khung chat trong IDE, chatbot trên trình duyệt. Giữ phím, nói prompt, thả tay, Enter.
+Được — đó chính là use case số một. Giữ phím, mô tả thứ bạn muốn, thả tay — chữ nằm sẵn trong ô nhập của agent, chỉ việc Enter. Chạy với mọi agent vì WinterVoice gõ vào bất cứ đâu con trỏ đang đứng:
+<ul>
+<li><b>Claude Code & agent chạy terminal</b> — đọc chỉ dẫn thẳng vào terminal</li>
+<li><b>Cursor · Windsurf · VS Code Copilot</b> — nói nguyên một yêu cầu tính năng vào khung chat</li>
+<li><b>ChatGPT · Claude · Gemini</b> — xả ngữ cảnh, spec, mô tả bug mà không cần chạm bàn phím</li>
+<li><b>Review code & issue</b> — đọc comment PR, viết GitHub issue bằng miệng</li>
+</ul>
+</details>
+
+<details>
+<summary><b>Vì sao nên nói prompt cho AI agent thay vì gõ?</b></summary>
+<ul>
+<li>Nói nhanh hơn gõ ~3 lần — prompt giàu ngữ cảnh hơn, mà prompt giàu ngữ cảnh thì output tốt hơn</li>
+<li>Prompt dài không còn là cực hình, nên bạn sẽ chịu khó viết prompt tử tế</li>
+<li>Từ điển cá nhân sửa thuật ngữ nghe nhầm một lần là xong ("j son" → "JSON", "winter voice" → "WinterVoice")</li>
+<li>Nhận dạng chạy 100% offline — prompt nằm nguyên trên máy cho tới khi bạn bấm Enter</li>
+</ul>
 </details>
 
 <details>
@@ -150,24 +166,6 @@ Có — chạy một router API chuẩn OpenAI trên máy như 9router rồi tr�
 <summary><b>Có những model Whisper nào?</b></summary>
 Tiny, Base và Small — mỗi loại có bản đa ngôn ngữ (gồm tiếng Việt) và bản chỉ tiếng Anh, tải từ nguồn whisper.cpp chính thức và kiểm SHA-256.
 </details>
-
-## 🤖 Sinh Ra Cho Vibe Coding — Nói Chuyện Với AI Agent
-
-Gõ prompt dài chính là nút thắt của vibe coding. WinterVoice gỡ nút đó: **giữ phím, mô tả thứ bạn muốn, thả tay** — chữ nằm sẵn trong ô nhập của agent, chỉ việc Enter.
-
-Chạy với mọi agent, vì WinterVoice gõ vào bất cứ đâu con trỏ đang đứng:
-
-- **Claude Code & agent chạy terminal** — đọc chỉ dẫn thẳng vào terminal
-- **Cursor · Windsurf · VS Code Copilot** — nói nguyên một yêu cầu tính năng vào khung chat
-- **ChatGPT · Claude · Gemini** — xả ngữ cảnh, spec, mô tả bug mà không cần chạm bàn phím
-- **Review code & issue** — đọc comment PR, viết GitHub issue bằng miệng
-
-**Vì sao nên nói prompt thay vì gõ?**
-
-- Nói nhanh hơn gõ ~3 lần — prompt giàu ngữ cảnh hơn, mà prompt giàu ngữ cảnh thì output tốt hơn
-- Prompt dài không còn là cực hình, nên bạn sẽ chịu khó viết prompt tử tế
-- Từ điển cá nhân sửa thuật ngữ nghe nhầm một lần là xong ("j son" → "JSON", "winter voice" → "WinterVoice")
-- Nhận dạng chạy 100% offline — prompt nằm nguyên trên máy cho tới khi bạn bấm Enter
 
 ## 🤝 Đóng góp
 
