@@ -13,13 +13,11 @@ let outputURL = URL(fileURLWithPath: arguments[1])
 
 let pointSize = NSSize(width: 660, height: 400)
 let scale: CGFloat = 2
-let pixelWide = Int(pointSize.width * scale)
-let pixelHigh = Int(pointSize.height * scale)
 
 guard let rep = NSBitmapImageRep(
     bitmapDataPlanes: nil,
-    pixelsWide: pixelWide,
-    pixelsHigh: pixelHigh,
+    pixelsWide: Int(pointSize.width * scale),
+    pixelsHigh: Int(pointSize.height * scale),
     bitsPerSample: 8,
     samplesPerPixel: 4,
     hasAlpha: true,
@@ -32,8 +30,7 @@ guard let rep = NSBitmapImageRep(
 NSGraphicsContext.saveGraphicsState()
 let context = NSGraphicsContext(bitmapImageRep: rep)!
 NSGraphicsContext.current = context
-let cg = context.cgContext
-cg.scaleBy(x: scale, y: scale)
+context.cgContext.scaleBy(x: scale, y: scale)
 
 func color(_ hex: UInt32, _ alpha: CGFloat = 1) -> NSColor {
     NSColor(
@@ -44,60 +41,109 @@ func color(_ hex: UInt32, _ alpha: CGFloat = 1) -> NSColor {
     )
 }
 
-// Canvas: the app's dark gradient.
-let bounds = NSRect(origin: .zero, size: pointSize)
-NSGradient(colors: [color(0x16161B), color(0x0E0E12)])!
-    .draw(in: bounds, angle: -70)
+// AppKit coordinates: origin bottom-left. Design positions are given from
+// the window top, so convert through `fromTop`.
+func fromTop(_ y: CGFloat) -> CGFloat { pointSize.height - y }
 
-// Soft brand-blue glows behind each icon well so the drop targets read
-// as two lit "slots" (AppKit coordinates: origin bottom-left, so the
-// icon row sits at y ≈ 230 for a row placed 170pt from the top).
-let iconRowY: CGFloat = 230
-for glowX: CGFloat in [165, 495] {
-    let glow = NSGradient(
-        starting: color(0x3B82F6, glowX == 165 ? 0.16 : 0.10),
-        ending: color(0x3B82F6, 0)
-    )!
-    glow.draw(
-        fromCenter: NSPoint(x: glowX, y: iconRowY), radius: 0,
-        toCenter: NSPoint(x: glowX, y: iconRowY), radius: 130,
-        options: []
+// Canvas gradient with a faint blue bloom rising from the bottom edge.
+let bounds = NSRect(origin: .zero, size: pointSize)
+NSGradient(colors: [color(0x1A1A21), color(0x0C0C10)])!.draw(in: bounds, angle: -90)
+NSGradient(
+    starting: color(0x3B82F6, 0.10), ending: color(0x3B82F6, 0)
+)!.draw(
+    fromCenter: NSPoint(x: pointSize.width / 2, y: -80), radius: 0,
+    toCenter: NSPoint(x: pointSize.width / 2, y: -80), radius: 340,
+    options: []
+)
+
+// Brand waveform mark, top center.
+let waveWeights: [CGFloat] = [0.45, 0.7, 1.0, 1.2, 1.0, 0.7, 0.45]
+let waveMaxHeight: CGFloat = 20
+let waveBarWidth: CGFloat = 4
+let waveSpacing: CGFloat = 4
+let waveTotalWidth = CGFloat(waveWeights.count) * waveBarWidth
+    + CGFloat(waveWeights.count - 1) * waveSpacing
+let waveCenterY = fromTop(52)
+var waveX = (pointSize.width - waveTotalWidth) / 2
+for weight in waveWeights {
+    let barHeight = waveMaxHeight * weight
+    let bar = NSBezierPath(
+        roundedRect: NSRect(
+            x: waveX, y: waveCenterY - barHeight / 2,
+            width: waveBarWidth, height: barHeight
+        ),
+        xRadius: waveBarWidth / 2, yRadius: waveBarWidth / 2
     )
+    NSGradient(colors: [color(0x60A5FA), color(0x2563EB)])!
+        .draw(in: bar, angle: -90)
+    waveX += waveBarWidth + waveSpacing
 }
 
-// Dashed arrow between the two icon wells.
-let arrow = NSBezierPath()
-arrow.move(to: NSPoint(x: 262, y: iconRowY))
-arrow.line(to: NSPoint(x: 384, y: iconRowY))
-arrow.lineWidth = 5
-arrow.lineCapStyle = .round
-arrow.setLineDash([0.1, 14], count: 2, phase: 0)
-color(0xFFFFFF, 0.38).setStroke()
-arrow.stroke()
-
-let head = NSBezierPath()
-head.move(to: NSPoint(x: 384, y: iconRowY + 13))
-head.line(to: NSPoint(x: 402, y: iconRowY))
-head.line(to: NSPoint(x: 384, y: iconRowY - 13))
-head.lineWidth = 5
-head.lineCapStyle = .round
-head.lineJoinStyle = .round
-color(0xFFFFFF, 0.38).setStroke()
-head.stroke()
-
-// Caption under the icon row.
-func drawText(_ string: String, size: CGFloat, weight: NSFont.Weight, alpha: CGFloat, centerY: CGFloat) {
+func drawCenteredText(_ string: String, size: CGFloat, weight: NSFont.Weight, alpha: CGFloat, topY: CGFloat) {
     let attributes: [NSAttributedString.Key: Any] = [
         .font: NSFont.systemFont(ofSize: size, weight: weight),
         .foregroundColor: color(0xFFFFFF, alpha),
+        .kern: weight == .semibold ? 0.2 : 0,
     ]
     let text = NSAttributedString(string: string, attributes: attributes)
     let textSize = text.size()
-    text.draw(at: NSPoint(x: (pointSize.width - textSize.width) / 2, y: centerY - textSize.height / 2))
+    text.draw(at: NSPoint(
+        x: (pointSize.width - textSize.width) / 2,
+        y: fromTop(topY) - textSize.height / 2
+    ))
 }
 
-drawText("Drag WinterVoice into Applications to install", size: 14, weight: .medium, alpha: 0.45, centerY: 96)
-drawText("Speak anywhere. It types for you.", size: 12, weight: .regular, alpha: 0.24, centerY: 70)
+drawCenteredText("Install WinterVoice", size: 19, weight: .semibold, alpha: 0.92, topY: 86)
+
+// Icon wells: rounded plates that seat the app icon and the Applications
+// folder so the drop targets read as intentional slots.
+let wellCenters: [CGFloat] = [165, 495]
+let wellCenterYFromTop: CGFloat = 200
+for (index, centerX) in wellCenters.enumerated() {
+    let well = NSRect(
+        x: centerX - 76, y: fromTop(wellCenterYFromTop) - 76,
+        width: 152, height: 152
+    )
+    let path = NSBezierPath(roundedRect: well, xRadius: 32, yRadius: 32)
+    // Soft blue lift behind the well, stronger on the app side.
+    NSGradient(
+        starting: color(0x3B82F6, index == 0 ? 0.14 : 0.08),
+        ending: color(0x3B82F6, 0)
+    )!.draw(
+        fromCenter: NSPoint(x: centerX, y: fromTop(wellCenterYFromTop)), radius: 0,
+        toCenter: NSPoint(x: centerX, y: fromTop(wellCenterYFromTop)), radius: 150,
+        options: []
+    )
+    color(0xFFFFFF, 0.045).setFill()
+    path.fill()
+    color(0xFFFFFF, 0.10).setStroke()
+    path.lineWidth = 1
+    path.stroke()
+}
+
+// Arrow between the wells.
+let arrowY = fromTop(wellCenterYFromTop)
+let shaft = NSBezierPath()
+shaft.move(to: NSPoint(x: 272, y: arrowY))
+shaft.line(to: NSPoint(x: 376, y: arrowY))
+shaft.lineWidth = 4
+shaft.lineCapStyle = .round
+shaft.setLineDash([0.1, 12], count: 2, phase: 0)
+color(0xFFFFFF, 0.35).setStroke()
+shaft.stroke()
+
+let head = NSBezierPath()
+head.move(to: NSPoint(x: 377, y: arrowY + 11))
+head.line(to: NSPoint(x: 392, y: arrowY))
+head.line(to: NSPoint(x: 377, y: arrowY - 11))
+head.lineWidth = 4
+head.lineCapStyle = .round
+head.lineJoinStyle = .round
+color(0xFFFFFF, 0.35).setStroke()
+head.stroke()
+
+drawCenteredText("Drag WinterVoice into Applications", size: 13.5, weight: .medium, alpha: 0.55, topY: 320)
+drawCenteredText("Speak anywhere. It types for you.", size: 11.5, weight: .regular, alpha: 0.28, topY: 344)
 
 NSGraphicsContext.restoreGraphicsState()
 

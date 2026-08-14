@@ -74,11 +74,11 @@ tell application "Finder"
     set the bounds of container window to {200, 120, 860, 548}
     set viewOptions to the icon view options of container window
     set arrangement of viewOptions to not arranged
-    set icon size of viewOptions to 110
-    set text size of viewOptions to 13
+    set icon size of viewOptions to 100
+    set text size of viewOptions to 12
     set background picture of viewOptions to file ".background:background.png"
-    set position of item "WinterVoice.app" of container window to {165, 170}
-    set position of item "Applications" of container window to {495, 170}
+    set position of item "WinterVoice.app" of container window to {165, 192}
+    set position of item "Applications" of container window to {495, 192}
     update without registering applications
     delay 1
     -- Re-assert the bounds after the update so the final size is what
