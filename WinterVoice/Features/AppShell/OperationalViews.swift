@@ -7,49 +7,20 @@ import SwiftUI
 struct OverviewView: View {
     @ObservedObject var presenter: AppShellPresenter
     @ObservedObject private var dictationPresenter: DictationPresenter
+    @ObservedObject private var history: HistoryStore
 
     init(presenter: AppShellPresenter) {
         self.presenter = presenter
         _dictationPresenter = ObservedObject(wrappedValue: presenter.dictationPresenter)
+        _history = ObservedObject(wrappedValue: presenter.history)
     }
 
     private var permissionsReady: Bool {
         OnboardingProgress(permissions: dictationPresenter.permissions) == .ready
     }
-    private var providerStatus: ProviderStatus { presenter.providerStatus }
-    private var isRecording: Bool { dictationPresenter.state == .recording }
-    private var listening: Bool { dictationPresenter.hotkeyHealth == .listening }
 
     var body: some View {
-        WVPage(icon: "house", title: "Home", subtitle: providerStatus.overviewSummary) {
-            WVCard {
-                VStack(spacing: 0) {
-                    WVRow(
-                        icon: isRecording ? "waveform" : "mic",
-                        title: "Dictation",
-                        subtitle: dictationPresenter.statusDetail ?? "Hold your hotkey to dictate into any app."
-                    ) {
-                        WVStatusPill(
-                            text: dictationPresenter.statusTitle,
-                            color: isRecording ? Theme.danger : Theme.success,
-                            filled: true
-                        )
-                    }
-                    WVDivider().padding(.vertical, 12)
-                    WVRow(
-                        icon: listening ? "keyboard" : "exclamationmark.triangle.fill",
-                        title: "Global hotkey",
-                        subtitle: dictationPresenter.hotkeyHealthDetail
-                    ) {
-                        WVStatusPill(
-                            text: dictationPresenter.hotkeyHealthTitle,
-                            color: listening ? Theme.success : Theme.warning,
-                            filled: true
-                        )
-                    }
-                }
-            }
-
+        WVPage(icon: "house", title: "Home", subtitle: "Your usage at a glance.") {
             if !permissionsReady {
                 WVCard {
                     HStack(alignment: .top, spacing: Theme.Space.sm) {
@@ -73,21 +44,60 @@ struct OverviewView: View {
 
             UsageStatsSection(store: presenter.usageStats)
 
-            WVCard {
-                HStack(alignment: .top, spacing: Theme.Space.sm) {
-                    WVIconBadge(systemImage: "lock.shield", tint: Theme.success)
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Private by design")
-                            .font(.wvHeadline)
-                            .foregroundStyle(Theme.textPrimary)
-                        Text(providerStatus.privacySummary)
-                            .font(.wvBody)
-                            .foregroundStyle(Theme.textSecondary)
-                            .fixedSize(horizontal: false, vertical: true)
+            recentActivity
+        }
+    }
+
+    // MARK: Recent activity
+
+    private var recentEntries: [HistoryEntry] { Array(history.entries.prefix(5)) }
+
+    @ViewBuilder
+    private var recentActivity: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Text("Recent Activity")
+                    .font(.wv(15, .semibold))
+                    .foregroundStyle(Theme.textPrimary)
+                Spacer()
+                Button("View All") { presenter.navigate(to: .history) }
+                    .buttonStyle(.wvGhost)
+            }
+
+            if recentEntries.isEmpty {
+                WVDashedEmptyState(
+                    icon: "mic",
+                    title: "No transcriptions yet",
+                    message: "Hold your shortcut in any app to dictate — it'll show up here."
+                )
+            } else {
+                VStack(spacing: 8) {
+                    ForEach(recentEntries) { entry in
+                        recentRow(entry)
                     }
                 }
             }
         }
+        .padding(.top, 4)
+    }
+
+    private func recentRow(_ entry: HistoryEntry) -> some View {
+        let shape = RoundedRectangle(cornerRadius: Theme.Radius.row, style: .continuous)
+        let words = entry.text.split(whereSeparator: \.isWhitespace).count
+        return VStack(alignment: .leading, spacing: 3) {
+            Text(entry.text)
+                .font(.wv(13, .medium))
+                .foregroundStyle(Theme.textPrimary)
+                .lineLimit(1)
+            Text("\(entry.createdAt.formatted(date: .omitted, time: .shortened)) · \(words) \(words == 1 ? "word" : "words")")
+                .font(.wvCaption)
+                .foregroundStyle(Theme.textSecondary)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
+        .background(Theme.surface, in: shape)
+        .overlay(shape.strokeBorder(Theme.border, lineWidth: 1))
     }
 }
 

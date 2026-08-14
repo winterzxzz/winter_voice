@@ -5,32 +5,23 @@ struct RecordingPanelView: View {
     let levelMeter: AudioLevelMeter
     var style: WidgetStyle = .labeled
     var onToggle: () -> Void = {}
-    var onDragDelta: (CGSize) -> Void = { _ in }
+    var onDragMoved: () -> Void = {}
     var onDragEnded: () -> Void = {}
-
-    @State private var lastDragTranslation: CGSize = .zero
 
     var body: some View {
         content
             .transition(.scale(scale: 0.9).combined(with: .opacity))
             .animation(.spring(response: 0.32, dampingFraction: 0.82), value: presenter.state)
-            .padding(24)
+            .padding(8)
             .contentShape(Rectangle())
             .onTapGesture(count: 2) { onToggle() }
             .gesture(
+                // Translation values are window-relative, and the drag moves the
+                // window itself — so the controller tracks the cursor in screen
+                // coordinates instead of trusting the gesture's math.
                 DragGesture(minimumDistance: 2)
-                    .onChanged { value in
-                        let delta = CGSize(
-                            width: value.translation.width - lastDragTranslation.width,
-                            height: value.translation.height - lastDragTranslation.height
-                        )
-                        lastDragTranslation = value.translation
-                        onDragDelta(delta)
-                    }
-                    .onEnded { _ in
-                        lastDragTranslation = .zero
-                        onDragEnded()
-                    }
+                    .onChanged { _ in onDragMoved() }
+                    .onEnded { _ in onDragEnded() }
             )
     }
 
@@ -145,7 +136,6 @@ struct RecordingPanelView: View {
             .fill(Color.black.opacity(0.78))
             .background(.ultraThinMaterial, in: shape)
             .overlay(shape.strokeBorder(Color.white.opacity(0.12), lineWidth: 1))
-            .shadow(color: .black.opacity(0.35), radius: 18, y: 6)
     }
 
     private func statusText(_ value: String) -> some View {

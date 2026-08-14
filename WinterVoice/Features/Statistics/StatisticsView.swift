@@ -1,32 +1,33 @@
 import SwiftUI
 
-/// Local usage totals rendered as stat tiles — shown on the Home screen.
+/// Local usage totals rendered as the reference stats strip — one bordered
+/// container split into four cells by hairlines, shown on the Home screen.
 struct UsageStatsSection: View {
     @ObservedObject var store: UsageStatsStore
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack {
-                Text("USAGE")
-                    .font(.wvOverline)
-                    .tracking(0.6)
-                    .foregroundStyle(Theme.textTertiary)
-                Spacer()
-                if store.totals.sessionCount > 0 {
-                    Button("Reset") { store.reset() }
-                        .buttonStyle(.wvGhost(role: .destructive))
-                }
-            }
-            LazyVGrid(
-                columns: [GridItem(.adaptive(minimum: 150), spacing: 12)],
-                spacing: 12
-            ) {
-                statTile(title: "Words dictated", value: store.totals.totalWords.formatted(), icon: "text.word.spacing")
-                statTile(title: "Speaking time", value: speakingTime, icon: "clock")
-                statTile(title: "Dictations", value: store.totals.sessionCount.formatted(), icon: "mic")
-                statTile(title: "Average pace", value: averagePace, icon: "speedometer")
-            }
+        HStack(spacing: 0) {
+            statCell(label: "Words", value: store.totals.totalWords.formatted(), icon: "bolt")
+            cellDivider
+            statCell(label: "Speaking time", value: speakingTime, icon: "clock")
+            cellDivider
+            statCell(label: "Recordings", value: store.totals.sessionCount.formatted(), icon: "mic")
+            cellDivider
+            statCell(label: "Avg pace", value: averagePace, icon: "waveform")
         }
+        .background(Theme.surface, in: shape)
+        .overlay(shape.strokeBorder(Theme.border, lineWidth: 1))
+    }
+
+    private var shape: RoundedRectangle {
+        RoundedRectangle(cornerRadius: Theme.Radius.row, style: .continuous)
+    }
+
+    private var cellDivider: some View {
+        Rectangle()
+            .fill(Theme.separator)
+            .frame(width: 1)
+            .padding(.vertical, 10)
     }
 
     private var speakingTime: String {
@@ -35,7 +36,7 @@ struct UsageStatsSection: View {
         let minutes = (seconds % 3600) / 60
         let rest = seconds % 60
         if hours > 0 { return "\(hours)h \(minutes)m" }
-        if minutes > 0 { return "\(minutes)m \(rest)s" }
+        if minutes > 0 { return "\(minutes)m" }
         return "\(rest)s"
     }
 
@@ -45,22 +46,26 @@ struct UsageStatsSection: View {
         return "\(Int(pace.rounded())) wpm"
     }
 
-    private func statTile(title: String, value: String, icon: String) -> some View {
-        WVCard {
-            VStack(alignment: .leading, spacing: 10) {
-                HStack(spacing: 8) {
-                    Image(systemName: icon)
-                        .font(.system(size: 12, weight: .medium))
-                        .foregroundStyle(Theme.textSecondary)
-                    Text(title)
-                        .font(.wvCaption)
-                        .foregroundStyle(Theme.textSecondary)
-                }
-                Text(value)
-                    .font(.wv(26, .semibold))
-                    .foregroundStyle(Theme.textPrimary)
-                    .monospacedDigit()
+    private func statCell(label: String, value: String, icon: String) -> some View {
+        VStack(alignment: .leading, spacing: 5) {
+            HStack(spacing: 6) {
+                Image(systemName: icon)
+                    .font(.system(size: 10.5, weight: .medium))
+                    .foregroundStyle(Theme.textSecondary)
+                Text(label.uppercased())
+                    .font(.wvOverline)
+                    .tracking(0.7)
+                    .foregroundStyle(Theme.textSecondary)
+                    .lineLimit(1)
             }
+            Text(value)
+                .font(.wv(21, .semibold))
+                .foregroundStyle(Theme.textPrimary)
+                .monospacedDigit()
+                .lineLimit(1)
         }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }

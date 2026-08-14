@@ -75,6 +75,8 @@ final class RecordingPanelController {
     private let presenter: DictationPresenter
     private let levelMeter: AudioLevelMeter
     private var hasPositioned = false
+    /// Cursor-to-origin offset captured at drag start; nil when not dragging.
+    private var dragOffset: NSPoint?
     private var latestState: DictationState = .idle
     private var visibility: WidgetVisibility
     private var style: WidgetStyle
@@ -105,8 +107,8 @@ final class RecordingPanelController {
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
         panel.isOpaque = false
         panel.backgroundColor = .clear
-        // The SwiftUI pill draws its own shadow; an NSWindow shadow around a
-        // transparent canvas would draw a visible rectangle.
+        // An NSWindow shadow around a transparent canvas would draw a visible
+        // rectangle, so the pill renders shadowless.
         panel.hasShadow = false
         let hosting = NSHostingView(
             rootView: RecordingPanelView(presenter: presenter, levelMeter: levelMeter)
@@ -150,8 +152,8 @@ final class RecordingPanelController {
             levelMeter: levelMeter,
             style: style,
             onToggle: { [presenter] in presenter.toggleDictation() },
-            onDragDelta: { [weak self] delta in self?.moveBy(delta) },
-            onDragEnded: { [weak self] in self?.persistPosition() }
+            onDragMoved: { [weak self] in self?.dragMoved() },
+            onDragEnded: { [weak self] in self?.dragEnded() }
         )
     }
 
@@ -232,11 +234,24 @@ final class RecordingPanelController {
         panel.setFrameOrigin(NSPoint(x: frame.midX - size.width / 2, y: frame.minY + 12))
     }
 
-    private func moveBy(_ delta: CGSize) {
+    /// Pin the window to the cursor using screen coordinates. Gesture
+    /// translations are window-relative and the window moves mid-gesture,
+    /// which makes delta-based dragging jitter; the global mouse location
+    /// has no such feedback loop, so the pill stays glued to the cursor.
+    private func dragMoved() {
         guard !preferences.isLocked else { return }
-        // SwiftUI drag deltas are y-down; AppKit origins are y-up.
-        let origin = panel.frame.origin
-        panel.setFrameOrigin(NSPoint(x: origin.x + delta.width, y: origin.y - delta.height))
+        let mouse = NSEvent.mouseLocation
+        if dragOffset == nil {
+            let origin = panel.frame.origin
+            dragOffset = NSPoint(x: mouse.x - origin.x, y: mouse.y - origin.y)
+        }
+        guard let offset = dragOffset else { return }
+        panel.setFrameOrigin(NSPoint(x: mouse.x - offset.x, y: mouse.y - offset.y))
+    }
+
+    private func dragEnded() {
+        dragOffset = nil
+        persistPosition()
     }
 
     private func persistPosition() {
