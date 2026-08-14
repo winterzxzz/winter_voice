@@ -18,7 +18,7 @@ struct AppSettingsView: View {
     @ObservedObject private var widgetPreferences: WidgetPreferences
     @StateObject private var launchAtLogin = LaunchAtLoginModel()
     @ObservedObject private var theme = ThemeStore.shared
-    @State private var activeMicrophoneName: String?
+    @ObservedObject private var microphone: MicrophonePreferences
     /// A preset chip the user tapped whose model is still downloading; selected
     /// automatically once the install lands.
     @State private var pendingPresetModelID: String?
@@ -30,6 +30,7 @@ struct AppSettingsView: View {
         _configuration = ObservedObject(wrappedValue: presenter.providerConfiguration)
         _models = ObservedObject(wrappedValue: presenter.modelManager)
         _widgetPreferences = ObservedObject(wrappedValue: presenter.widgetPreferences)
+        _microphone = ObservedObject(wrappedValue: presenter.microphonePreferences)
     }
 
     private var status: ProviderStatus { presenter.providerStatus }
@@ -359,9 +360,12 @@ struct AppSettingsView: View {
             .buttonStyle(.wvGhost)
         }) {
             HStack(spacing: 12) {
-                microphonePicker
-                if let activeMicrophoneName {
-                    WVStatusPill(text: "Active: \(activeMicrophoneName)", color: Theme.success)
+                deviceMenu(selection: Binding(
+                    get: { microphone.preferredDeviceUID },
+                    set: { microphone.preferredDeviceUID = $0 }
+                ))
+                if let activeDevice = microphone.activeDevice {
+                    WVStatusPill(text: "Active: \(activeDevice.name)", color: Theme.success)
                 } else {
                     Text("No input device detected")
                         .font(.wvCaption)
@@ -370,20 +374,68 @@ struct AppSettingsView: View {
                 Spacer(minLength: 0)
             }
             WVDisclosureCard(label: "Advanced") {
-                Text("WinterVoice records from the input device selected in macOS Sound settings. Change the device there — dictation follows the system default automatically.")
-                    .font(.wvCaption)
-                    .foregroundStyle(Theme.textSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
+                VStack(alignment: .leading, spacing: 16) {
+                    VStack(alignment: .leading, spacing: 7) {
+                        HStack(spacing: 16) {
+                            advancedLabel("Backup mic")
+                            deviceMenu(selection: Binding(
+                                get: { microphone.backupDeviceUID },
+                                set: { microphone.backupDeviceUID = $0 }
+                            ))
+                            Spacer(minLength: 0)
+                        }
+                        Text("Used when your mic disconnects.")
+                            .font(.wvCaption)
+                            .foregroundStyle(Theme.textSecondary)
+                    }
+                    VStack(alignment: .leading, spacing: 7) {
+                        HStack(spacing: 16) {
+                            advancedLabel("Mic boost")
+                            WVChipPicker(
+                                selection: Binding(
+                                    get: { microphone.boost },
+                                    set: { microphone.boost = $0 }
+                                ),
+                                options: MicBoost.allCases,
+                                label: { $0.label }
+                            )
+                            Spacer(minLength: 0)
+                        }
+                        Text("Turn up if your voice isn't being picked up.")
+                            .font(.wvCaption)
+                            .foregroundStyle(Theme.textSecondary)
+                    }
+                }
             }
         }
     }
 
-    /// Looks like the reference device dropdown; the app always follows the
-    /// system default, so the menu says so and links to macOS Sound settings.
-    private var microphonePicker: some View {
+    private func advancedLabel(_ title: String) -> some View {
+        Text(title)
+            .font(.wv(13))
+            .foregroundStyle(Theme.textPrimary)
+            .frame(width: 90, alignment: .leading)
+    }
+
+    /// The reference device dropdown: System Default, every connected input
+    /// device, and a shortcut to macOS Sound settings. A `nil` selection
+    /// means "follow the system default".
+    private func deviceMenu(selection: Binding<String?>) -> some View {
         let shape = RoundedRectangle(cornerRadius: Theme.Radius.control, style: .continuous)
+        let selectedName = microphone.device(forUID: selection.wrappedValue)?.name
+            ?? (selection.wrappedValue == nil ? "System Default" : "Disconnected")
         return Menu {
-            Toggle("System Default", isOn: .constant(true))
+            Toggle("System Default", isOn: Binding(
+                get: { selection.wrappedValue == nil },
+                set: { _ in selection.wrappedValue = nil }
+            ))
+            Divider()
+            ForEach(microphone.availableDevices) { device in
+                Toggle(device.name, isOn: Binding(
+                    get: { selection.wrappedValue == device.uid },
+                    set: { _ in selection.wrappedValue = device.uid }
+                ))
+            }
             Divider()
             Button("Open macOS Sound Settings…") {
                 if let url = URL(string: "x-apple.systempreferences:com.apple.Sound-Settings.extension") {
@@ -392,7 +444,7 @@ struct AppSettingsView: View {
             }
         } label: {
             HStack(spacing: 10) {
-                Text("System Default")
+                Text(selectedName)
                     .font(.wv(13, .medium))
                     .foregroundStyle(Theme.textPrimary)
                 Image(systemName: "chevron.down")
@@ -412,7 +464,7 @@ struct AppSettingsView: View {
     }
 
     private func refreshMicrophone() {
-        activeMicrophoneName = AVCaptureDevice.default(for: .audio)?.localizedName
+        microphone.refreshDevices()
     }
 
     // MARK: Behavior

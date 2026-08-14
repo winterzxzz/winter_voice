@@ -48,7 +48,8 @@ final class AppContainer {
             guard mode == .remote else { return }
             Task { await whisperRuntime.unloadContext() }
         }
-        let audioRecorder = SystemAudioRecorder()
+        let microphonePreferences = MicrophonePreferences()
+        let audioRecorder = SystemAudioRecorder(preferences: microphonePreferences)
         let usageStats = UsageStatsStore()
         let interactor = DictationInteractor(
             relay: relay,
@@ -108,6 +109,7 @@ final class AppContainer {
             hotkeyBinding: hotkeyBinding,
             usageStats: usageStats,
             widgetPreferences: widgetPreferences,
+            microphonePreferences: microphonePreferences,
             hotkeyCaptureSuspender: hotkey
         )
         onboardingPresenter = OnboardingPresenter(

@@ -11,6 +11,7 @@ final class AppShellPresenter: ObservableObject {
     let hotkeyBinding: HotkeyBindingStore
     let usageStats: UsageStatsStore
     let widgetPreferences: WidgetPreferences
+    let microphonePreferences: MicrophonePreferences
     let transcriptionSettings: TranscriptionSettingsController
     let hotkeyCaptureSuspender: HotkeyCaptureSuspending?
     private let router: AppRouter
@@ -26,6 +27,7 @@ final class AppShellPresenter: ObservableObject {
         hotkeyBinding: HotkeyBindingStore,
         usageStats: UsageStatsStore = UsageStatsStore(),
         widgetPreferences: WidgetPreferences = WidgetPreferences(),
+        microphonePreferences: MicrophonePreferences = MicrophonePreferences(),
         hotkeyCaptureSuspender: HotkeyCaptureSuspending? = nil
     ) {
         self.dictationPresenter = dictationPresenter
@@ -37,6 +39,7 @@ final class AppShellPresenter: ObservableObject {
         self.hotkeyBinding = hotkeyBinding
         self.usageStats = usageStats
         self.widgetPreferences = widgetPreferences
+        self.microphonePreferences = microphonePreferences
         self.hotkeyCaptureSuspender = hotkeyCaptureSuspender
         transcriptionSettings = TranscriptionSettingsController(configuration: providerConfiguration)
         selection = router.selection
