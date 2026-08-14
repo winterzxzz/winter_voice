@@ -71,6 +71,7 @@ struct WVSidebar: View {
     @ObservedObject var presenter: AppShellPresenter
     @ObservedObject private var dictationPresenter: DictationPresenter
     @ObservedObject private var usageStats: UsageStatsStore
+    @ObservedObject private var updates: UpdateController
 
     /// Shared with the titlebar toggle button through UserDefaults.
     @AppStorage(SidebarVisibility.key) private var isExpanded = true
@@ -79,6 +80,7 @@ struct WVSidebar: View {
         self.presenter = presenter
         _dictationPresenter = ObservedObject(wrappedValue: presenter.dictationPresenter)
         _usageStats = ObservedObject(wrappedValue: presenter.usageStats)
+        _updates = ObservedObject(wrappedValue: presenter.updates)
     }
 
     private let items: [AppShellDestination] = [
@@ -106,6 +108,14 @@ struct WVSidebar: View {
 
             Spacer(minLength: 0)
 
+            if case .available(let update) = updates.state {
+                if isExpanded {
+                    updateBanner(update)
+                } else {
+                    collapsedUpdateBadge(update)
+                }
+            }
+
             if isExpanded {
                 footer
             } else {
@@ -121,6 +131,56 @@ struct WVSidebar: View {
     }
 
     private var listening: Bool { dictationPresenter.hotkeyHealth == .listening }
+
+    /// Surfaces the launch-time update discovery without the user having to
+    /// visit Settings; clicking lands on the Updates section, which offers
+    /// Download / View Release / Skip.
+    private func updateBanner(_ update: AvailableUpdate) -> some View {
+        Button { presenter.navigate(to: .settings) } label: {
+            HStack(spacing: 8) {
+                Image(systemName: "arrow.down.circle.fill")
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundStyle(Theme.accent)
+                    .frame(width: 19)
+                VStack(alignment: .leading, spacing: 1) {
+                    Text("Update available")
+                        .font(.wv(12.5, .semibold))
+                        .foregroundStyle(Theme.textPrimary)
+                    Text("Version \(update.version)")
+                        .font(.wv(11))
+                        .foregroundStyle(Theme.textSecondary)
+                }
+                Spacer(minLength: 0)
+            }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 8)
+            .background {
+                RoundedRectangle(cornerRadius: Theme.Radius.control, style: .continuous)
+                    .fill(Theme.accent.opacity(0.12))
+            }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .focusEffectDisabled()
+        .padding(.horizontal, 10)
+        .padding(.bottom, 8)
+    }
+
+    /// Collapsed-rail version of the update banner: just the accent glyph.
+    private func collapsedUpdateBadge(_ update: AvailableUpdate) -> some View {
+        Button { presenter.navigate(to: .settings) } label: {
+            Image(systemName: "arrow.down.circle.fill")
+                .font(.system(size: 16, weight: .medium))
+                .foregroundStyle(Theme.accent)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 6)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .focusEffectDisabled()
+        .padding(.bottom, 4)
+        .help("Update available: version \(update.version)")
+    }
 
     private var footer: some View {
         VStack(alignment: .leading, spacing: 0) {

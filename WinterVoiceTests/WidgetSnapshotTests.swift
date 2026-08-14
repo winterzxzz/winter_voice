@@ -71,7 +71,81 @@ final class WidgetSnapshotTests: XCTestCase {
 }
 
 @MainActor
-private final class SnapshotInteractorFake: DictationInteracting {
+final class SidebarSnapshotTests: XCTestCase {
+    func testRenderSidebarWithUpdateBanner() async throws {
+        guard let path = ProcessInfo.processInfo.environment["WIDGET_SNAPSHOT_DIR"] else {
+            throw XCTSkip("WIDGET_SNAPSHOT_DIR not set")
+        }
+        let outputDirectory = URL(fileURLWithPath: path, isDirectory: true)
+        try FileManager.default.createDirectory(at: outputDirectory, withIntermediateDirectories: true)
+
+        // Isolated defaults so the test never touches the real app's
+        // auto-check timestamp or skip state.
+        let updates = UpdateController(
+            checker: AvailableUpdateStub(),
+            defaults: UserDefaults(suiteName: "widget-snapshot-tests")!
+        )
+        updates.checkNow()
+        for _ in 0..<50 {
+            if case .available = updates.state { break }
+            try await Task.sleep(nanoseconds: 20_000_000)
+        }
+        guard case .available = updates.state else {
+            XCTFail("Update never became available")
+            return
+        }
+
+        let temp = FileManager.default.temporaryDirectory
+            .appendingPathComponent("sidebar-snapshot", isDirectory: true)
+        let presenter = AppShellPresenter(
+            dictationPresenter: DictationPresenter(
+                interactor: SnapshotInteractorFake(),
+                relay: DictationStateRelay(),
+                hotkeyRelay: HotkeyHealthRelay(),
+                permissionManager: SnapshotPermissionFake(),
+                router: AppRouter()
+            ),
+            router: AppRouter(),
+            providerConfiguration: ProviderConfigurationStore(),
+            modelManager: ModelManager(root: temp),
+            history: HistoryStore(root: temp),
+            dictionary: DictionaryStore(root: temp),
+            hotkeyBinding: HotkeyBindingStore(),
+            updates: updates
+        )
+
+        let view = WVSidebar(presenter: presenter)
+            .frame(height: 480)
+            .background(Color(nsColor: .windowBackgroundColor))
+            .fixedSize()
+        let renderer = ImageRenderer(content: view)
+        renderer.scale = 2
+        guard let image = renderer.nsImage,
+              let tiff = image.tiffRepresentation,
+              let rep = NSBitmapImageRep(data: tiff),
+              let png = rep.representation(using: .png, properties: [:]) else {
+            XCTFail("Could not render sidebar")
+            return
+        }
+        try png.write(to: outputDirectory.appendingPathComponent("sidebar-update.png"))
+        print("SNAPSHOT sidebar-update: \(Int(image.size.width))x\(Int(image.size.height))")
+    }
+}
+
+@MainActor
+private final class AvailableUpdateStub: UpdateChecking {
+    func fetchAvailableUpdate() async throws -> AvailableUpdate? {
+        AvailableUpdate(
+            version: "0.9.9",
+            highlights: ["Example highlight"],
+            downloadURL: nil,
+            releaseURL: URL(string: "https://example.com")!
+        )
+    }
+}
+
+@MainActor
+final class SnapshotInteractorFake: DictationInteracting {
     func beginPushToTalk() {}
     func endPushToTalk() {}
     func togglePushToTalk() {}
