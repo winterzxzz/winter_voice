@@ -41,10 +41,23 @@ struct MenuBarView: View {
         Button("Settings…") { openSettings() }
             .keyboardShortcut(",")
 
+        Button(updateMenuTitle) {
+            shellPresenter.updates.checkNow()
+            shellPresenter.navigate(to: .settings)
+            openMainWindow()
+        }
+
         Divider()
 
         Button("Quit WinterVoice") { presenter.quit() }
             .keyboardShortcut("q")
+    }
+
+    private var updateMenuTitle: String {
+        if case .available(let update) = shellPresenter.updates.state {
+            return "Update Available: v\(update.version)…"
+        }
+        return "Check for Updates…"
     }
 
     private func openMainWindow() {

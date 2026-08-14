@@ -24,6 +24,7 @@ final class AppContainer {
     let history: HistoryStore
     let dictionary: DictionaryStore
     let hotkeyBinding: HotkeyBindingStore
+    private let updates: UpdateController
     private let hotkey: RightOptionEventTap
     private let permissionHotkeyReconciler: PermissionHotkeyReconciler
     private let panelController: RecordingPanelController
@@ -132,6 +133,8 @@ final class AppContainer {
         )
         self.hotkey = hotkey
         let widgetPreferences = WidgetPreferences()
+        let updates = UpdateController()
+        self.updates = updates
         shellPresenter = AppShellPresenter(
             dictationPresenter: presenter,
             router: router,
@@ -143,7 +146,8 @@ final class AppContainer {
             usageStats: usageStats,
             widgetPreferences: widgetPreferences,
             microphonePreferences: microphonePreferences,
-            hotkeyCaptureSuspender: hotkey
+            hotkeyCaptureSuspender: hotkey,
+            updates: updates
         )
         onboardingPresenter = OnboardingPresenter(
             dictationPresenter: presenter,
@@ -225,5 +229,6 @@ final class AppContainer {
 
     func start() {
         presenter.reconcilePermissionsAfterActivation()
+        updates.checkAutomatically()
     }
 }

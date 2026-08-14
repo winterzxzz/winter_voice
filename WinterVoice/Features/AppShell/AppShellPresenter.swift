@@ -14,6 +14,7 @@ final class AppShellPresenter: ObservableObject {
     let microphonePreferences: MicrophonePreferences
     let transcriptionSettings: TranscriptionSettingsController
     let hotkeyCaptureSuspender: HotkeyCaptureSuspending?
+    let updates: UpdateController
     private let router: AppRouter
     private var cancellables = Set<AnyCancellable>()
 
@@ -28,7 +29,8 @@ final class AppShellPresenter: ObservableObject {
         usageStats: UsageStatsStore = UsageStatsStore(),
         widgetPreferences: WidgetPreferences = WidgetPreferences(),
         microphonePreferences: MicrophonePreferences = MicrophonePreferences(),
-        hotkeyCaptureSuspender: HotkeyCaptureSuspending? = nil
+        hotkeyCaptureSuspender: HotkeyCaptureSuspending? = nil,
+        updates: UpdateController = UpdateController()
     ) {
         self.dictationPresenter = dictationPresenter
         self.router = router
@@ -41,6 +43,7 @@ final class AppShellPresenter: ObservableObject {
         self.widgetPreferences = widgetPreferences
         self.microphonePreferences = microphonePreferences
         self.hotkeyCaptureSuspender = hotkeyCaptureSuspender
+        self.updates = updates
         transcriptionSettings = TranscriptionSettingsController(configuration: providerConfiguration)
         selection = router.selection
         router.$selection.assign(to: &$selection)
@@ -54,6 +57,9 @@ final class AppShellPresenter: ObservableObject {
             .sink { [weak self] _ in self?.objectWillChange.send() }
             .store(in: &cancellables)
         dictionary.objectWillChange
+            .sink { [weak self] _ in self?.objectWillChange.send() }
+            .store(in: &cancellables)
+        updates.objectWillChange
             .sink { [weak self] _ in self?.objectWillChange.send() }
             .store(in: &cancellables)
     }

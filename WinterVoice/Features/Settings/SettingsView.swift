@@ -20,6 +20,7 @@ struct AppSettingsView: View {
     @StateObject private var launchAtLogin = LaunchAtLoginModel()
     @ObservedObject private var theme = ThemeStore.shared
     @ObservedObject private var microphone: MicrophonePreferences
+    @ObservedObject private var updates: UpdateController
     /// A preset chip the user tapped whose model is still downloading; selected
     /// automatically once the install lands.
     @State private var pendingPresetModelID: String?
@@ -33,6 +34,7 @@ struct AppSettingsView: View {
         _models = ObservedObject(wrappedValue: presenter.modelManager)
         _widgetPreferences = ObservedObject(wrappedValue: presenter.widgetPreferences)
         _microphone = ObservedObject(wrappedValue: presenter.microphonePreferences)
+        _updates = ObservedObject(wrappedValue: presenter.updates)
     }
 
     private var status: ProviderStatus { presenter.providerStatus }
@@ -48,6 +50,7 @@ struct AppSettingsView: View {
             behaviorSection
             widgetSection
             themeSection
+            updatesSection
             permissionsSection
         }
         .onAppear {
@@ -784,6 +787,97 @@ struct AppSettingsView: View {
                     .frame(width: 7, height: 7)
                     .padding(.trailing, 6)
             }
+    }
+
+    // MARK: Updates
+
+    private var updatesSection: some View {
+        sectionCard("Updates", trailing: {
+            if updates.state == .checking {
+                ProgressView().controlSize(.small)
+            } else {
+                Button("Check for Updates") { updates.checkNow() }
+                    .buttonStyle(.wvSecondary)
+            }
+        }) {
+            settingRow(
+                title: "WinterVoice v\(updates.currentVersion)",
+                caption: updateCaption
+            ) {
+                if case .available = updates.state {
+                    WVStatusPill(text: "Update available", color: Theme.accent, filled: true)
+                } else if updates.state == .upToDate {
+                    WVStatusPill(text: "Up to date", color: Theme.success)
+                }
+            }
+            if case .available(let update) = updates.state {
+                updateCard(update)
+            }
+        }
+    }
+
+    private var updateCaption: String {
+        switch updates.state {
+        case .idle: "Checks GitHub Releases once a day."
+        case .checking: "Checking GitHub Releases…"
+        case .upToDate: "You're on the latest version."
+        case .available(let update): "Version \(update.version) is ready to download."
+        case .failed(let message): message
+        }
+    }
+
+    /// The what's-new card: release highlights straight from the GitHub
+    /// release notes, so users see what they get before downloading.
+    private func updateCard(_ update: AvailableUpdate) -> some View {
+        let shape = RoundedRectangle(cornerRadius: Theme.Radius.row, style: .continuous)
+        return VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: Theme.Space.sm) {
+                WVIconBadge(systemImage: "sparkles", tint: Theme.accent, size: 30)
+                Text("What's new in v\(update.version)")
+                    .font(.wvRowTitle)
+                    .foregroundStyle(Theme.textPrimary)
+                Spacer(minLength: 0)
+            }
+            if update.highlights.isEmpty {
+                Text("See the release page for the full notes.")
+                    .font(.wvCaption)
+                    .foregroundStyle(Theme.textSecondary)
+            } else {
+                VStack(alignment: .leading, spacing: 6) {
+                    ForEach(update.highlights, id: \.self) { highlight in
+                        HStack(alignment: .top, spacing: 8) {
+                            Circle()
+                                .fill(Theme.textTertiary)
+                                .frame(width: 4, height: 4)
+                                .padding(.top, 6)
+                            Text(highlightText(highlight))
+                                .font(.wv(12.5))
+                                .foregroundStyle(Theme.textSecondary)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
+                }
+            }
+            HStack(spacing: 10) {
+                Button("Download Update") { updates.download(update) }
+                    .buttonStyle(.wvPrimary)
+                Button("View Release") { updates.viewRelease(update) }
+                    .buttonStyle(.wvSecondary)
+                Button("Skip This Version") { updates.skip(update) }
+                    .buttonStyle(.wvGhost)
+                Spacer(minLength: 0)
+            }
+        }
+        .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(shape.fill(Theme.inset))
+        .overlay(shape.strokeBorder(Theme.border, lineWidth: 1))
+    }
+
+    /// Release bullets carry inline markdown (bold, links); render it when it
+    /// parses, fall back to the raw line when it doesn't.
+    private func highlightText(_ highlight: String) -> AttributedString {
+        (try? AttributedString(markdown: highlight)) ?? AttributedString(highlight)
     }
 
     // MARK: Permissions
