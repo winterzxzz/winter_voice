@@ -28,6 +28,7 @@ final class AppContainer {
     private let hotkey: RightOptionEventTap
     private let permissionHotkeyReconciler: PermissionHotkeyReconciler
     private let panelController: RecordingPanelController
+    private let recordingFeedback: RecordingSessionFeedback
 
     init() {
         let relay = DictationStateRelay()
@@ -52,6 +53,7 @@ final class AppContainer {
             Task { await whisperRuntime.unloadContext() }
         }
         let microphonePreferences = MicrophonePreferences()
+        let behaviorPreferences = BehaviorPreferences()
         let audioRecorder = SystemAudioRecorder(preferences: microphonePreferences)
         let usageStats = UsageStatsStore()
         let interactor = DictationInteractor(
@@ -66,7 +68,12 @@ final class AppContainer {
             permissions: permissionManager,
             textProcessor: dictionary,
             history: history,
-            usage: usageStats
+            usage: usageStats,
+            behavior: behaviorPreferences
+        )
+        recordingFeedback = RecordingSessionFeedback(
+            relay: relay,
+            preferences: behaviorPreferences
         )
         let router = AppRouter()
         // Dev affordance: `open WinterVoice.app --args -WVOpenPage settings`
@@ -146,6 +153,7 @@ final class AppContainer {
             usageStats: usageStats,
             widgetPreferences: widgetPreferences,
             microphonePreferences: microphonePreferences,
+            behaviorPreferences: behaviorPreferences,
             hotkeyCaptureSuspender: hotkey,
             updates: updates
         )

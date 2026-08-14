@@ -37,6 +37,26 @@ final class NoopUsageRecorder: UsageRecording {
     func recordSession(words: Int, speakingSeconds: Double) {}
 }
 
+/// Behavior toggles the dictation pipeline reads at session time.
+@MainActor
+protocol DictationBehaviorProviding: AnyObject {
+    /// Deliver transcripts to the clipboard instead of typing them into the
+    /// focused field.
+    var copiesInsteadOfInserting: Bool { get }
+}
+
+@MainActor
+final class DefaultDictationBehavior: DictationBehaviorProviding {
+    let copiesInsteadOfInserting = false
+}
+
+/// Copy-mode delivery: leaves the transcript on the pasteboard for the user
+/// to paste themselves.
+@MainActor
+protocol TranscriptCopying: AnyObject {
+    func copy(_ text: String) -> Bool
+}
+
 @MainActor
 protocol SpeechTranscribing: AnyObject {
     func validateConfiguration() throws

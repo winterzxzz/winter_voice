@@ -20,6 +20,7 @@ struct AppSettingsView: View {
     @StateObject private var launchAtLogin = LaunchAtLoginModel()
     @ObservedObject private var theme = ThemeStore.shared
     @ObservedObject private var microphone: MicrophonePreferences
+    @ObservedObject private var behavior: BehaviorPreferences
     @ObservedObject private var updates: UpdateController
     /// A preset chip the user tapped whose model is still downloading; selected
     /// automatically once the install lands.
@@ -34,6 +35,7 @@ struct AppSettingsView: View {
         _models = ObservedObject(wrappedValue: presenter.modelManager)
         _widgetPreferences = ObservedObject(wrappedValue: presenter.widgetPreferences)
         _microphone = ObservedObject(wrappedValue: presenter.microphonePreferences)
+        _behavior = ObservedObject(wrappedValue: presenter.behaviorPreferences)
         _updates = ObservedObject(wrappedValue: presenter.updates)
     }
 
@@ -557,6 +559,33 @@ struct AppSettingsView: View {
             }
             if let error = launchAtLogin.lastError {
                 Text(error).font(.wvCaption).foregroundStyle(Theme.danger)
+            }
+            WVDivider()
+            settingRow(
+                title: "Recording sounds",
+                caption: "Chime when recording starts and stops."
+            ) {
+                Toggle("", isOn: $behavior.playsRecordingSounds)
+                    .toggleStyle(.wv)
+                    .labelsHidden()
+            }
+            WVDivider()
+            settingRow(
+                title: "Pause other audio while you talk",
+                caption: "Mutes your speakers during recording so the mic stays clean."
+            ) {
+                Toggle("", isOn: $behavior.pausesOtherAudio)
+                    .toggleStyle(.wv)
+                    .labelsHidden()
+            }
+            WVDivider()
+            settingRow(
+                title: "Copy instead of typing it for you",
+                caption: "Puts transcripts on your clipboard to paste yourself."
+            ) {
+                Toggle("", isOn: $behavior.copiesInsteadOfInserting)
+                    .toggleStyle(.wv)
+                    .labelsHidden()
             }
         }
     }

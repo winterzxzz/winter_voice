@@ -9,9 +9,14 @@ final class DictationInteractor: DictationInteracting {
     private let textProcessor: TextProcessing
     private let history: HistoryRecording
     private let usage: UsageRecording
+    private let behavior: DictationBehaviorProviding
+    private let transcriptCopier: TranscriptCopying
     private let failureResetDelay: Duration
     private var machine = DictationStateMachine()
     private var target: TextInsertionTarget?
+    /// Decided when the session starts, so flipping the setting mid-recording
+    /// cannot strand a session that never captured a target.
+    private var usesClipboardDelivery = false
     private var preparationTask: Task<Void, Never>?
     private var finishTask: Task<Void, Never>?
     private var failureResetTask: Task<Void, Never>?
@@ -26,6 +31,8 @@ final class DictationInteractor: DictationInteracting {
         textProcessor: TextProcessing = IdentityTextProcessor(),
         history: HistoryRecording = NoopHistoryRecorder(),
         usage: UsageRecording = NoopUsageRecorder(),
+        behavior: DictationBehaviorProviding = DefaultDictationBehavior(),
+        transcriptCopier: TranscriptCopying = SystemTranscriptCopier(),
         failureResetDelay: Duration = .seconds(4)
     ) {
         self.relay = relay
@@ -35,6 +42,8 @@ final class DictationInteractor: DictationInteracting {
         self.textProcessor = textProcessor
         self.history = history
         self.usage = usage
+        self.behavior = behavior
+        self.transcriptCopier = transcriptCopier
         self.failureResetDelay = failureResetDelay
     }
 
@@ -97,24 +106,30 @@ final class DictationInteractor: DictationInteracting {
 
     private func prepareAndRecord() async {
         do {
+            // Copy mode never touches the focused field, so it needs neither
+            // Accessibility nor a captured target.
+            usesClipboardDelivery = behavior.copiesInsteadOfInserting
             // Capture the focused field as close to the key press as possible,
             // but never synchronously inside the event-tap callback: AX lookups
             // are IPC into the focused app and can stall past the tap watchdog.
             let snapshot = permissions.snapshot()
-            if snapshot.microphone == .authorized,
+            if !usesClipboardDelivery,
+               snapshot.microphone == .authorized,
                snapshot.inputMonitoring == .authorized,
                snapshot.accessibility == .authorized {
                 target = try injector.captureTarget()
             }
             try await requirePermission(.microphone)
             try await requirePermission(.inputMonitoring)
-            guard permissions.snapshot().accessibility == .authorized else {
-                throw DictationFailure(
-                    message: "Accessibility permission is required.",
-                    recovery: "Open Settings and allow WinterVoice in Privacy & Security → Accessibility."
-                )
+            if !usesClipboardDelivery {
+                guard permissions.snapshot().accessibility == .authorized else {
+                    throw DictationFailure(
+                        message: "Accessibility permission is required.",
+                        recovery: "Open Settings and allow WinterVoice in Privacy & Security → Accessibility."
+                    )
+                }
+                if target == nil { target = try injector.captureTarget() }
             }
-            if target == nil { target = try injector.captureTarget() }
             try await transcriber.start()
             move(to: .recording)
             recordingStartedAt = Date()
@@ -125,7 +140,7 @@ final class DictationInteractor: DictationInteracting {
     }
 
     private func finishDictation() async {
-        guard machine.state == .recording, let target else { return }
+        guard machine.state == .recording, usesClipboardDelivery || target != nil else { return }
         let speakingSeconds = recordingStartedAt.map { Date().timeIntervalSince($0) } ?? 0
         recordingStartedAt = nil
         move(to: .processing)
@@ -137,17 +152,27 @@ final class DictationInteractor: DictationInteracting {
                 throw DictationFailure(message: "No speech was recognized.", recovery: "Hold the configured push-to-talk key and try speaking again.")
             }
             move(to: .inserting)
-            let outcome = try await injector.insert(text, into: target)
-            // Text dictated into a password field must never reach History.
-            if !outcome.landedInSecureField {
+            if usesClipboardDelivery {
+                guard transcriptCopier.copy(text) else {
+                    throw DictationFailure(
+                        message: "Could not copy the transcript.",
+                        recovery: "Try dictating again."
+                    )
+                }
                 history.record(text: text)
+            } else if let target {
+                let outcome = try await injector.insert(text, into: target)
+                // Text dictated into a password field must never reach History.
+                if !outcome.landedInSecureField {
+                    history.record(text: text)
+                }
+                injector.discard(target)
+                self.target = nil
             }
             usage.recordSession(
                 words: text.split(whereSeparator: \.isWhitespace).count,
                 speakingSeconds: speakingSeconds
             )
-            injector.discard(target)
-            self.target = nil
             move(to: .idle)
         } catch is CancellationError {
             fail(DictationFailure(

@@ -300,6 +300,85 @@ final class NoProviderDictationTests: XCTestCase {
         XCTAssertEqual(permissions.requestCallCount, 0, file: file, line: line)
         XCTAssertEqual(injector.captureCallCount, 0, file: file, line: line)
     }
+
+    func testCopyModeDeliversToClipboardWithoutTouchingTheFocusedField() async {
+        let relay = DictationStateRelay()
+        let transcriber = ReadyTranscriberSpy()
+        transcriber.stopResult = "copied words"
+        let injector = TextInjectorSpy()
+        let copier = TranscriptCopierSpy()
+        let subject = DictationInteractor(
+            relay: relay,
+            transcriber: transcriber,
+            injector: injector,
+            // Accessibility is denied: copy mode must not require it.
+            permissions: MicOnlyPermissionManagerSpy(),
+            behavior: CopyModeBehaviorStub(),
+            transcriptCopier: copier
+        )
+
+        subject.beginPushToTalk()
+        await waitUntil { relay.state == .recording }
+        subject.endPushToTalk()
+        await waitUntil { relay.state == .idle && !copier.copiedTexts.isEmpty }
+
+        XCTAssertEqual(copier.copiedTexts, ["copied words"])
+        XCTAssertEqual(injector.captureCallCount, 0, "Copy mode must never capture the focused field")
+        XCTAssertTrue(injector.insertedTexts.isEmpty, "Copy mode must never inject text")
+    }
+
+    func testCopyModeFailedCopySurfacesAsDictationFailure() async {
+        let relay = DictationStateRelay()
+        let transcriber = ReadyTranscriberSpy()
+        let copier = TranscriptCopierSpy()
+        copier.result = false
+        let subject = DictationInteractor(
+            relay: relay,
+            transcriber: transcriber,
+            injector: TextInjectorSpy(),
+            permissions: MicOnlyPermissionManagerSpy(),
+            behavior: CopyModeBehaviorStub(),
+            transcriptCopier: copier,
+            failureResetDelay: .milliseconds(50)
+        )
+
+        subject.beginPushToTalk()
+        await waitUntil { relay.state == .recording }
+        subject.endPushToTalk()
+        await waitUntil { isFailed(relay.state) }
+
+        guard case .failed(let failure) = relay.state else {
+            return XCTFail("Expected the copy failure to surface, got \(relay.state)")
+        }
+        XCTAssertEqual(failure.message, "Could not copy the transcript.")
+    }
+}
+
+@MainActor
+private final class CopyModeBehaviorStub: DictationBehaviorProviding {
+    let copiesInsteadOfInserting = true
+}
+
+@MainActor
+private final class TranscriptCopierSpy: TranscriptCopying {
+    private(set) var copiedTexts: [String] = []
+    var result = true
+
+    func copy(_ text: String) -> Bool {
+        copiedTexts.append(text)
+        return result
+    }
+}
+
+/// Microphone and Input Monitoring granted, Accessibility denied — the exact
+/// posture copy mode must work in.
+@MainActor
+private final class MicOnlyPermissionManagerSpy: PermissionManaging {
+    func snapshot() -> PermissionSnapshot {
+        PermissionSnapshot(microphone: .authorized, inputMonitoring: .authorized, accessibility: .denied)
+    }
+
+    func request(_ permission: AppPermission) async -> PermissionStatus { .authorized }
 }
 
 @MainActor

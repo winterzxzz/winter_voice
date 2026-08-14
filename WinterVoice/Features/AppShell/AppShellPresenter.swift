@@ -12,6 +12,7 @@ final class AppShellPresenter: ObservableObject {
     let usageStats: UsageStatsStore
     let widgetPreferences: WidgetPreferences
     let microphonePreferences: MicrophonePreferences
+    let behaviorPreferences: BehaviorPreferences
     let transcriptionSettings: TranscriptionSettingsController
     let hotkeyCaptureSuspender: HotkeyCaptureSuspending?
     let updates: UpdateController
@@ -29,6 +30,7 @@ final class AppShellPresenter: ObservableObject {
         usageStats: UsageStatsStore = UsageStatsStore(),
         widgetPreferences: WidgetPreferences = WidgetPreferences(),
         microphonePreferences: MicrophonePreferences = MicrophonePreferences(),
+        behaviorPreferences: BehaviorPreferences = BehaviorPreferences(),
         hotkeyCaptureSuspender: HotkeyCaptureSuspending? = nil,
         updates: UpdateController = UpdateController()
     ) {
@@ -42,6 +44,7 @@ final class AppShellPresenter: ObservableObject {
         self.usageStats = usageStats
         self.widgetPreferences = widgetPreferences
         self.microphonePreferences = microphonePreferences
+        self.behaviorPreferences = behaviorPreferences
         self.hotkeyCaptureSuspender = hotkeyCaptureSuspender
         self.updates = updates
         transcriptionSettings = TranscriptionSettingsController(configuration: providerConfiguration)
