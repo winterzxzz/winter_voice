@@ -137,6 +137,16 @@ final class SystemPasteboardSession: PasteboardSession {
     }
 }
 
+/// Outcome of asking an application which element currently has focus.
+enum FocusedElementQuery {
+    /// The app answered with a focused element.
+    case element(AXUIElement)
+    /// The app answered and stated nothing has focus.
+    case none
+    /// The app could not answer (no AX support, tree not built, timeout).
+    case unanswered
+}
+
 @MainActor
 final class SystemTextInjector: TextInjecting {
     private struct CapturedTarget {
@@ -151,24 +161,39 @@ final class SystemTextInjector: TextInjecting {
     private let postPasteKeystroke: () throws -> Void
     private let sleep: (Duration) async throws -> Void
     private let directTextWriter: (AXUIElement, String) -> Bool
+    private let focusedElementQuery: (pid_t) -> FocusedElementQuery
 
     init(
         targetLocator: FocusedAccessibilityTargetLocating = SystemFocusedAccessibilityTargetLocator(),
         pasteboard: PasteboardSession = SystemPasteboardSession(),
         postPasteKeystroke: (() throws -> Void)? = nil,
         sleep: ((Duration) async throws -> Void)? = nil,
-        directTextWriter: ((AXUIElement, String) -> Bool)? = nil
+        directTextWriter: ((AXUIElement, String) -> Bool)? = nil,
+        focusedElementQuery: ((pid_t) -> FocusedElementQuery)? = nil
     ) {
         self.targetLocator = targetLocator
         self.pasteboard = pasteboard
         self.postPasteKeystroke = postPasteKeystroke ?? Self.postCommandV
         self.sleep = sleep ?? { try await Task.sleep(for: $0) }
         self.directTextWriter = directTextWriter ?? Self.verifiedDirectWrite
+        self.focusedElementQuery = focusedElementQuery ?? Self.systemFocusedElementQuery
     }
 
     func captureTarget() throws -> TextInsertionTarget {
         guard let focused = targetLocator.focusedTarget() else {
             throw DictationFailure(message: "No editable field is focused.", recovery: "Focus a text field and try again.")
+        }
+        if focused.element == nil {
+            // Chromium-based apps (Electron: Claude, Slack, VS Code, …) build
+            // their accessibility tree lazily and report no focused element
+            // until it exists. Electron documents this attribute as the switch
+            // that forces the tree on; by insert time the real field is
+            // queryable. Harmless elsewhere — unknown attributes are ignored.
+            AXUIElementSetAttributeValue(
+                AXUIElementCreateApplication(focused.application.processIdentifier),
+                "AXManualAccessibility" as CFString,
+                kCFBooleanTrue
+            )
         }
         let id = UUID()
         targets[id] = CapturedTarget(
@@ -184,9 +209,9 @@ final class SystemTextInjector: TextInjecting {
         guard let captured = targets[target.id] else {
             throw DictationFailure(message: "The original text field is no longer available.", recovery: "Focus the field and dictate again.")
         }
-        try await activateAndVerify(captured)
-        let outcome = InsertionOutcome(landedInSecureField: captured.isSecureField)
-        if let element = captured.element, directTextWriter(element, text) {
+        let resolved = try await activateAndVerify(captured)
+        let outcome = InsertionOutcome(landedInSecureField: resolved.isSecureField)
+        if let element = resolved.element, directTextWriter(element, text) {
             targets[target.id] = nil
             return outcome
         }
@@ -197,39 +222,68 @@ final class SystemTextInjector: TextInjecting {
 
     func discard(_ target: TextInsertionTarget) { targets[target.id] = nil }
 
-    private func activateAndVerify(_ target: CapturedTarget) async throws {
+    /// Confirms the captured application is still frontmost and resolves the
+    /// field the insertion should aim at. The application is the safety
+    /// boundary — a mismatch there aborts. The field is only re-resolved:
+    /// Chromium-based apps (Electron: Claude, Slack, VS Code, …) hydrate their
+    /// accessibility tree lazily and rebuild nodes between capture and insert,
+    /// so the captured element routinely fails identity comparison against the
+    /// element that now represents the same field. Requiring identity there
+    /// aborted every dictation into those apps; instead the currently focused
+    /// element is adopted, keeping the paste aimed at what the user sees.
+    private func activateAndVerify(_ target: CapturedTarget) async throws -> CapturedTarget {
         target.application.activate(options: [])
         try await sleep(.milliseconds(100))
-        let applicationElement = AXUIElementCreateApplication(target.application.processIdentifier)
-        guard let element = target.element else {
-            guard NSWorkspace.shared.frontmostApplication?.processIdentifier == target.application.processIdentifier else {
-                throw DictationFailure(
-                    message: "The original application is no longer active.",
-                    recovery: "Focus the field and dictate again. Nothing was pasted."
-                )
-            }
-            // AX never exposed the captured field, so field-level verification
-            // is impossible here. Still refuse the provably wrong case: the app
-            // answers AX but reports no focused element, so a synthesized paste
-            // would land nowhere while looking like a success.
-            var focusedValue: CFTypeRef?
-            if AXUIElementCopyAttributeValue(applicationElement, kAXFocusedUIElementAttribute as CFString, &focusedValue) == .noValue {
-                throw DictationFailure(
-                    message: "No text field is focused in the target application.",
-                    recovery: "Focus the field and dictate again. Nothing was pasted."
-                )
-            }
-            return
-        }
-        var focusedValue: CFTypeRef?
-        guard AXUIElementCopyAttributeValue(applicationElement, kAXFocusedUIElementAttribute as CFString, &focusedValue) == .success,
-              let focusedValue,
-              CFGetTypeID(focusedValue) == AXUIElementGetTypeID(),
-              CFEqual(focusedValue, element) else {
+        guard NSWorkspace.shared.frontmostApplication?.processIdentifier == target.application.processIdentifier else {
             throw DictationFailure(
-                message: "The original text field is no longer focused.",
+                message: "The original application is no longer active.",
                 recovery: "Focus the field and dictate again. Nothing was pasted."
             )
+        }
+        switch focusedElementQuery(target.application.processIdentifier) {
+        case .element(let current):
+            if let element = target.element, CFEqual(current, element) { return target }
+            // The secure flag is sticky: a field that was secure at capture
+            // stays treated as secure, and an adopted field adds its own
+            // status, so a password field never leaks into History.
+            return CapturedTarget(
+                application: target.application,
+                element: current,
+                isSecureField: target.isSecureField
+                    || SystemFocusedAccessibilityTargetLocator.isSecureTextElement(current)
+            )
+        case .none:
+            // The app answers AX and states nothing is focused: a synthesized
+            // paste would land nowhere while looking like a success.
+            throw DictationFailure(
+                message: "No text field is focused in the target application.",
+                recovery: "Focus the field and dictate again. Nothing was pasted."
+            )
+        case .unanswered:
+            // The app answers AX poorly or not at all (Electron before its
+            // tree hydrates, apps without AX support). The frontmost check
+            // above is the only verification available; paste keystrokes go
+            // to the frontmost app regardless of AX, so proceed without a
+            // field-level target.
+            return CapturedTarget(application: target.application, element: nil, isSecureField: target.isSecureField)
+        }
+    }
+
+    private static func systemFocusedElementQuery(for processIdentifier: pid_t) -> FocusedElementQuery {
+        var focusedValue: CFTypeRef?
+        let status = AXUIElementCopyAttributeValue(
+            AXUIElementCreateApplication(processIdentifier),
+            kAXFocusedUIElementAttribute as CFString,
+            &focusedValue
+        )
+        switch status {
+        case .success:
+            guard let focusedValue, CFGetTypeID(focusedValue) == AXUIElementGetTypeID() else { return .unanswered }
+            return .element(unsafeDowncast(focusedValue, to: AXUIElement.self))
+        case .noValue:
+            return .none
+        default:
+            return .unanswered
         }
     }
 
