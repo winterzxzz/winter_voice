@@ -1,0 +1,31 @@
+name: Release
+
+# Builds WinterVoice.dmg and attaches it to the GitHub Release whenever a
+# v* tag is pushed (e.g. `git tag v0.1.0 && git push origin v0.1.0`).
+# The asset name is stable so this URL always serves the newest build:
+# https://github.com/winterzxzz/winter_voice/releases/latest/download/WinterVoice.dmg
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build-dmg:
+    name: Build and publish .dmg
+    runs-on: macos-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Build WinterVoice.dmg
+        run: bash scripts/build-dmg.sh
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: build/WinterVoice.dmg
+          generate_release_notes: true
