@@ -188,15 +188,7 @@ struct WVSidebar: View {
     }
 
     private var avatar: some View {
-        Circle()
-            .fill(Theme.surfaceElevated)
-            .overlay(Circle().strokeBorder(Theme.borderStrong, lineWidth: 1))
-            .overlay(
-                Text("WV")
-                    .font(.wv(10.5, .semibold))
-                    .foregroundStyle(Theme.textPrimary)
-            )
-            .frame(width: 32, height: 32)
+        WVBrandMark(size: 32)
     }
 }
 
