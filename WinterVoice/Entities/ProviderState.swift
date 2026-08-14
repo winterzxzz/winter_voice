@@ -10,12 +10,6 @@ enum ProviderMode: String, CaseIterable, Codable, Sendable {
 struct RemoteProviderConfiguration: Equatable, Codable, Sendable {
     var baseURL = ""
     var model = ""
-    var language = ""
-
-    var normalizedLanguage: String? {
-        let value = language.trimmingCharacters(in: .whitespacesAndNewlines)
-        return value.isEmpty ? nil : value
-    }
 }
 
 enum ProviderReadiness: Equatable, Sendable {

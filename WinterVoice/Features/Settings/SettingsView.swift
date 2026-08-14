@@ -98,12 +98,76 @@ struct AppSettingsView: View {
                 Spacer(minLength: 0)
             }
 
+            languageRow
+
             if configuration.mode == .local {
                 localModelRows
             } else {
                 remoteRows
             }
         }
+    }
+
+    // MARK: Language
+
+    /// The reference Language dropdown: one selection drives both local
+    /// whisper and the cloud `language` field. Auto-detect is the default.
+    private var languageRow: some View {
+        HStack(spacing: 12) {
+            Text("Language")
+                .font(.wv(13))
+                .foregroundStyle(Theme.textPrimary)
+            languageMenu
+            Text(languageCaption)
+                .font(.wvCaption)
+                .foregroundStyle(Theme.textSecondary)
+            Spacer(minLength: 0)
+        }
+    }
+
+    private var languageCaption: String {
+        if configuration.mode == .local, models.activeModel?.isEnglishOnly == true {
+            return "The selected model is English-only, so it always transcribes English."
+        }
+        return configuration.languageCode == nil
+            ? "Auto-detect finds the spoken language for you."
+            : "Applies to both local and cloud transcription."
+    }
+
+    private var languageMenu: some View {
+        let shape = RoundedRectangle(cornerRadius: Theme.Radius.control, style: .continuous)
+        let selectedName = TranscriptionLanguage.name(forCode: configuration.languageCode) ?? "Auto-detect"
+        return Menu {
+            Toggle("Auto-detect", isOn: Binding(
+                get: { configuration.languageCode == nil },
+                set: { _ in configuration.languageCode = nil }
+            ))
+            Divider()
+            ForEach(TranscriptionLanguage.all) { language in
+                Toggle(language.name, isOn: Binding(
+                    get: { configuration.languageCode == language.code },
+                    set: { _ in configuration.languageCode = language.code }
+                ))
+            }
+        } label: {
+            HStack(spacing: 10) {
+                Text(selectedName)
+                    .font(.wv(13, .medium))
+                    .foregroundStyle(Theme.textPrimary)
+                Image(systemName: "chevron.down")
+                    .font(.system(size: 9, weight: .semibold))
+                    .foregroundStyle(Theme.textTertiary)
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .background(Theme.inset, in: shape)
+            .overlay(shape.strokeBorder(Theme.border, lineWidth: 1))
+            .contentShape(Rectangle())
+        }
+        .menuStyle(.button)
+        .buttonStyle(.plain)
+        .menuIndicator(.hidden)
+        .fixedSize()
     }
 
     @ViewBuilder
@@ -321,13 +385,8 @@ struct AppSettingsView: View {
                 TextField("", text: $controller.baseURL, prompt: Text("https://host.example/v1"))
                     .textFieldStyle(.wv)
             }
-            HStack(alignment: .top, spacing: 10) {
-                WVField(label: "Model") {
-                    TextField("", text: $controller.remoteModel).textFieldStyle(.wv)
-                }
-                WVField(label: "Language (optional)") {
-                    TextField("", text: $controller.language).textFieldStyle(.wv)
-                }
+            WVField(label: "Model") {
+                TextField("", text: $controller.remoteModel).textFieldStyle(.wv)
             }
             WVField(label: configuration.hasAPIKey ? "API key (saved in Keychain)" : "API key (optional)") {
                 SecureField("", text: $controller.apiKey).textFieldStyle(.wv)

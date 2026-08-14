@@ -17,7 +17,6 @@ final class TranscriptionSettingsControllerTests: XCTestCase {
         subject.loadRemoteDraft()
         subject.baseURL = "https://draft.example/v1"
         subject.remoteModel = "draft-model"
-        subject.language = "vi"
         subject.apiKey = "typed-key"
 
         subject.testRemoteConnection()
@@ -83,12 +82,11 @@ final class TranscriptionSettingsControllerTests: XCTestCase {
         let subject = TranscriptionSettingsController(configuration: store, connectionTester: ConnectionTesterSpy())
         subject.baseURL = "https://new.example/v1"
         subject.remoteModel = "new-model"
-        subject.language = "vi"
         subject.apiKey = "fresh-key"
 
         subject.saveRemote()
 
-        XCTAssertEqual(store.remote, RemoteProviderConfiguration(baseURL: "https://new.example/v1", model: "new-model", language: "vi"))
+        XCTAssertEqual(store.remote, RemoteProviderConfiguration(baseURL: "https://new.example/v1", model: "new-model"))
         XCTAssertEqual(credentials.value, "fresh-key")
         XCTAssertEqual(subject.apiKey, "", "The key field must clear once the credential reaches its store")
         XCTAssertEqual(subject.remoteResult, "Configuration saved.")
@@ -117,8 +115,7 @@ final class TranscriptionSettingsControllerTests: XCTestCase {
 
 private let savedConfiguration = RemoteProviderConfiguration(
     baseURL: "https://saved.example/v1",
-    model: "saved",
-    language: ""
+    model: "saved"
 )
 
 @MainActor

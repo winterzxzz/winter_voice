@@ -53,13 +53,18 @@ final class ConfiguredTranscriber: SpeechTranscribing {
                     recovery: "Download and select a model in Transcription settings."
                 )
             }
-            let language = models.activeModel?.isEnglishOnly == true ? "en" : nil
+            // English-only models can only ever produce English; otherwise the
+            // shared language selection applies (nil = whisper auto-detect).
+            let language = models.activeModel?.isEnglishOnly == true
+                ? "en"
+                : configuration.languageCode
             return try await localRuntime.transcribe(audio, modelURL: modelURL, language: language)
         case .remote:
             let key = try configuration.apiKey()
             return try await remoteProvider.transcribe(
                 audio: audio,
                 configuration: configuration.remote,
+                language: configuration.languageCode,
                 apiKey: key
             )
         }

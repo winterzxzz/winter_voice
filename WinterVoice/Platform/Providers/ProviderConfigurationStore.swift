@@ -102,9 +102,18 @@ final class ProviderConfigurationStore: ObservableObject {
     @Published var remote: RemoteProviderConfiguration
     @Published private(set) var hasAPIKey: Bool
 
+    /// The ISO 639-1 code both local whisper and cloud transcription obey;
+    /// `nil` means auto-detect.
+    @Published var languageCode: String? {
+        didSet { defaults.set(languageCode ?? Self.autoLanguage, forKey: Keys.language) }
+    }
+
+    private static let autoLanguage = "auto"
+
     private enum Keys {
         static let mode = "transcription.provider.mode"
         static let remote = "transcription.remote.configuration"
+        static let language = "transcription.language"
     }
     private let defaults: UserDefaults
     private let credentials: CredentialStoring
@@ -113,8 +122,21 @@ final class ProviderConfigurationStore: ObservableObject {
         self.defaults = defaults
         self.credentials = credentials
         mode = defaults.string(forKey: Keys.mode).flatMap(ProviderMode.init(rawValue:)) ?? .local
-        remote = defaults.data(forKey: Keys.remote).flatMap { try? JSONDecoder().decode(RemoteProviderConfiguration.self, from: $0) } ?? .init()
+        let remoteData = defaults.data(forKey: Keys.remote)
+        remote = remoteData.flatMap { try? JSONDecoder().decode(RemoteProviderConfiguration.self, from: $0) } ?? .init()
         hasAPIKey = ((try? credentials.read()) ?? nil)?.isEmpty == false
+        if let stored = defaults.string(forKey: Keys.language) {
+            languageCode = stored == Self.autoLanguage ? nil : stored
+        } else {
+            // One-time adoption of the retired free-text remote "language"
+            // field, kept only when it was already a known ISO code.
+            let legacy = remoteData
+                .flatMap { try? JSONSerialization.jsonObject(with: $0) as? [String: Any] }
+                .flatMap { $0["language"] as? String }?
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+                .lowercased()
+            languageCode = legacy.flatMap { TranscriptionLanguage.isKnown($0) ? $0 : nil }
+        }
     }
 
     func saveRemote(_ configuration: RemoteProviderConfiguration, apiKey: String?) throws {

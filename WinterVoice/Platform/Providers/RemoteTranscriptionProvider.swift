@@ -14,7 +14,7 @@ struct RemoteTranscriptionProvider: Sendable {
     init(transport: any RemoteTransport = URLSession.shared) { self.transport = transport }
 
     static func endpoint(for configuration: RemoteProviderConfiguration) throws -> URL {
-        _ = try validatedFields(for: configuration)
+        _ = try validatedModel(for: configuration)
         let raw = configuration.baseURL.trimmingCharacters(in: .whitespacesAndNewlines)
         guard var components = URLComponents(string: raw), let host = components.host else {
             throw DictationFailure(message: "Enter a valid remote base URL.", recovery: "Use HTTPS, or explicit HTTP for localhost or a LAN address.")
@@ -43,9 +43,15 @@ struct RemoteTranscriptionProvider: Sendable {
     func transcribe(
         audio: RecordedAudio,
         configuration: RemoteProviderConfiguration,
+        language: String?,
         apiKey: String?
     ) async throws -> String {
-        let (data, response) = try await send(audio: audio, configuration: configuration, apiKey: apiKey)
+        let (data, response) = try await send(
+            audio: audio,
+            configuration: configuration,
+            language: language,
+            apiKey: apiKey
+        )
         return try Self.decode(data: data, response: response)
     }
 
@@ -55,6 +61,7 @@ struct RemoteTranscriptionProvider: Sendable {
         let (data, response) = try await send(
             audio: Self.connectionProbeAudio,
             configuration: configuration,
+            language: nil,
             apiKey: apiKey
         )
         try Self.validateConnectionTestResponse(data: data, response: response)
@@ -69,6 +76,7 @@ struct RemoteTranscriptionProvider: Sendable {
     private func send(
         audio: RecordedAudio,
         configuration: RemoteProviderConfiguration,
+        language: String?,
         apiKey: String?
     ) async throws -> (Data, URLResponse) {
         let endpoint = try Self.endpoint(for: configuration)
@@ -76,6 +84,7 @@ struct RemoteTranscriptionProvider: Sendable {
             endpoint: endpoint,
             audio: audio,
             configuration: configuration,
+            language: language,
             apiKey: apiKey,
             boundary: "WinterVoice-\(UUID().uuidString)"
         )
@@ -93,26 +102,29 @@ struct RemoteTranscriptionProvider: Sendable {
         endpoint: URL,
         audio: RecordedAudio,
         configuration: RemoteProviderConfiguration,
+        language: String?,
         apiKey: String?,
         boundary: String
     ) throws -> URLRequest {
-        let fields = try validatedFields(for: configuration)
+        let model = try validatedModel(for: configuration)
         var request = URLRequest(url: endpoint)
         request.httpMethod = "POST"
         if let apiKey, !apiKey.isEmpty { request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization") }
         request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
         request.httpBody = MultipartAudioBody.make(
             audio: audio,
-            model: fields.model,
-            language: fields.language,
+            model: model,
+            // The language comes from the fixed picker list, never free text;
+            // an unknown value is dropped rather than sent.
+            language: language.flatMap { TranscriptionLanguage.isKnown($0) ? $0 : nil },
             boundary: boundary
         )
         return request
     }
 
-    private static func validatedFields(
+    private static func validatedModel(
         for configuration: RemoteProviderConfiguration
-    ) throws -> (model: String, language: String?) {
+    ) throws -> String {
         guard !containsLineBreak(configuration.model) else {
             throw DictationFailure(message: "Remote model contains an invalid line break.", recovery: "Remove line breaks and try again.")
         }
@@ -120,11 +132,7 @@ struct RemoteTranscriptionProvider: Sendable {
         guard !model.isEmpty else {
             throw DictationFailure(message: "Enter a remote model name.", recovery: "Use the model identifier expected by your endpoint.")
         }
-        guard !containsLineBreak(configuration.language) else {
-            throw DictationFailure(message: "Remote language contains an invalid line break.", recovery: "Remove line breaks and try again.")
-        }
-        let language = configuration.normalizedLanguage
-        return (model, language)
+        return model
     }
 
     private static func containsLineBreak(_ value: String) -> Bool {

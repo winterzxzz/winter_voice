@@ -25,7 +25,6 @@ final class RemoteConnectionTester: RemoteConnectionTesting {
 final class TranscriptionSettingsController: ObservableObject {
     @Published var baseURL = ""
     @Published var remoteModel = ""
-    @Published var language = ""
     @Published var apiKey = ""
     @Published private(set) var remoteResult: String?
 
@@ -42,13 +41,12 @@ final class TranscriptionSettingsController: ObservableObject {
     }
 
     var draft: RemoteProviderConfiguration {
-        .init(baseURL: baseURL, model: remoteModel, language: language)
+        .init(baseURL: baseURL, model: remoteModel)
     }
 
     func loadRemoteDraft() {
         baseURL = configuration.remote.baseURL
         remoteModel = configuration.remote.model
-        language = configuration.remote.language
     }
 
     func saveRemote() {
