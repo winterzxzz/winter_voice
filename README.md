@@ -8,7 +8,7 @@
 
 Hold a key. Speak. Release. Your words appear in any app — 100% offline, no subscription, no account.
 
-🤖 **100% vibe-coded** — every line of this native Swift app was written by AI agents. [How? →](#-100-vibe-coded--built-by-ai-agents)
+🤖 **Built for vibe coding** — speak your prompts straight into Claude Code, Cursor, ChatGPT, or any AI agent, instead of typing them. [See how →](#-made-for-vibe-coding--talk-to-your-ai-agents)
 
 **English · Tiếng Việt · 90+ languages**
 
@@ -19,7 +19,7 @@ Hold a key. Speak. Release. Your words appear in any app — 100% offline, no su
 [![macOS 14+](https://img.shields.io/badge/macOS-14%2B-black?logo=apple)](https://github.com/winterzxzz/winter_voice/releases/latest)
 [![Apple Silicon](https://img.shields.io/badge/Apple%20Silicon-native-orange)](https://github.com/winterzxzz/winter_voice/releases/latest)
 [![Swift 6](https://img.shields.io/badge/Swift-6-F05138?logo=swift&logoColor=white)](WinterVoice)
-[![Vibe-coded with Claude Code](https://img.shields.io/badge/🤖_vibe--coded_with-Claude_Code-D97757)](#-100-vibe-coded--built-by-ai-agents)
+[![Voice input for AI agents](https://img.shields.io/badge/🎙️_voice_input_for-AI_agents-D97757)](#-made-for-vibe-coding--talk-to-your-ai-agents)
 [![GitHub stars](https://img.shields.io/github/stars/winterzxzz/winter_voice?style=social)](https://github.com/winterzxzz/winter_voice/stargazers)
 
 **English** · [Tiếng Việt](README.vi.md)
@@ -34,7 +34,7 @@ Hold a key. Speak. Release. Your words appear in any app — 100% offline, no su
 
 WinterVoice is a **native macOS dictation app** that turns your voice into text in *any* application — Slack, Notes, your browser, your IDE. It runs [whisper.cpp](https://github.com/ggml-org/whisper.cpp) **entirely on your Mac**, so your voice never leaves your machine. Prefer your own server? Point it at any **OpenAI-compatible transcription API** instead.
 
-It's the free, private alternative to paid dictation tools — built with SwiftUI, for Apple Silicon. And it has a twist: **the entire codebase is vibe-coded by AI agents**, with a human steering the product.
+It's the free, private alternative to paid dictation tools — built with SwiftUI, for Apple Silicon. And it shines brightest in the AI era: **dictate your prompts into Claude Code, Cursor, or ChatGPT** instead of typing them.
 
 ## ⬇️ Download
 
@@ -58,6 +58,7 @@ It's the free, private alternative to paid dictation tools — built with SwiftU
 
 | | |
 |---|---|
+| 🤖 **Voice-prompt your AI agents** | Hold the key in Claude Code, Cursor, or ChatGPT and just say the prompt — speaking beats typing for long, context-rich instructions. |
 | 🌊 **Floating widget with live waveform** | A draggable, always-on-top pill with exactly two moods: the brand mark at rest, and a 7-band voice-reactive waveform while you speak. |
 | 🔒 **100% private, offline speech-to-text** | On-device Whisper transcription. Audio is never persisted, never uploaded, never logged. |
 | ⌨️ **Global push-to-talk hotkey** | Hold Fn/Globe (or any key/modifier chord you record) to dictate into whatever app is focused. |
@@ -136,8 +137,8 @@ The build isn't notarized yet. Right-click the app → <b>Open</b> → <b>Open</
 </details>
 
 <details>
-<summary><b>Was this app really written entirely by AI?</b></summary>
-Yes. Every line of Swift, every test, and all the release tooling came from AI agents (Claude Code) directed through conversation — see <a href="#-100-vibe-coded--built-by-ai-agents">how it's built</a>. The commit history is the receipt.
+<summary><b>Can I use it to talk to Claude Code, Cursor, or ChatGPT?</b></summary>
+Yes — that's the headline use case. WinterVoice inserts text wherever your cursor is, so any agent input works: terminals, IDE chat panels, browser chatbots. Hold the key, speak the prompt, release, press Enter.
 </details>
 
 <details>
@@ -155,19 +156,23 @@ Tiny, Base, and Small — each in multilingual (incl. Vietnamese) and English-on
 
 Full architecture & product spec: [docs/architecture-spec.md](docs/architecture-spec.md)
 
-## 🤖 100% Vibe-Coded — Built by AI Agents
+## 🤖 Made for Vibe Coding — Talk to Your AI Agents
 
-WinterVoice is a real, shipping macOS app where **AI agents wrote every line**: the Swift 6 codebase, the VIPER architecture, the tests, the release tooling, the dmg installer design, this README — even the demo GIF was filmed by an agent driving the app. [Winter](https://github.com/winterzxzz) steers the product with plain-language feedback ("the widget shows too many states, make it calmer"); the agents design, implement, test, and ship.
+Typing long prompts is the bottleneck of vibe coding. WinterVoice removes it: **hold a key, describe what you want, release** — your words land in the agent's input box, ready to send.
 
-**The agent stack:**
+Works with every agent, because WinterVoice types wherever your cursor is:
 
-- **[Claude Code](https://claude.com/claude-code)** — Anthropic's coding agent (Claude Fable 5) doing the actual engineering: architecture, Swift, debugging, releases
-- **codegraph MCP** — a code-intelligence graph the agent queries instead of grepping
-- **[whisper.cpp](https://github.com/ggml-org/whisper.cpp)** — the on-device speech engine underneath it all
+- **Claude Code & terminal agents** — dictate instructions straight into the terminal
+- **Cursor · Windsurf · VS Code Copilot** — speak entire feature requests into the chat panel
+- **ChatGPT · Claude · Gemini** — brain-dump context, specs, and bug reports hands-free
+- **Code review & issues** — narrate PR comments and GitHub issues instead of typing them
 
-**Proof it's not a toy:** browse the [commit history](https://github.com/winterzxzz/winter_voice/commits/main) — every commit is co-authored by the AI, with messages documenting real engineering: Swift 6 concurrency traps on the audio thread, Liquid Glass rendering quirks, TCC permission flows, dyld signing mismatches. Vibe coding isn't autocomplete; it's delegation.
+**Why voice-prompt your agents?**
 
-If you're evaluating what AI agents can build today, this repo is a live answer: a native, privacy-first macOS utility with global hotkeys, Accessibility text insertion, and on-device ML — shipped by conversation.
+- Speaking is ~3× faster than typing — you give richer prompts with more context, and richer prompts get better output
+- Long prompts stop feeling like a chore, so you actually write them
+- The personal dictionary fixes misheard jargon once ("j son" → "JSON", "winter voice" → "WinterVoice")
+- Transcription runs 100% offline — your prompts stay on your Mac until you press Enter
 
 ## 🤝 Contributing
 
@@ -186,5 +191,5 @@ No license has been selected yet.
 ---
 
 <div align="center">
-<sub><b>Keywords:</b> macOS dictation app · speech to text Mac · voice typing macOS · offline transcription · whisper.cpp GUI · Whisper macOS · Vietnamese speech recognition · push-to-talk dictation · private voice-to-text · free Mac dictation software · vibe coding · AI-built app · Claude Code project · AI agent software engineering</sub>
+<sub><b>Keywords:</b> macOS dictation app · speech to text Mac · voice typing macOS · offline transcription · whisper.cpp GUI · Whisper macOS · Vietnamese speech recognition · push-to-talk dictation · private voice-to-text · free Mac dictation software · vibe coding voice input · dictate AI prompts · talk to Claude Code · Cursor voice input · voice to text for ChatGPT</sub>
 </div>

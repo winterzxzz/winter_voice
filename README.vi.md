@@ -8,7 +8,7 @@
 
 Giữ phím. Nói. Thả tay. Chữ hiện ra trong bất kỳ app nào — 100% offline, không tài khoản, không trả phí.
 
-🤖 **100% vibe-code** — từng dòng code của app Swift native này đều do AI agent viết. [Bằng cách nào? →](#-100-vibe-code--xây-bởi-ai-agent)
+🤖 **Sinh ra cho vibe coding** — nói prompt thẳng vào Claude Code, Cursor, ChatGPT hay bất kỳ AI agent nào, thay vì gõ. [Xem cách dùng →](#-sinh-ra-cho-vibe-coding--nói-chuyện-với-ai-agent)
 
 **Tiếng Việt · English · hơn 90 ngôn ngữ**
 
@@ -19,7 +19,7 @@ Giữ phím. Nói. Thả tay. Chữ hiện ra trong bất kỳ app nào — 100%
 [![macOS 14+](https://img.shields.io/badge/macOS-14%2B-black?logo=apple)](https://github.com/winterzxzz/winter_voice/releases/latest)
 [![Apple Silicon](https://img.shields.io/badge/Apple%20Silicon-native-orange)](https://github.com/winterzxzz/winter_voice/releases/latest)
 [![Swift 6](https://img.shields.io/badge/Swift-6-F05138?logo=swift&logoColor=white)](WinterVoice)
-[![Vibe-code với Claude Code](https://img.shields.io/badge/🤖_vibe--code_với-Claude_Code-D97757)](#-100-vibe-code--xây-bởi-ai-agent)
+[![Voice input cho AI agent](https://img.shields.io/badge/🎙️_voice_input_cho-AI_agents-D97757)](#-sinh-ra-cho-vibe-coding--nói-chuyện-với-ai-agent)
 [![GitHub stars](https://img.shields.io/github/stars/winterzxzz/winter_voice?style=social)](https://github.com/winterzxzz/winter_voice/stargazers)
 
 [English](README.md) · **Tiếng Việt**
@@ -34,7 +34,7 @@ Giữ phím. Nói. Thả tay. Chữ hiện ra trong bất kỳ app nào — 100%
 
 WinterVoice là **ứng dụng nhận dạng giọng nói native cho macOS**: bạn nói, app gõ chữ vào *bất kỳ* ứng dụng nào đang mở — Slack, Notes, trình duyệt, IDE. Toàn bộ quá trình chuyển giọng nói thành văn bản chạy bằng [whisper.cpp](https://github.com/ggml-org/whisper.cpp) **ngay trên máy của bạn** — giọng nói không bao giờ rời khỏi Mac. Muốn dùng server riêng? Trỏ tới bất kỳ **API kiểu OpenAI** nào cũng được.
 
-Đây là lựa chọn miễn phí, riêng tư thay cho các app dictation trả phí — viết bằng SwiftUI, tối ưu cho Apple Silicon, và **hỗ trợ tiếng Việt** ngon lành. Kèm một điểm đặc biệt: **toàn bộ codebase do AI agent vibe-code**, con người chỉ cầm lái sản phẩm.
+Đây là lựa chọn miễn phí, riêng tư thay cho các app dictation trả phí — viết bằng SwiftUI, tối ưu cho Apple Silicon, và **hỗ trợ tiếng Việt** ngon lành. Và toả sáng nhất trong thời AI: **đọc prompt vào Claude Code, Cursor hay ChatGPT** thay vì ngồi gõ.
 
 ## ⬇️ Tải về
 
@@ -58,6 +58,7 @@ WinterVoice là **ứng dụng nhận dạng giọng nói native cho macOS**: b�
 
 | | |
 |---|---|
+| 🤖 **Nói prompt cho AI agent** | Giữ phím trong Claude Code, Cursor hay ChatGPT rồi nói prompt — với chỉ dẫn dài, nhiều ngữ cảnh, nói nhanh hơn gõ nhiều. |
 | 🌊 **Widget nổi với waveform trực tiếp** | Viên pill kéo-thả, luôn nổi trên cùng, chỉ có đúng 2 trạng thái: logo khi nghỉ, và waveform 7 thanh nhảy theo giọng khi bạn nói. |
 | 🔒 **Nhận dạng giọng nói 100% offline** | Whisper chạy trên máy. Âm thanh không bao giờ được lưu, không upload, không log. |
 | ⌨️ **Phím tắt push-to-talk toàn hệ thống** | Giữ Fn/Globe (hoặc tự gán phím/tổ hợp phím bất kỳ) để đọc vào app đang focus. |
@@ -136,8 +137,8 @@ Bản build chưa được notarize. Chuột phải vào app → <b>Open</b> →
 </details>
 
 <details>
-<summary><b>App này thật sự do AI viết toàn bộ à?</b></summary>
-Thật. Từng dòng Swift, từng test, toàn bộ tooling phát hành đều từ AI agent (Claude Code) được điều khiển bằng hội thoại — xem <a href="#-100-vibe-code--xây-bởi-ai-agent">cách xây</a>. Commit history là biên lai.
+<summary><b>Dùng để nói chuyện với Claude Code, Cursor, ChatGPT được không?</b></summary>
+Được — đó chính là use case số một. WinterVoice chèn chữ vào bất cứ đâu con trỏ đang đứng: terminal, khung chat trong IDE, chatbot trên trình duyệt. Giữ phím, nói prompt, thả tay, Enter.
 </details>
 
 <details>
@@ -155,19 +156,23 @@ Tiny, Base và Small — mỗi loại có bản đa ngôn ngữ (gồm tiếng V
 
 Tài liệu kiến trúc đầy đủ: [docs/architecture-spec.md](docs/architecture-spec.md)
 
-## 🤖 100% Vibe-Code — Xây Bởi AI Agent
+## 🤖 Sinh Ra Cho Vibe Coding — Nói Chuyện Với AI Agent
 
-WinterVoice là app macOS thật, đang ship thật, mà **AI agent viết từng dòng code**: codebase Swift 6, kiến trúc VIPER, test, tooling phát hành, thiết kế installer dmg, README này — đến cả GIF demo cũng do agent tự điều khiển app để quay. [Winter](https://github.com/winterzxzz) cầm lái bằng phản hồi thường ngày ("widget nhiều trạng thái quá, làm nó đằm lại"); agent tự thiết kế, code, test và ship.
+Gõ prompt dài chính là nút thắt của vibe coding. WinterVoice gỡ nút đó: **giữ phím, mô tả thứ bạn muốn, thả tay** — chữ nằm sẵn trong ô nhập của agent, chỉ việc Enter.
 
-**Bộ đồ nghề agent:**
+Chạy với mọi agent, vì WinterVoice gõ vào bất cứ đâu con trỏ đang đứng:
 
-- **[Claude Code](https://claude.com/claude-code)** — coding agent của Anthropic (Claude Fable 5) làm phần kỹ thuật thật sự: kiến trúc, Swift, debug, release
-- **codegraph MCP** — graph code-intelligence để agent tra cứu thay vì grep
-- **[whisper.cpp](https://github.com/ggml-org/whisper.cpp)** — engine nhận dạng giọng nói on-device bên dưới
+- **Claude Code & agent chạy terminal** — đọc chỉ dẫn thẳng vào terminal
+- **Cursor · Windsurf · VS Code Copilot** — nói nguyên một yêu cầu tính năng vào khung chat
+- **ChatGPT · Claude · Gemini** — xả ngữ cảnh, spec, mô tả bug mà không cần chạm bàn phím
+- **Review code & issue** — đọc comment PR, viết GitHub issue bằng miệng
 
-**Bằng chứng không phải đồ chơi:** đọc [commit history](https://github.com/winterzxzz/winter_voice/commits/main) — commit nào cũng có AI co-author, message ghi lại kỹ thuật thật: bẫy concurrency Swift 6 trên audio thread, quirk render Liquid Glass, luồng quyền TCC, lỗi ký dyld. Vibe coding không phải autocomplete; nó là giao việc.
+**Vì sao nên nói prompt thay vì gõ?**
 
-Nếu bạn đang tự hỏi AI agent hôm nay xây được gì, repo này là câu trả lời sống: một utility macOS native, riêng tư, có hotkey toàn hệ thống, chèn chữ qua Accessibility và ML on-device — ship bằng hội thoại.
+- Nói nhanh hơn gõ ~3 lần — prompt giàu ngữ cảnh hơn, mà prompt giàu ngữ cảnh thì output tốt hơn
+- Prompt dài không còn là cực hình, nên bạn sẽ chịu khó viết prompt tử tế
+- Từ điển cá nhân sửa thuật ngữ nghe nhầm một lần là xong ("j son" → "JSON", "winter voice" → "WinterVoice")
+- Nhận dạng chạy 100% offline — prompt nằm nguyên trên máy cho tới khi bạn bấm Enter
 
 ## 🤝 Đóng góp
 
@@ -186,5 +191,5 @@ Chưa chọn giấy phép.
 ---
 
 <div align="center">
-<sub><b>Từ khoá:</b> app đọc chính tả macOS · chuyển giọng nói thành văn bản Mac · gõ văn bản bằng giọng nói · nhận dạng tiếng Việt offline · whisper.cpp GUI · Whisper macOS · speech to text tiếng Việt · voice typing Mac miễn phí · vibe coding · app do AI viết · dự án Claude Code</sub>
+<sub><b>Từ khoá:</b> app đọc chính tả macOS · chuyển giọng nói thành văn bản Mac · gõ văn bản bằng giọng nói · nhận dạng tiếng Việt offline · whisper.cpp GUI · Whisper macOS · speech to text tiếng Việt · voice typing Mac miễn phí · voice input cho vibe coding · đọc prompt cho AI · nói chuyện với Claude Code · voice input Cursor · nói thay gõ ChatGPT</sub>
 </div>
