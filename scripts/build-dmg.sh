@@ -10,6 +10,10 @@ DERIVED_DATA="build/DerivedData-Release"
 DMG_PATH="build/WinterVoice.dmg"
 VOLUME_NAME="WinterVoice"
 
+# Start from a clean products dir: an earlier scheme-based build embeds
+# XCTest frameworks and the test bundle into the app, which must not ship.
+rm -rf "$DERIVED_DATA/Build/Products"
+
 # Build only the app target: the shared scheme also builds WinterVoiceTests,
 # which cannot compile against a Release (non-testable) WinterVoice module.
 xcodebuild \
@@ -27,11 +31,14 @@ if [[ ! -d "$APP_PATH" ]]; then
   exit 1
 fi
 
-# Strip any test bundles a previous scheme-based build embedded as plug-ins;
-# they are not shippable and break deep signing.
-rm -rf "$APP_PATH/Contents/PlugIns/"*.xctest
-
-codesign --force --deep --options runtime --sign - "$APP_PATH"
+# Ad-hoc sign nested code first, then the app. Hardened runtime is left off:
+# its library validation refuses ad-hoc-signed frameworks (whisper.framework),
+# which makes the app fail at launch with a dyld Team ID mismatch.
+find "$APP_PATH/Contents/Frameworks" -maxdepth 1 \( -name "*.framework" -o -name "*.dylib" \) 2>/dev/null \
+  | while IFS= read -r nested; do
+      codesign --force --sign - "$nested"
+    done
+codesign --force --sign - "$APP_PATH"
 
 STAGING_DIR="$(mktemp -d)"
 trap 'rm -rf "$STAGING_DIR"' EXIT
