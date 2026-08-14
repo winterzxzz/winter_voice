@@ -23,8 +23,6 @@ Hold a key. Speak. Release. Your words appear in any app — 100% offline, no su
 [![Voice input for AI agents](https://img.shields.io/badge/🎙️_voice_input_for-AI_agents-D97757)](#-made-for-vibe-coding--talk-to-your-ai-agents)
 [![GitHub stars](https://img.shields.io/github/stars/winterzxzz/winter_voice?style=social)](https://github.com/winterzxzz/winter_voice/stargazers)
 
-**English** · [Tiếng Việt](README.vi.md)
-
 <img src="docs/assets/widget-demo.gif" width="640" alt="WinterVoice floating widget demo — hold a key, speak into the live waveform, and the transcribed text is inserted into any macOS app" />
 
 </div>
