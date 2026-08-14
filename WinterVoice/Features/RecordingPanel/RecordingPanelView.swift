@@ -97,18 +97,24 @@ struct RecordingPanelView: View {
                 .foregroundStyle(.orange)
                 .padding(.top, 1)
             VStack(alignment: .leading, spacing: 3) {
+                // The panel is sized from `fittingSize`, which measures at the
+                // ideal width — for plain Text that is one unwrapped line, so
+                // longer failures rendered as a single truncated "…" line.
+                // Pinning the ideal width and letting the text take its full
+                // wrapped height keeps every failure fully readable.
                 Text(failure.message)
                     .font(.wv(13, .semibold))
                     .foregroundStyle(.white)
+                    .fixedSize(horizontal: false, vertical: true)
                 Text(failure.recovery)
                     .font(.wv(11))
                     .foregroundStyle(.white.opacity(0.65))
-                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
         .padding(.horizontal, 18)
         .padding(.vertical, 12)
-        .frame(maxWidth: 400, alignment: .leading)
+        .frame(idealWidth: 400, maxWidth: 400, alignment: .leading)
         .background(panelBackground(in: RoundedRectangle(cornerRadius: 18, style: .continuous)))
     }
 
