@@ -12,66 +12,155 @@ struct OnboardingView: View {
     var body: some View {
         let permission = presenter.currentPermission
         let status = dictationPresenter.permissions[permission]
-        let total = AppPermission.allCases.count
-        VStack(alignment: .leading, spacing: 24) {
-            HStack(spacing: 12) {
-                WVBrandMark(size: 34)
-                VStack(alignment: .leading, spacing: 1) {
-                    Text("Set up WinterVoice").font(.wv(22, .semibold)).foregroundStyle(Theme.textPrimary)
-                    Text("Step \(presenter.pageIndex + 1) of \(total)").font(.wvCaption).foregroundStyle(Theme.textSecondary)
-                }
-                Spacer()
+        VStack(spacing: 0) {
+            header
+            Spacer(minLength: 20)
+            heroCard(for: permission, status: status)
+            Spacer(minLength: 20)
+            footer
+        }
+        .padding(36)
+        .frame(minWidth: 760, minHeight: 560)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background {
+            ZStack {
+                WVCanvasBackground()
+                // The splash's accent bloom carries into setup so the two
+                // screens read as one welcome sequence.
+                RadialGradient(
+                    colors: [Theme.accent.opacity(0.10), .clear],
+                    center: .top,
+                    startRadius: 20,
+                    endRadius: 420
+                )
             }
+            .ignoresSafeArea()
+        }
+        .tint(Theme.accent)
+        .preferredColorScheme(Theme.mode.colorScheme)
+        .wvWindowChrome()
+        .onAppear { presenter.refresh() }
+    }
 
-            ProgressView(value: Double(presenter.pageIndex + 1), total: Double(total))
-                .tint(Theme.accent)
+    // MARK: - Header
 
-            WVCard(padding: 24) {
-                VStack(alignment: .leading, spacing: 14) {
-                    WVIconBadge(systemImage: icon(for: permission), tint: Theme.accent, size: 48)
-                    Text(permission.title).font(.wv(20, .semibold)).foregroundStyle(Theme.textPrimary)
-                    Text(permission.explanation)
-                        .font(.wv(14))
-                        .foregroundStyle(Theme.textSecondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                    WVStatusPill(
-                        text: status.rawValue,
-                        color: status == .authorized ? Theme.success : Theme.warning,
-                        filled: true
-                    )
-
-                    if status != .authorized {
-                        HStack(spacing: 10) {
-                            if status == .notDetermined || requiresSystemManagedRequest(permission) {
-                                Button("Request \(permission.title)") { presenter.request(permission) }
-                                    .buttonStyle(.wvPrimary)
-                            }
-                            if status != .notDetermined || requiresSystemManagedRequest(permission) {
-                                Button("Open System Settings") { presenter.openSystemSettings(for: permission) }
-                                    .buttonStyle(.wvSecondary)
-                            }
-                        }
-                        .padding(.top, 2)
-                        Text(recoveryText(for: permission, status: status))
-                            .font(.wvCaption)
-                            .foregroundStyle(Theme.textSecondary)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-
-                    if let requestMessage = dictationPresenter.permissionRequestMessage(for: permission) {
-                        Label(
-                            requestMessage,
-                            systemImage: requestMessage.hasPrefix("Requesting")
-                                ? "arrow.triangle.2.circlepath"
-                                : status == .authorized ? "checkmark.circle.fill" : "info.circle"
-                        )
-                        .font(.wvCaption)
-                        .foregroundStyle(status == .authorized ? Theme.success : Theme.textSecondary)
-                    }
-                }
+    private var header: some View {
+        HStack(alignment: .center, spacing: 12) {
+            WVBrandMark(size: 36)
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Set up WinterVoice")
+                    .font(.wv(21, .semibold))
+                    .foregroundStyle(Theme.textPrimary)
+                Text("Three permissions, then your voice types everywhere.")
+                    .font(.wvCaption)
+                    .foregroundStyle(Theme.textSecondary)
             }
-
             Spacer()
+            stepChips
+        }
+    }
+
+    private var stepChips: some View {
+        HStack(spacing: 8) {
+            ForEach(Array(AppPermission.allCases.enumerated()), id: \.element) { index, permission in
+                let isAuthorized = dictationPresenter.permissions[permission] == .authorized
+                let isCurrent = index == presenter.pageIndex
+                HStack(spacing: 5) {
+                    Image(systemName: isAuthorized ? "checkmark.circle.fill" : icon(for: permission))
+                        .font(.system(size: 11, weight: .semibold))
+                    Text(permission.title)
+                        .font(.wv(11, .medium))
+                        .lineLimit(1)
+                }
+                .foregroundStyle(
+                    isAuthorized ? Theme.success : isCurrent ? Theme.textPrimary : Theme.textTertiary
+                )
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
+                .background {
+                    if isCurrent {
+                        Capsule()
+                            .fill(Theme.surfaceElevated)
+                            .overlay(Capsule().strokeBorder(Theme.borderStrong, lineWidth: 1))
+                    }
+                }
+            }
+        }
+    }
+
+    // MARK: - Hero
+
+    private func heroCard(for permission: AppPermission, status: PermissionStatus) -> some View {
+        WVCard(padding: 30) {
+            VStack(spacing: 14) {
+                ZStack {
+                    Circle()
+                        .fill(Theme.accent.opacity(0.16))
+                        .frame(width: 112, height: 112)
+                        .blur(radius: 26)
+                    WVIconBadge(systemImage: icon(for: permission), tint: Theme.accent, size: 64)
+                }
+                .padding(.top, 4)
+
+                Text(permission.title)
+                    .font(.wv(24, .semibold))
+                    .foregroundStyle(Theme.textPrimary)
+
+                Text(permission.explanation)
+                    .font(.wv(13.5))
+                    .foregroundStyle(Theme.textSecondary)
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .frame(maxWidth: 440)
+
+                WVStatusPill(
+                    text: status.rawValue,
+                    color: status == .authorized ? Theme.success : Theme.warning,
+                    filled: true
+                )
+
+                if status != .authorized {
+                    HStack(spacing: 10) {
+                        if status == .notDetermined || requiresSystemManagedRequest(permission) {
+                            Button("Request \(permission.title)") { presenter.request(permission) }
+                                .buttonStyle(.wvPrimary)
+                        }
+                        if status != .notDetermined || requiresSystemManagedRequest(permission) {
+                            Button("Open System Settings") { presenter.openSystemSettings(for: permission) }
+                                .buttonStyle(.wvSecondary)
+                        }
+                    }
+                    .padding(.top, 4)
+
+                    Text(recoveryText(for: permission, status: status))
+                        .font(.wvCaption)
+                        .foregroundStyle(Theme.textTertiary)
+                        .multilineTextAlignment(.center)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .frame(maxWidth: 500)
+                }
+
+                if let requestMessage = dictationPresenter.permissionRequestMessage(for: permission) {
+                    Label(
+                        requestMessage,
+                        systemImage: requestMessage.hasPrefix("Requesting")
+                            ? "arrow.triangle.2.circlepath"
+                            : status == .authorized ? "checkmark.circle.fill" : "info.circle"
+                    )
+                    .font(.wvCaption)
+                    .foregroundStyle(status == .authorized ? Theme.success : Theme.textSecondary)
+                    .multilineTextAlignment(.center)
+                }
+            }
+            .frame(maxWidth: .infinity)
+        }
+        .frame(maxWidth: 620)
+    }
+
+    // MARK: - Footer
+
+    private var footer: some View {
+        VStack(spacing: 10) {
             HStack(spacing: 10) {
                 Button("Back") { presenter.back() }
                     .buttonStyle(.wvGhost)
@@ -88,15 +177,8 @@ struct OnboardingView: View {
             Text("Deferring never marks setup complete. Reopen this guide from Permissions at any time.")
                 .font(.wvCaption)
                 .foregroundStyle(Theme.textTertiary)
+                .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .padding(40)
-        .frame(minWidth: 760, minHeight: 520)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .background(Theme.canvas)
-        .tint(Theme.accent)
-        .preferredColorScheme(Theme.mode.colorScheme)
-        .wvWindowChrome()
-        .onAppear { presenter.refresh() }
     }
 
     private func requiresSystemManagedRequest(_ permission: AppPermission) -> Bool {

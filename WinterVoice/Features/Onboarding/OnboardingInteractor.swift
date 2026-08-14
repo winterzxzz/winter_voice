@@ -29,7 +29,13 @@ final class OnboardingInteractor {
         self.completionStore = completionStore
     }
 
-    var shouldPresentOnLaunch: Bool { !completionStore.isComplete }
+    /// Setup presents until it has been completed once — and again whenever
+    /// required permissions are missing at launch, so a copy whose grants
+    /// were revoked (update, new signature, Settings change) reopens the
+    /// guide instead of booting into a shell that cannot dictate.
+    func shouldPresentOnLaunch(permissions: PermissionSnapshot) -> Bool {
+        !completionStore.isComplete || OnboardingProgress(permissions: permissions) != .ready
+    }
 
     func complete(with permissions: PermissionSnapshot) -> Bool {
         guard OnboardingProgress(permissions: permissions) == .ready else {

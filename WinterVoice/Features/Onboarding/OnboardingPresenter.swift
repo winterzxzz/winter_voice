@@ -14,7 +14,9 @@ final class OnboardingPresenter: ObservableObject {
     ) {
         self.dictationPresenter = dictationPresenter
         self.interactor = interactor
-        isPresented = interactor.shouldPresentOnLaunch
+        isPresented = interactor.shouldPresentOnLaunch(
+            permissions: dictationPresenter.permissions
+        )
     }
 
     var progress: OnboardingProgress {

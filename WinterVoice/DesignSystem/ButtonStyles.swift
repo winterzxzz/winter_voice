@@ -6,14 +6,21 @@ struct WVPrimaryButtonStyle: ButtonStyle {
     @Environment(\.isEnabled) private var isEnabled
 
     func makeBody(configuration: Configuration) -> some View {
-        configuration.label
+        let shape = RoundedRectangle(cornerRadius: Theme.Radius.control, style: .continuous)
+        let emphasisAlpha: CGFloat = configuration.isPressed ? 0.82 : (isEnabled ? 1 : 0.35)
+        return configuration.label
             .font(.wv(13, .semibold))
             .foregroundStyle(Theme.textOnEmphasis)
             .padding(.horizontal, 14)
             .padding(.vertical, 7)
+            // The glass tint can only lighten its material, so the Light
+            // theme's near-black emphasis rendered as a washed-out gray;
+            // the fill is painted solid above the glass, keeping the glass
+            // beneath for the rim and hover shimmer.
+            .background(shape.fill(Theme.emphasis.opacity(emphasisAlpha)))
             .wvSurface(
-                in: RoundedRectangle(cornerRadius: Theme.Radius.control, style: .continuous),
-                fill: Theme.emphasis.opacity(configuration.isPressed ? 0.82 : (isEnabled ? 1 : 0.35)),
+                in: shape,
+                fill: Theme.emphasis.opacity(emphasisAlpha),
                 glassTint: Theme.emphasis.opacity(configuration.isPressed ? 0.75 : (isEnabled ? 0.95 : 0.35)),
                 interactive: true
             )

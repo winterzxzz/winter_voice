@@ -43,7 +43,7 @@ final class OnboardingTests: XCTestCase {
 
         XCTAssertFalse(subject.complete(with: snapshot(microphone: .denied)))
         XCTAssertFalse(store.isComplete)
-        XCTAssertTrue(subject.shouldPresentOnLaunch)
+        XCTAssertTrue(subject.shouldPresentOnLaunch(permissions: snapshot(microphone: .denied)))
     }
 
     func testAuthorizedCompletionPersistsAndSkipsOrdinaryLaunch() {
@@ -52,7 +52,7 @@ final class OnboardingTests: XCTestCase {
 
         XCTAssertTrue(subject.complete(with: authorizedSnapshot))
         XCTAssertTrue(store.isComplete)
-        XCTAssertFalse(subject.shouldPresentOnLaunch)
+        XCTAssertFalse(subject.shouldPresentOnLaunch(permissions: authorizedSnapshot))
     }
 
     func testDeferralDoesNotPersistCompletion() {
@@ -62,7 +62,7 @@ final class OnboardingTests: XCTestCase {
         subject.deferForNow()
 
         XCTAssertFalse(store.isComplete)
-        XCTAssertTrue(subject.shouldPresentOnLaunch)
+        XCTAssertTrue(subject.shouldPresentOnLaunch(permissions: authorizedSnapshot))
     }
 
     func testResetRestoresOnboardingEvenAfterSuccessfulCompletion() {
@@ -72,7 +72,15 @@ final class OnboardingTests: XCTestCase {
         subject.resetCompletion()
 
         XCTAssertFalse(store.isComplete)
-        XCTAssertTrue(subject.shouldPresentOnLaunch)
+        XCTAssertTrue(subject.shouldPresentOnLaunch(permissions: authorizedSnapshot))
+    }
+
+    func testCompletedSetupPresentsAgainWhenPermissionsWereRevoked() {
+        let store = CompletionStoreSpy(isComplete: true)
+        let subject = OnboardingInteractor(completionStore: store)
+
+        XCTAssertFalse(subject.shouldPresentOnLaunch(permissions: authorizedSnapshot))
+        XCTAssertTrue(subject.shouldPresentOnLaunch(permissions: snapshot(accessibility: .denied)))
     }
 
     private var authorizedSnapshot: PermissionSnapshot {
