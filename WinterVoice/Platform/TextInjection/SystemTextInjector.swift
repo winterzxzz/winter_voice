@@ -150,17 +150,20 @@ final class SystemTextInjector: TextInjecting {
     private let pasteboard: PasteboardSession
     private let postPasteKeystroke: () throws -> Void
     private let sleep: (Duration) async throws -> Void
+    private let directTextWriter: (AXUIElement, String) -> Bool
 
     init(
         targetLocator: FocusedAccessibilityTargetLocating = SystemFocusedAccessibilityTargetLocator(),
         pasteboard: PasteboardSession = SystemPasteboardSession(),
         postPasteKeystroke: (() throws -> Void)? = nil,
-        sleep: ((Duration) async throws -> Void)? = nil
+        sleep: ((Duration) async throws -> Void)? = nil,
+        directTextWriter: ((AXUIElement, String) -> Bool)? = nil
     ) {
         self.targetLocator = targetLocator
         self.pasteboard = pasteboard
         self.postPasteKeystroke = postPasteKeystroke ?? Self.postCommandV
         self.sleep = sleep ?? { try await Task.sleep(for: $0) }
+        self.directTextWriter = directTextWriter ?? Self.verifiedDirectWrite
     }
 
     func captureTarget() throws -> TextInsertionTarget {
@@ -183,8 +186,7 @@ final class SystemTextInjector: TextInjecting {
         }
         try await activateAndVerify(captured)
         let outcome = InsertionOutcome(landedInSecureField: captured.isSecureField)
-        if let element = captured.element,
-           AXUIElementSetAttributeValue(element, kAXSelectedTextAttribute as CFString, text as CFTypeRef) == .success {
+        if let element = captured.element, directTextWriter(element, text) {
             targets[target.id] = nil
             return outcome
         }
@@ -253,6 +255,31 @@ final class SystemTextInjector: TextInjecting {
     private func restore(_ priorItems: [PasteboardItemSnapshot], ifChangeCountIs expectedChangeCount: Int) {
         guard pasteboard.changeCount == expectedChangeCount else { return }
         pasteboard.restoreItems(priorItems)
+    }
+
+    /// Writes via AXSelectedText and confirms the write actually landed.
+    /// Terminal emulators answer `.success` for this write while routing
+    /// nothing to the shell, which ended the dictation "successfully" with
+    /// no text on screen; an unsettable, unverifiable, or no-op write now
+    /// falls through to the clipboard paste path instead.
+    private static func verifiedDirectWrite(into element: AXUIElement, text: String) -> Bool {
+        var settable = DarwinBoolean(false)
+        guard AXUIElementIsAttributeSettable(element, kAXSelectedTextAttribute as CFString, &settable) == .success,
+              settable.boolValue else { return false }
+        var beforeValue: CFTypeRef?
+        guard AXUIElementCopyAttributeValue(element, kAXNumberOfCharactersAttribute as CFString, &beforeValue) == .success,
+              let before = beforeValue as? Int else { return false }
+        guard AXUIElementSetAttributeValue(element, kAXSelectedTextAttribute as CFString, text as CFTypeRef) == .success else {
+            return false
+        }
+        var afterValue: CFTypeRef?
+        guard AXUIElementCopyAttributeValue(element, kAXNumberOfCharactersAttribute as CFString, &afterValue) == .success,
+              let after = afterValue as? Int else { return false }
+        // An unchanged character count means the write was swallowed. (A
+        // caret-collapsed insertion always grows the count; dictation starts
+        // from the caret, so a same-length selection replacement misreading
+        // as a no-op is accepted over silently losing terminal dictations.)
+        return after != before
     }
 
     private static func postCommandV() throws {
