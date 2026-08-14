@@ -824,7 +824,7 @@ struct AppSettingsView: View {
         sectionCard("Updates", trailing: {
             if updates.state == .checking {
                 ProgressView().controlSize(.small)
-            } else {
+            } else if !updates.state.isInstallBusy {
                 Button("Check for Updates") { updates.checkNow() }
                     .buttonStyle(.wvSecondary)
             }
@@ -833,13 +833,20 @@ struct AppSettingsView: View {
                 title: "WinterVoice v\(updates.currentVersion)",
                 caption: updateCaption
             ) {
-                if case .available = updates.state {
+                switch updates.state {
+                case .available:
                     WVStatusPill(text: "Update available", color: Theme.accent, filled: true)
-                } else if updates.state == .upToDate {
+                case .downloading, .installing:
+                    WVStatusPill(text: "Updating", color: Theme.accent, filled: true)
+                case .installFailed:
+                    WVStatusPill(text: "Update failed", color: Theme.warning)
+                case .upToDate:
                     WVStatusPill(text: "Up to date", color: Theme.success)
+                case .idle, .checking, .failed:
+                    EmptyView()
                 }
             }
-            if case .available(let update) = updates.state {
+            if let update = updates.state.activeUpdate {
                 updateCard(update)
             }
         }
@@ -850,7 +857,10 @@ struct AppSettingsView: View {
         case .idle: "Checks GitHub Releases once a day."
         case .checking: "Checking GitHub Releases…"
         case .upToDate: "You're on the latest version."
-        case .available(let update): "Version \(update.version) is ready to download."
+        case .available(let update): "Version \(update.version) is ready to install."
+        case .downloading(let update, _): "Downloading version \(update.version)…"
+        case .installing: "Installing… WinterVoice will relaunch in a moment."
+        case .installFailed(_, let message): message
         case .failed(let message): message
         }
     }
@@ -887,14 +897,37 @@ struct AppSettingsView: View {
                     }
                 }
             }
-            HStack(spacing: 10) {
-                Button("Download Update") { updates.download(update) }
-                    .buttonStyle(.wvPrimary)
-                Button("View Release") { updates.viewRelease(update) }
-                    .buttonStyle(.wvSecondary)
-                Button("Skip This Version") { updates.skip(update) }
-                    .buttonStyle(.wvGhost)
-                Spacer(minLength: 0)
+            switch updates.state {
+            case .downloading(_, let fraction):
+                VStack(alignment: .leading, spacing: 6) {
+                    ProgressView(value: fraction).tint(Theme.accent)
+                    Text("Downloading… \(Int(fraction * 100))%")
+                        .font(.wvCaption)
+                        .foregroundStyle(Theme.textSecondary)
+                }
+            case .installing:
+                ProgressView("Installing… WinterVoice will relaunch in a moment.")
+                    .controlSize(.small)
+            case .installFailed:
+                HStack(spacing: 10) {
+                    Button("Download in Browser") { updates.download(update) }
+                        .buttonStyle(.wvPrimary)
+                    Button("Try Again") { updates.install(update) }
+                        .buttonStyle(.wvSecondary)
+                    Button("View Release") { updates.viewRelease(update) }
+                        .buttonStyle(.wvGhost)
+                    Spacer(minLength: 0)
+                }
+            default:
+                HStack(spacing: 10) {
+                    Button("Update Now") { updates.install(update) }
+                        .buttonStyle(.wvPrimary)
+                    Button("View Release") { updates.viewRelease(update) }
+                        .buttonStyle(.wvSecondary)
+                    Button("Skip This Version") { updates.skip(update) }
+                        .buttonStyle(.wvGhost)
+                    Spacer(minLength: 0)
+                }
             }
         }
         .padding(14)

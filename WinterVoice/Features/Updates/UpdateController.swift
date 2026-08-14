@@ -6,7 +6,30 @@ enum UpdateCheckState: Equatable {
     case checking
     case upToDate
     case available(AvailableUpdate)
+    case downloading(AvailableUpdate, Double)
+    case installing(AvailableUpdate)
+    case installFailed(AvailableUpdate, String)
     case failed(String)
+
+    /// The release an update banner or card should show, across the whole
+    /// discovered → downloading → installing → failed lifecycle.
+    var activeUpdate: AvailableUpdate? {
+        switch self {
+        case .available(let update), .downloading(let update, _),
+             .installing(let update), .installFailed(let update, _):
+            update
+        case .idle, .checking, .upToDate, .failed:
+            nil
+        }
+    }
+
+    /// An install is underway; checks and further installs must not stomp it.
+    var isInstallBusy: Bool {
+        switch self {
+        case .downloading, .installing: true
+        default: false
+        }
+    }
 }
 
 /// Drives the "Updates" section in Settings: launch-time discovery of new
@@ -16,6 +39,7 @@ final class UpdateController: ObservableObject {
     @Published private(set) var state: UpdateCheckState = .idle
 
     private let checker: UpdateChecking
+    private let installer: UpdateInstalling
     private let defaults: UserDefaults
     private let openURL: (URL) -> Void
     private let now: () -> Date
@@ -31,11 +55,13 @@ final class UpdateController: ObservableObject {
 
     init(
         checker: UpdateChecking? = nil,
+        installer: UpdateInstalling? = nil,
         defaults: UserDefaults = .standard,
         openURL: ((URL) -> Void)? = nil,
         now: (() -> Date)? = nil
     ) {
         self.checker = checker ?? GitHubUpdateChecker()
+        self.installer = installer ?? DMGUpdateInstaller()
         self.defaults = defaults
         self.openURL = openURL ?? { NSWorkspace.shared.open($0) }
         self.now = now ?? Date.init
@@ -61,7 +87,7 @@ final class UpdateController: ObservableObject {
     /// Manual check from Settings: always reports, and clears any skip so the
     /// user sees the release they explicitly asked about.
     func checkNow() {
-        guard state != .checking else { return }
+        guard state != .checking, !state.isInstallBusy else { return }
         state = .checking
         defaults.removeObject(forKey: Self.skippedVersionKey)
         Task {
@@ -78,6 +104,45 @@ final class UpdateController: ObservableObject {
         }
     }
 
+    /// One-click update: download the release image in-process, verify it,
+    /// swap the bundle in place, and relaunch. Falls back to the browser
+    /// download when in-place install is impossible here (translocated or
+    /// unwritable bundle, dev build, release without a .dmg asset).
+    func install(_ update: AvailableUpdate) {
+        guard !state.isInstallBusy else { return }
+        guard update.downloadURL != nil, installer.installBlocker() == nil else {
+            download(update)
+            return
+        }
+        state = .downloading(update, 0)
+        Task {
+            do {
+                try await installer.install(update) { [weak self] phase in
+                    Task { @MainActor in self?.apply(phase, for: update) }
+                }
+                state = .installing(update)
+                installer.relaunchAndTerminate()
+            } catch {
+                let message = (error as? UpdateInstallError)?.errorDescription
+                    ?? error.localizedDescription
+                state = .installFailed(update, message)
+            }
+        }
+    }
+
+    /// Phase callbacks hop to the main actor, so a stale download tick can
+    /// land after the install advanced; it must not drag the state backwards.
+    private func apply(_ phase: UpdateInstallPhase, for update: AvailableUpdate) {
+        switch phase {
+        case .downloading(let fraction):
+            if case .downloading = state { state = .downloading(update, fraction) }
+        case .installing:
+            if state.isInstallBusy { state = .installing(update) }
+        }
+    }
+
+    /// Browser fallback: hands the .dmg (or the release page) to the default
+    /// browser, the pre-0.4 manual flow.
     func download(_ update: AvailableUpdate) {
         openURL(update.downloadURL ?? update.releaseURL)
     }

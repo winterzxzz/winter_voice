@@ -92,7 +92,7 @@ final class GitHubUpdateChecker: UpdateChecking {
         return collected
     }
 
-    static func normalize(_ version: String) -> String {
+    nonisolated static func normalize(_ version: String) -> String {
         var normalized = version.trimmingCharacters(in: .whitespaces)
         if normalized.lowercased().hasPrefix("v") { normalized.removeFirst() }
         return normalized
@@ -100,7 +100,7 @@ final class GitHubUpdateChecker: UpdateChecking {
 
     /// Numeric dotted comparison; missing components count as 0, non-numeric
     /// components as 0 ("0.4.0-beta" ranks as 0.4.0).
-    static func isVersion(_ candidate: String, newerThan current: String) -> Bool {
+    nonisolated static func isVersion(_ candidate: String, newerThan current: String) -> Bool {
         func components(_ version: String) -> [Int] {
             version.split(separator: "-").first.map(String.init).map {
                 $0.split(separator: ".").map { Int($0) ?? 0 }

@@ -54,6 +54,9 @@ struct MenuBarView: View {
     }
 
     private var updateMenuTitle: String {
+        if shellPresenter.updates.state.isInstallBusy {
+            return "Updating WinterVoice…"
+        }
         if case .available(let update) = shellPresenter.updates.state {
             return "Update Available: v\(update.version)…"
         }

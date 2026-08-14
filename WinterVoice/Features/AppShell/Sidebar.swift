@@ -108,7 +108,7 @@ struct WVSidebar: View {
 
             Spacer(minLength: 0)
 
-            if case .available(let update) = updates.state {
+            if let update = updates.state.activeUpdate {
                 if isExpanded {
                     updateBanner(update)
                 } else {
@@ -132,52 +132,59 @@ struct WVSidebar: View {
 
     private var listening: Bool { dictationPresenter.hotkeyHealth == .listening }
 
-    /// Notification card for the launch-time update discovery: title, blurb,
-    /// a direct Download action, and a dismiss that skips this version — no
-    /// Settings visit needed.
+    /// Notification card for the whole update lifecycle: discovery with a
+    /// one-click Update action, in-card download progress, the brief
+    /// installing beat before relaunch, and a browser fallback on failure —
+    /// no Settings visit needed.
     private func updateBanner(_ update: AvailableUpdate) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(alignment: .top, spacing: 8) {
                 WVBrandMark(size: 20)
-                Text("New version available")
+                Text(bannerTitle)
                     .font(.wv(12.5, .semibold))
                     .foregroundStyle(Theme.textPrimary)
                 Spacer(minLength: 0)
-                Button { updates.skip(update) } label: {
-                    Image(systemName: "xmark")
-                        .font(.system(size: 9, weight: .semibold))
-                        .foregroundStyle(Theme.textTertiary)
-                        .contentShape(Rectangle())
+                if !updates.state.isInstallBusy {
+                    Button { updates.skip(update) } label: {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 9, weight: .semibold))
+                            .foregroundStyle(Theme.textTertiary)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .focusEffectDisabled()
+                    .help("Skip this version")
                 }
-                .buttonStyle(.plain)
-                .focusEffectDisabled()
-                .help("Skip this version")
             }
 
-            Text("Version \(update.version) is ready to download.")
-                .font(.wv(11))
-                .foregroundStyle(Theme.textSecondary)
-                .fixedSize(horizontal: false, vertical: true)
-
-            Button { updates.download(update) } label: {
-                HStack(spacing: 4) {
-                    Text("Download")
-                    Image(systemName: "arrow.right")
-                        .font(.system(size: 9, weight: .semibold))
-                }
-                .font(.wv(11.5, .semibold))
-                .foregroundStyle(Theme.accent)
-                .padding(.horizontal, 10)
-                .padding(.vertical, 5)
-                .background {
-                    RoundedRectangle(cornerRadius: Theme.Radius.chip, style: .continuous)
-                        .fill(Theme.accent.opacity(0.14))
-                }
-                .contentShape(Rectangle())
+            switch updates.state {
+            case .downloading(_, let fraction):
+                ProgressView(value: fraction)
+                    .tint(Theme.accent)
+                    .controlSize(.small)
+                Text("Downloading version \(update.version)… \(Int(fraction * 100))%")
+                    .font(.wv(11))
+                    .foregroundStyle(Theme.textSecondary)
+            case .installing:
+                ProgressView()
+                    .controlSize(.small)
+                Text("Installing… WinterVoice will relaunch in a moment.")
+                    .font(.wv(11))
+                    .foregroundStyle(Theme.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            case .installFailed(_, let message):
+                Text(message)
+                    .font(.wv(11))
+                    .foregroundStyle(Theme.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                bannerAction("Download in Browser") { updates.download(update) }
+            default:
+                Text("Version \(update.version) is ready to install.")
+                    .font(.wv(11))
+                    .foregroundStyle(Theme.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                bannerAction("Update Now") { updates.install(update) }
             }
-            .buttonStyle(.plain)
-            .focusEffectDisabled()
-            .padding(.top, 2)
         }
         .padding(10)
         .background {
@@ -192,21 +199,66 @@ struct WVSidebar: View {
         .padding(.bottom, 8)
     }
 
-    /// Collapsed-rail version of the update banner: just the accent glyph;
-    /// clicking starts the download directly, same as the expanded card.
-    private func collapsedUpdateBadge(_ update: AvailableUpdate) -> some View {
-        Button { updates.download(update) } label: {
-            Image(systemName: "arrow.down.circle.fill")
-                .font(.system(size: 16, weight: .medium))
-                .foregroundStyle(Theme.accent)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 6)
-                .contentShape(Rectangle())
+    private var bannerTitle: String {
+        switch updates.state {
+        case .downloading: "Updating WinterVoice"
+        case .installing: "Almost there"
+        case .installFailed: "Automatic update failed"
+        default: "New version available"
+        }
+    }
+
+    private func bannerAction(_ title: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            HStack(spacing: 4) {
+                Text(title)
+                Image(systemName: "arrow.right")
+                    .font(.system(size: 9, weight: .semibold))
+            }
+            .font(.wv(11.5, .semibold))
+            .foregroundStyle(Theme.accent)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 5)
+            .background {
+                RoundedRectangle(cornerRadius: Theme.Radius.chip, style: .continuous)
+                    .fill(Theme.accent.opacity(0.14))
+            }
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .focusEffectDisabled()
-        .padding(.bottom, 4)
-        .help("Update available: version \(update.version)")
+        .padding(.top, 2)
+    }
+
+    /// Collapsed-rail version of the update banner: the accent glyph starts
+    /// the one-click install; a live install shows a spinner instead.
+    @ViewBuilder
+    private func collapsedUpdateBadge(_ update: AvailableUpdate) -> some View {
+        if updates.state.isInstallBusy {
+            ProgressView()
+                .controlSize(.small)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 6)
+                .padding(.bottom, 4)
+                .help("Updating to version \(update.version)…")
+        } else {
+            Button { updates.install(update) } label: {
+                Image(systemName: badgeSymbol)
+                    .font(.system(size: 16, weight: .medium))
+                    .foregroundStyle(Theme.accent)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 6)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .focusEffectDisabled()
+            .padding(.bottom, 4)
+            .help("Update available: version \(update.version)")
+        }
+    }
+
+    private var badgeSymbol: String {
+        if case .installFailed = updates.state { "exclamationmark.circle.fill" } else { "arrow.down.circle.fill" }
     }
 
     private var footer: some View {
