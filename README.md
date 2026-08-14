@@ -8,6 +8,8 @@
 
 Hold a key. Speak. Release. Your words appear in any app — 100% offline, no subscription, no account.
 
+🤖 **100% vibe-coded** — every line of this native Swift app was written by AI agents. [How? →](#-100-vibe-coded--built-by-ai-agents)
+
 **English · Tiếng Việt · 90+ languages**
 
 [**⬇️ Download for Mac (.dmg)**](https://github.com/winterzxzz/winter_voice/releases/latest)
@@ -17,6 +19,7 @@ Hold a key. Speak. Release. Your words appear in any app — 100% offline, no su
 [![macOS 14+](https://img.shields.io/badge/macOS-14%2B-black?logo=apple)](https://github.com/winterzxzz/winter_voice/releases/latest)
 [![Apple Silicon](https://img.shields.io/badge/Apple%20Silicon-native-orange)](https://github.com/winterzxzz/winter_voice/releases/latest)
 [![Swift 6](https://img.shields.io/badge/Swift-6-F05138?logo=swift&logoColor=white)](WinterVoice)
+[![Vibe-coded with Claude Code](https://img.shields.io/badge/🤖_vibe--coded_with-Claude_Code-D97757)](#-100-vibe-coded--built-by-ai-agents)
 [![GitHub stars](https://img.shields.io/github/stars/winterzxzz/winter_voice?style=social)](https://github.com/winterzxzz/winter_voice/stargazers)
 
 **English** · [Tiếng Việt](README.vi.md)
@@ -31,7 +34,7 @@ Hold a key. Speak. Release. Your words appear in any app — 100% offline, no su
 
 WinterVoice is a **native macOS dictation app** that turns your voice into text in *any* application — Slack, Notes, your browser, your IDE. It runs [whisper.cpp](https://github.com/ggml-org/whisper.cpp) **entirely on your Mac**, so your voice never leaves your machine. Prefer your own server? Point it at any **OpenAI-compatible transcription API** instead.
 
-It's the free, private alternative to paid dictation tools — built with SwiftUI, for Apple Silicon.
+It's the free, private alternative to paid dictation tools — built with SwiftUI, for Apple Silicon. And it has a twist: **the entire codebase is vibe-coded by AI agents**, with a human steering the product.
 
 ## ⬇️ Download
 
@@ -133,6 +136,11 @@ The build isn't notarized yet. Right-click the app → <b>Open</b> → <b>Open</
 </details>
 
 <details>
+<summary><b>Was this app really written entirely by AI?</b></summary>
+Yes. Every line of Swift, every test, and all the release tooling came from AI agents (Claude Code) directed through conversation — see <a href="#-100-vibe-coded--built-by-ai-agents">how it's built</a>. The commit history is the receipt.
+</details>
+
+<details>
 <summary><b>Which Whisper models are available?</b></summary>
 Tiny, Base, and Small — each in multilingual (incl. Vietnamese) and English-only variants, downloaded from official whisper.cpp sources and verified against published SHA-256 checksums.
 </details>
@@ -147,15 +155,19 @@ Tiny, Base, and Small — each in multilingual (incl. Vietnamese) and English-on
 
 Full architecture & product spec: [docs/architecture-spec.md](docs/architecture-spec.md)
 
-## 🤖 Vibe-coded with AI
+## 🤖 100% Vibe-Coded — Built by AI Agents
 
-WinterVoice is built end-to-end with **vibe coding** — [Claude Code](https://claude.com/claude-code) (Anthropic's Claude, Fable 5) writes the Swift, the tests, the release tooling, this README, and even the demo GIF pipeline, with [Winter](https://github.com/winterzxzz) steering the product. Tools in the loop:
+WinterVoice is a real, shipping macOS app where **AI agents wrote every line**: the Swift 6 codebase, the VIPER architecture, the tests, the release tooling, the dmg installer design, this README — even the demo GIF was filmed by an agent driving the app. [Winter](https://github.com/winterzxzz) steers the product with plain-language feedback ("the widget shows too many states, make it calmer"); the agents design, implement, test, and ship.
 
-- **[Claude Code](https://claude.com/claude-code)** — AI pair programmer driving the whole codebase
-- **codegraph MCP** — a code-intelligence graph the AI queries instead of grepping
+**The agent stack:**
+
+- **[Claude Code](https://claude.com/claude-code)** — Anthropic's coding agent (Claude Fable 5) doing the actual engineering: architecture, Swift, debugging, releases
+- **codegraph MCP** — a code-intelligence graph the agent queries instead of grepping
 - **[whisper.cpp](https://github.com/ggml-org/whisper.cpp)** — the on-device speech engine underneath it all
 
-If you're curious what a fully vibe-coded native macOS app looks like, read the commit history — every commit is co-authored with the AI.
+**Proof it's not a toy:** browse the [commit history](https://github.com/winterzxzz/winter_voice/commits/main) — every commit is co-authored by the AI, with messages documenting real engineering: Swift 6 concurrency traps on the audio thread, Liquid Glass rendering quirks, TCC permission flows, dyld signing mismatches. Vibe coding isn't autocomplete; it's delegation.
+
+If you're evaluating what AI agents can build today, this repo is a live answer: a native, privacy-first macOS utility with global hotkeys, Accessibility text insertion, and on-device ML — shipped by conversation.
 
 ## 🤝 Contributing
 
@@ -174,5 +186,5 @@ No license has been selected yet.
 ---
 
 <div align="center">
-<sub><b>Keywords:</b> macOS dictation app · speech to text Mac · voice typing macOS · offline transcription · whisper.cpp GUI · Whisper macOS · Vietnamese speech recognition · push-to-talk dictation · private voice-to-text · free Mac dictation software</sub>
+<sub><b>Keywords:</b> macOS dictation app · speech to text Mac · voice typing macOS · offline transcription · whisper.cpp GUI · Whisper macOS · Vietnamese speech recognition · push-to-talk dictation · private voice-to-text · free Mac dictation software · vibe coding · AI-built app · Claude Code project · AI agent software engineering</sub>
 </div>
