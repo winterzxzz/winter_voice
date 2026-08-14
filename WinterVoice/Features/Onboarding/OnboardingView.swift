@@ -98,7 +98,7 @@ struct OnboardingView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .background(Theme.canvas)
         .tint(Theme.accent)
-        .preferredColorScheme(.dark)
+        .preferredColorScheme(Theme.mode.colorScheme)
         .wvWindowChrome()
         .onAppear { presenter.refresh() }
     }

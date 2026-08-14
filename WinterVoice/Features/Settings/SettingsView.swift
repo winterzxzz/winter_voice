@@ -17,6 +17,7 @@ struct AppSettingsView: View {
     @ObservedObject private var models: ModelManager
     @ObservedObject private var widgetPreferences: WidgetPreferences
     @StateObject private var launchAtLogin = LaunchAtLoginModel()
+    @ObservedObject private var theme = ThemeStore.shared
     @State private var activeMicrophoneName: String?
     /// A preset chip the user tapped whose model is still downloading; selected
     /// automatically once the install lands.
@@ -43,6 +44,7 @@ struct AppSettingsView: View {
             microphoneSection
             behaviorSection
             widgetSection
+            themeSection
             permissionsSection
             privacySection
         }
@@ -438,19 +440,128 @@ struct AppSettingsView: View {
         sectionCard("Floating Widget") {
             settingRow(
                 title: "Show widget",
-                caption: "The pill that shows recording status."
+                caption: visibilityCaption
             ) {
                 WVChipPicker(
                     selection: $widgetPreferences.visibility,
                     options: WidgetVisibility.allCases,
-                    label: { $0.title }
+                    label: { $0.title },
+                    grouped: true
                 )
             }
             WVDivider()
+            settingRow(
+                title: "Follow cursor across monitors",
+                caption: "Jumps to the monitor your cursor is on."
+            ) {
+                Toggle("", isOn: $widgetPreferences.followsCursor)
+                    .toggleStyle(.wv)
+                    .labelsHidden()
+            }
+            WVDivider()
+            settingRow(
+                title: "Lock position",
+                caption: "Pin the pill above the dock and stop dragging."
+            ) {
+                Toggle("", isOn: $widgetPreferences.isLocked)
+                    .toggleStyle(.wv)
+                    .labelsHidden()
+            }
+            VStack(alignment: .leading, spacing: 8) {
+                Text("STYLE")
+                    .font(.wvOverline)
+                    .tracking(0.6)
+                    .foregroundStyle(Theme.textTertiary)
+                HStack(spacing: 12) {
+                    ForEach(WidgetStyle.allCases, id: \.self) { style in
+                        styleOptionCard(style)
+                    }
+                }
+                .padding(.top, 4)
+            }
             Text("Drag the pill to move it. Press Cmd + Shift + Space to bring it to the front.")
                 .font(.wvCaption)
                 .foregroundStyle(Theme.textTertiary)
                 .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    private var visibilityCaption: String {
+        switch widgetPreferences.visibility {
+        case .always: "The pill stays on screen."
+        case .whileRecording: "Appears only while you record."
+        case .hidden: "The pill never appears."
+        }
+    }
+
+    /// One reference style tile: a bordered card holding a miniature of the
+    /// idle pill, with a check badge on the selected corner.
+    private func styleOptionCard(_ style: WidgetStyle) -> some View {
+        let selected = widgetPreferences.style == style
+        let shape = RoundedRectangle(cornerRadius: Theme.Radius.row, style: .continuous)
+        return Button {
+            widgetPreferences.style = style
+        } label: {
+            stylePreviewPill(style)
+                .frame(maxWidth: .infinity, minHeight: 64)
+                .background(shape.fill(Theme.inset))
+                .overlay(
+                    shape.strokeBorder(
+                        selected ? Theme.chipSelectedBorder : Theme.border,
+                        lineWidth: selected ? 1.5 : 1
+                    )
+                )
+                .overlay(alignment: .topTrailing) {
+                    if selected {
+                        Circle()
+                            .fill(Theme.emphasis)
+                            .frame(width: 20, height: 20)
+                            .overlay(
+                                Image(systemName: "checkmark")
+                                    .font(.system(size: 10, weight: .bold))
+                                    .foregroundStyle(Theme.textOnEmphasis)
+                            )
+                            .offset(x: 6, y: -6)
+                    }
+                }
+                .contentShape(shape)
+        }
+        .buttonStyle(.plain)
+        .focusEffectDisabled()
+        .padding(.top, 6)
+    }
+
+    /// Miniature of what the idle widget looks like in each style.
+    @ViewBuilder
+    private func stylePreviewPill(_ style: WidgetStyle) -> some View {
+        let pill = Capsule().fill(Color(hex: 0x0A0A0B))
+        let border = Capsule().strokeBorder(Color.white.opacity(0.12), lineWidth: 1)
+        switch style {
+        case .labeled:
+            HStack(spacing: 6) {
+                WVBrandMark(size: 15)
+                Text("WinterVoice")
+                    .font(.wv(11.5, .semibold))
+                    .foregroundStyle(.white)
+            }
+            .padding(.horizontal, 11)
+            .padding(.vertical, 6)
+            .background(pill)
+            .overlay(border)
+        case .icon:
+            WVBrandMark(size: 15)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
+                .background(pill)
+                .overlay(border)
+        case .minimal:
+            Image(systemName: "waveform")
+                .font(.system(size: 9, weight: .semibold))
+                .foregroundStyle(.white.opacity(0.8))
+                .padding(.horizontal, 9)
+                .padding(.vertical, 5)
+                .background(pill)
+                .overlay(border)
         }
     }
 
@@ -474,6 +585,81 @@ struct AppSettingsView: View {
             Spacer(minLength: Theme.Space.md)
             trailing()
         }
+    }
+
+    // MARK: Theme
+
+    private var themeSection: some View {
+        sectionCard("Theme") {
+            HStack(spacing: 12) {
+                ForEach(ThemeMode.allCases) { mode in
+                    themeOptionCard(mode)
+                }
+            }
+        }
+    }
+
+    /// One reference theme tile: a mini palette swatch and label, with a check
+    /// badge on the selected option.
+    private func themeOptionCard(_ mode: ThemeMode) -> some View {
+        let selected = theme.mode == mode
+        let shape = RoundedRectangle(cornerRadius: Theme.Radius.row, style: .continuous)
+        return Button {
+            theme.mode = mode
+        } label: {
+            HStack(spacing: 10) {
+                themeSwatch(mode)
+                Text(mode.title)
+                    .font(.wvRowTitle)
+                    .foregroundStyle(Theme.textPrimary)
+                Spacer(minLength: 0)
+                if selected {
+                    Circle()
+                        .fill(Theme.emphasis)
+                        .frame(width: 20, height: 20)
+                        .overlay(
+                            Image(systemName: "checkmark")
+                                .font(.system(size: 10, weight: .bold))
+                                .foregroundStyle(Theme.textOnEmphasis)
+                        )
+                }
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 12)
+            .frame(maxWidth: .infinity)
+            .background(shape.fill(selected ? Theme.surfaceElevated : Theme.inset))
+            .overlay(
+                shape.strokeBorder(
+                    selected ? Theme.chipSelectedBorder : Theme.border,
+                    lineWidth: selected ? 1.5 : 1
+                )
+            )
+            .contentShape(shape)
+        }
+        .buttonStyle(.plain)
+        .focusEffectDisabled()
+    }
+
+    /// Miniature toggle-style preview of the mode's palette.
+    private func themeSwatch(_ mode: ThemeMode) -> some View {
+        let background: Color = mode == .black ? Color(hex: 0x0A0A0A) : .white
+        let dot: Color = mode == .black ? .white : Color(hex: 0x18181B)
+        return Capsule()
+            .fill(background)
+            .frame(width: 36, height: 20)
+            .overlay(Capsule().strokeBorder(Theme.borderStrong, lineWidth: 1))
+            .overlay(alignment: .leading) {
+                Circle()
+                    .fill(dot)
+                    .frame(width: 12, height: 12)
+                    .padding(.leading, 4)
+            }
+            .overlay(alignment: .trailing) {
+                Circle()
+                    .fill(dot.opacity(0.35))
+                    .frame(width: 7, height: 7)
+                    .padding(.trailing, 6)
+            }
     }
 
     // MARK: Permissions
@@ -598,6 +784,7 @@ final class LaunchAtLoginModel: ObservableObject {
 
 struct SettingsView: View {
     @ObservedObject var presenter: DictationPresenter
+    @ObservedObject private var theme = ThemeStore.shared
 
     var body: some View {
         ScrollView {
@@ -619,7 +806,8 @@ struct SettingsView: View {
         .frame(width: 620, height: 470)
         .background(Theme.canvas)
         .tint(Theme.accent)
-        .preferredColorScheme(.dark)
+        .preferredColorScheme(theme.mode.colorScheme)
+        .id(theme.mode)
         .onAppear { presenter.refreshPermissions() }
     }
 }

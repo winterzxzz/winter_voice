@@ -188,7 +188,7 @@ private struct DictionaryTermSheet: View {
         .frame(width: 440)
         .background(Theme.canvas)
         .tint(Theme.accent)
-        .preferredColorScheme(.dark)
+        .preferredColorScheme(Theme.mode.colorScheme)
     }
 
     private func save() {

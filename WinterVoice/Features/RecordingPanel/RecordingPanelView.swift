@@ -3,6 +3,7 @@ import SwiftUI
 struct RecordingPanelView: View {
     @ObservedObject var presenter: DictationPresenter
     let levelMeter: AudioLevelMeter
+    var style: WidgetStyle = .labeled
     var onToggle: () -> Void = {}
     var onDragDelta: (CGSize) -> Void = { _ in }
     var onDragEnded: () -> Void = {}
@@ -71,19 +72,41 @@ struct RecordingPanelView: View {
         }
     }
 
-    /// BridgeVoice-style resting state: a small always-on-top pill.
+    /// BridgeVoice-style resting state: a small always-on-top pill whose look
+    /// follows the Style picker in Settings.
     /// Double-click starts a dictation; drag moves the widget.
+    @ViewBuilder
     private var idlePill: some View {
-        HStack(spacing: 7) {
-            Image(systemName: "waveform")
-                .font(.system(size: 12, weight: .semibold))
-                .foregroundStyle(.white.opacity(0.85))
+        Group {
+            switch style {
+            case .labeled:
+                HStack(spacing: 7) {
+                    WVBrandMark(size: 17)
+                    Text("WinterVoice")
+                        .font(.wv(12.5, .semibold))
+                        .foregroundStyle(.white)
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 7)
+                .frame(minHeight: 32)
+                .background(panelBackground(in: Capsule()))
+            case .icon:
+                WVBrandMark(size: 17)
+                    .padding(.horizontal, 11)
+                    .padding(.vertical, 7)
+                    .frame(minHeight: 32)
+                    .background(panelBackground(in: Capsule()))
+            case .minimal:
+                Image(systemName: "waveform")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(.white.opacity(0.85))
+                    .padding(.horizontal, 11)
+                    .padding(.vertical, 6)
+                    .frame(minHeight: 26)
+                    .background(panelBackground(in: Capsule()))
+            }
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 8)
-        .frame(minHeight: 30)
-        .background(panelBackground(in: Capsule()))
-        .opacity(0.92)
+        .opacity(0.95)
         .help("Double-click to start dictation. \(presenter.hotkeyInstruction).")
     }
 

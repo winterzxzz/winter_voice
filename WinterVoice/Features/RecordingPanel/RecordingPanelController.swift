@@ -17,6 +17,16 @@ enum WidgetVisibility: String, CaseIterable, Codable, Sendable {
     }
 }
 
+/// Visual treatment of the idle pill — the reference "Style" picker.
+enum WidgetStyle: String, CaseIterable, Codable, Sendable {
+    /// Logo tile plus the wordmark.
+    case labeled
+    /// Logo tile only.
+    case icon
+    /// A tiny glyph-only pill.
+    case minimal
+}
+
 /// Persisted preferences for the floating widget, shared between the Settings
 /// screen and the panel controller.
 @MainActor
@@ -24,14 +34,32 @@ final class WidgetPreferences: ObservableObject {
     @Published var visibility: WidgetVisibility {
         didSet { defaults.set(visibility.rawValue, forKey: Self.visibilityKey) }
     }
+    @Published var style: WidgetStyle {
+        didSet { defaults.set(style.rawValue, forKey: Self.styleKey) }
+    }
+    /// Jump to the monitor the cursor is on whenever the pill is shown.
+    @Published var followsCursor: Bool {
+        didSet { defaults.set(followsCursor, forKey: Self.followsCursorKey) }
+    }
+    /// Pin the pill above the dock and ignore dragging.
+    @Published var isLocked: Bool {
+        didSet { defaults.set(isLocked, forKey: Self.lockedKey) }
+    }
 
     private static let visibilityKey = "widget.visibility"
+    private static let styleKey = "widget.style"
+    private static let followsCursorKey = "widget.followsCursor"
+    private static let lockedKey = "widget.locked"
     private let defaults: UserDefaults
 
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
         visibility = defaults.string(forKey: Self.visibilityKey)
             .flatMap(WidgetVisibility.init(rawValue:)) ?? .always
+        style = defaults.string(forKey: Self.styleKey)
+            .flatMap(WidgetStyle.init(rawValue:)) ?? .labeled
+        followsCursor = defaults.bool(forKey: Self.followsCursorKey)
+        isLocked = defaults.bool(forKey: Self.lockedKey)
     }
 }
 
@@ -44,9 +72,12 @@ final class RecordingPanelController {
     private let hostingView: NSHostingView<RecordingPanelView>
     private let defaults: UserDefaults
     private let preferences: WidgetPreferences
+    private let presenter: DictationPresenter
+    private let levelMeter: AudioLevelMeter
     private var hasPositioned = false
     private var latestState: DictationState = .idle
     private var visibility: WidgetVisibility
+    private var style: WidgetStyle
     private var cancellables = Set<AnyCancellable>()
 
     init(
@@ -56,7 +87,10 @@ final class RecordingPanelController {
         defaults: UserDefaults = .standard
     ) {
         self.preferences = preferences
+        self.presenter = presenter
+        self.levelMeter = levelMeter
         visibility = preferences.visibility
+        style = preferences.style
         self.defaults = defaults
         panel = NSPanel(
             contentRect: NSRect(x: 0, y: 0, width: 120, height: 80),
@@ -74,17 +108,12 @@ final class RecordingPanelController {
         // The SwiftUI pill draws its own shadow; an NSWindow shadow around a
         // transparent canvas would draw a visible rectangle.
         panel.hasShadow = false
-        let view = RecordingPanelView(presenter: presenter, levelMeter: levelMeter)
-        let hosting = NSHostingView(rootView: view)
+        let hosting = NSHostingView(
+            rootView: RecordingPanelView(presenter: presenter, levelMeter: levelMeter)
+        )
         hostingView = hosting
         panel.contentView = hosting
-        hosting.rootView = RecordingPanelView(
-            presenter: presenter,
-            levelMeter: levelMeter,
-            onToggle: { presenter.toggleDictation() },
-            onDragDelta: { [weak self] delta in self?.moveBy(delta) },
-            onDragEnded: { [weak self] in self?.persistPosition() }
-        )
+        applyRootView()
         presenter.$state
             .sink { [weak self] state in
                 self?.latestState = state
@@ -97,6 +126,33 @@ final class RecordingPanelController {
                 self?.render()
             }
             .store(in: &cancellables)
+        preferences.$style
+            .sink { [weak self] style in
+                self?.style = style
+                self?.applyRootView()
+                self?.render()
+            }
+            .store(in: &cancellables)
+        preferences.$isLocked
+            .dropFirst()
+            .sink { [weak self] locked in
+                guard let self else { return }
+                if locked, panel.isVisible { pinAboveDock() }
+            }
+            .store(in: &cancellables)
+    }
+
+    /// Reassigning the root view (instead of observing preferences inside it)
+    /// keeps `fittingSize` deterministic when the style changes.
+    private func applyRootView() {
+        hostingView.rootView = RecordingPanelView(
+            presenter: presenter,
+            levelMeter: levelMeter,
+            style: style,
+            onToggle: { [presenter] in presenter.toggleDictation() },
+            onDragDelta: { [weak self] delta in self?.moveBy(delta) },
+            onDragEnded: { [weak self] in self?.persistPosition() }
+        )
     }
 
     /// Bring the pill to the front without changing state — the fixed
@@ -126,7 +182,34 @@ final class RecordingPanelController {
             positionInitially()
             hasPositioned = true
         }
+        if preferences.isLocked {
+            pinAboveDock()
+        } else if preferences.followsCursor,
+                  let target = cursorScreen(),
+                  panel.screen?.frame != target.frame {
+            dockBottomCenter(of: target)
+        }
         panel.orderFrontRegardless()
+    }
+
+    /// The screen currently under the mouse cursor.
+    private func cursorScreen() -> NSScreen? {
+        let mouse = NSEvent.mouseLocation
+        return NSScreen.screens.first { NSMouseInRect(mouse, $0.frame, false) }
+    }
+
+    /// Snap to the bottom-center of the relevant screen, just above the dock.
+    private func pinAboveDock() {
+        let screen = (preferences.followsCursor ? cursorScreen() : nil)
+            ?? panel.screen ?? NSScreen.main ?? NSScreen.screens.first
+        guard let screen else { return }
+        dockBottomCenter(of: screen)
+    }
+
+    private func dockBottomCenter(of screen: NSScreen) {
+        let frame = screen.visibleFrame
+        let size = panel.frame.size
+        panel.setFrameOrigin(NSPoint(x: frame.midX - size.width / 2, y: frame.minY + 12))
     }
 
     private func fitToContent() {
@@ -150,12 +233,14 @@ final class RecordingPanelController {
     }
 
     private func moveBy(_ delta: CGSize) {
+        guard !preferences.isLocked else { return }
         // SwiftUI drag deltas are y-down; AppKit origins are y-up.
         let origin = panel.frame.origin
         panel.setFrameOrigin(NSPoint(x: origin.x + delta.width, y: origin.y - delta.height))
     }
 
     private func persistPosition() {
+        guard !preferences.isLocked else { return }
         defaults.set(Double(panel.frame.origin.x), forKey: Self.originXKey)
         defaults.set(Double(panel.frame.origin.y), forKey: Self.originYKey)
     }

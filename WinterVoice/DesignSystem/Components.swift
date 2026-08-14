@@ -45,6 +45,31 @@ struct WVIconBadge: View {
     }
 }
 
+// MARK: - Brand mark
+
+/// The app logo square: a blue gradient tile with the waveform glyph. Used in
+/// the titlebar, the floating widget, and the widget style previews.
+struct WVBrandMark: View {
+    var size: CGFloat = 19
+
+    var body: some View {
+        RoundedRectangle(cornerRadius: size * 0.29, style: .continuous)
+            .fill(
+                LinearGradient(
+                    colors: [Theme.accent, Color(hex: 0x1D4ED8)],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+            )
+            .frame(width: size, height: size)
+            .overlay(
+                Image(systemName: "waveform")
+                    .font(.system(size: size * 0.5, weight: .bold))
+                    .foregroundStyle(.white)
+            )
+    }
+}
+
 // MARK: - Section header
 
 /// The header at the top of a screen: icon badge, title, subtitle, and an
@@ -189,8 +214,8 @@ struct WVDivider: View {
 
 // MARK: - Toggle
 
-/// The reference switch: white track with a dark knob when on, dark track with
-/// a gray knob when off.
+/// The reference switch: an emphasis-filled track with a contrasting knob when
+/// on, a muted track with a gray knob when off.
 struct WVToggleStyle: ToggleStyle {
     @Environment(\.isEnabled) private var isEnabled
 
@@ -201,11 +226,11 @@ struct WVToggleStyle: ToggleStyle {
             HStack(spacing: 8) {
                 configuration.label
                 Capsule()
-                    .fill(configuration.isOn ? Color.white : Color.white.opacity(0.14))
+                    .fill(configuration.isOn ? Theme.emphasis : Theme.toggleOffFill)
                     .frame(width: 38, height: 22)
                     .overlay(alignment: configuration.isOn ? .trailing : .leading) {
                         Circle()
-                            .fill(configuration.isOn ? Theme.textOnWhite : Color(hex: 0xA8A8AD))
+                            .fill(configuration.isOn ? Theme.textOnEmphasis : Theme.toggleKnobOff)
                             .frame(width: 16, height: 16)
                             .padding(3)
                     }

@@ -5,6 +5,12 @@ struct AppShellView: View {
     let onboardingPresenter: OnboardingPresenter
     @Environment(\.scenePhase) private var scenePhase
 
+    /// Driven by the titlebar toggle button; shared through UserDefaults
+    /// because the button lives in the titlebar accessory's own view tree.
+    /// The sidebar itself reads the same key and animates between its full
+    /// and icon-only rail widths.
+    @AppStorage(SidebarVisibility.key) private var sidebarExpanded = true
+
     var body: some View {
         HStack(spacing: 0) {
             WVSidebar(presenter: presenter)
@@ -15,9 +21,10 @@ struct AppShellView: View {
                 // strip above the content stays pure black like the reference.
                 .background(Theme.canvas, ignoresSafeAreaEdges: [])
         }
+        .animation(.spring(response: 0.28, dampingFraction: 0.95), value: sidebarExpanded)
         .frame(minWidth: 860, minHeight: 560)
         .tint(Theme.accent)
-        .preferredColorScheme(.dark)
+        .preferredColorScheme(Theme.mode.colorScheme)
         .wvWindowChrome()
         .onAppear { presenter.refresh() }
         .onChange(of: scenePhase) { _, phase in

@@ -357,7 +357,7 @@ private final class HotkeyRecorderView: NSButton {
             pendingModifierFlags.formUnion(active)
             setTitle(
                 "\(HotkeyBinding.modifierChord(pendingModifierFlags).title) · release",
-                color: .white
+                color: NSColor(Theme.textPrimary)
             )
             invalidateIntrinsicContentSize()
             return
@@ -383,14 +383,14 @@ private final class HotkeyRecorderView: NSButton {
 
     private func refreshAppearance() {
         if isRecording {
-            layer?.backgroundColor = NSColor(white: 1, alpha: 0.1).cgColor
+            layer?.backgroundColor = NSColor(Theme.textPrimary).withAlphaComponent(0.1).cgColor
             layer?.borderWidth = 1
-            layer?.borderColor = NSColor(white: 1, alpha: 0.25).cgColor
-            setTitle("Press keys…", color: .white)
+            layer?.borderColor = NSColor(Theme.textPrimary).withAlphaComponent(0.25).cgColor
+            setTitle("Press keys…", color: NSColor(Theme.textPrimary))
         } else {
-            layer?.backgroundColor = NSColor.white.cgColor
+            layer?.backgroundColor = NSColor(Theme.emphasis).cgColor
             layer?.borderWidth = 0
-            setTitle("Change", color: NSColor(srgbRed: 0.04, green: 0.04, blue: 0.043, alpha: 1))
+            setTitle("Change", color: NSColor(Theme.textOnEmphasis))
         }
         invalidateIntrinsicContentSize()
     }

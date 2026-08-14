@@ -1,18 +1,18 @@
 import SwiftUI
 
-/// Filled white call-to-action with dark text — the reference "primary" button
-/// (`Add term`, `Change`).
+/// Emphasis-filled call-to-action with contrasting text — the reference
+/// "primary" button (`Add term`, `Change`).
 struct WVPrimaryButtonStyle: ButtonStyle {
     @Environment(\.isEnabled) private var isEnabled
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .font(.wv(13, .semibold))
-            .foregroundStyle(Theme.textOnWhite)
+            .foregroundStyle(Theme.textOnEmphasis)
             .padding(.horizontal, 14)
             .padding(.vertical, 7)
             .background(
-                Color.white.opacity(configuration.isPressed ? 0.82 : (isEnabled ? 1 : 0.35)),
+                Theme.emphasis.opacity(configuration.isPressed ? 0.82 : (isEnabled ? 1 : 0.35)),
                 in: RoundedRectangle(cornerRadius: Theme.Radius.control, style: .continuous)
             )
             .contentShape(Rectangle())

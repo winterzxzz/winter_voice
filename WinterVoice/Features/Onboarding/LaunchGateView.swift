@@ -4,6 +4,9 @@ struct LaunchGateView: View {
     @ObservedObject var onboardingPresenter: OnboardingPresenter
     let shellPresenter: AppShellPresenter
     @State private var isShowingSplash = true
+    /// Observed here — the window root — so a theme switch rebuilds the whole
+    /// tree (every view resolves `Theme` tokens at body time).
+    @ObservedObject private var theme = ThemeStore.shared
 
     var body: some View {
         ZStack {
@@ -20,6 +23,7 @@ struct LaunchGateView: View {
                 .zIndex(1)
             }
         }
+        .id(theme.mode)
     }
 
     @ViewBuilder
