@@ -30,6 +30,13 @@ extension View {
     ) -> some View {
         if #available(macOS 26.0, *) {
             glassEffect(.regular.tint(glassTint).interactive(interactive), in: shape)
+                .overlay {
+                    // The glass rim reads on dark canvases but vanishes on the
+                    // light one, so surfaces keep their hairline for definition.
+                    if let border {
+                        shape.strokeBorder(border, lineWidth: 1)
+                    }
+                }
         } else {
             background(fill, in: shape)
                 .overlay {
@@ -37,6 +44,18 @@ extension View {
                         shape.strokeBorder(border, lineWidth: 1)
                     }
                 }
+        }
+    }
+
+    /// Suppress macOS 26's automatic scroll-edge bar under the titlebar; the
+    /// rail strip painted by `AppShellView` provides that treatment, and the
+    /// system bar draws a full-width slab over it that breaks the rail fusion.
+    @ViewBuilder
+    func wvTopScrollEdgeEffectHidden() -> some View {
+        if #available(macOS 26.0, *) {
+            scrollEdgeEffectHidden(true, for: .top)
+        } else {
+            self
         }
     }
 }
@@ -49,9 +68,24 @@ struct WVRailBackground: View {
     var body: some View {
         if #available(macOS 26.0, *) {
             BehindWindowBlur(material: .sidebar)
-                .overlay(Theme.sidebar.opacity(0.25))
+                .overlay(Theme.railGlassWash)
         } else {
             Theme.sidebar
+        }
+    }
+}
+
+/// The content pane background. On macOS 26+ the canvas color is laid as a
+/// heavy wash over a behind-window blur, so the pane keeps its tone and text
+/// contrast while the desktop gives it glass depth — and card `glassEffect`s
+/// have a live backdrop to refract. Pre-26 it is the classic flat canvas.
+struct WVCanvasBackground: View {
+    var body: some View {
+        if #available(macOS 26.0, *) {
+            BehindWindowBlur(material: .underWindowBackground)
+                .overlay(Theme.canvas.opacity(0.82))
+        } else {
+            Theme.canvas
         }
     }
 }

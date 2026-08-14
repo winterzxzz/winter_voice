@@ -19,7 +19,7 @@ struct AppShellView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                 // The background must respect the top safe area so the titlebar
                 // strip above the content stays pure black like the reference.
-                .background(Theme.canvas, ignoresSafeAreaEdges: [])
+                .background(alignment: .center) { WVCanvasBackground() }
                 // The titlebar is transparent and the window is
                 // full-size-content, so scrolled content would otherwise slide
                 // up into the strip and collide with the brand accessory. This
@@ -117,7 +117,8 @@ struct WVPage<Content: View, Trailing: View>: View {
             .padding(.bottom, 44)
         }
         .scrollContentBackground(.hidden)
-        .background(Theme.canvas)
+        .wvTopScrollEdgeEffectHidden()
+        .background { WVCanvasBackground().ignoresSafeArea() }
     }
 }
 

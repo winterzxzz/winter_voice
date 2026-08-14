@@ -198,6 +198,17 @@ enum Theme {
     /// so `WindowConfigurator` keeps appearance-driven resolution.
     static var windowBackground: NSColor { dynamicNSColor(\.sidebar) }
 
+    /// Wash over the rail's glass material on macOS 26+. Black needs a strong
+    /// wash so the rail stays near-black (and its light-gray text legible)
+    /// even when a bright desktop shines through the material; Light keeps it
+    /// nearly clear so the glass actually shows.
+    static let railGlassWash = Color(nsColor: NSColor(name: nil) { appearance in
+        let isDark = appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
+        return isDark
+            ? NSColor(ThemePalette.black.sidebar).withAlphaComponent(0.55)
+            : NSColor.white.withAlphaComponent(0.07)
+    })
+
     // MARK: Canvas & surfaces
 
     /// Content-area background.
