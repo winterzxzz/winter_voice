@@ -264,12 +264,24 @@ struct WVChipPicker<Option: Hashable>: View {
     let options: [Option]
     let label: (Option) -> String
     var icon: ((Option) -> String?)? = nil
+    /// Wraps the chips in an inset, bordered capsule container — the reference
+    /// `Local / Cloud` segmented treatment.
+    var grouped = false
 
     var body: some View {
-        HStack(spacing: 6) {
+        let row = HStack(spacing: grouped ? 2 : 6) {
             ForEach(options, id: \.self) { option in
                 chip(option)
             }
+        }
+        if grouped {
+            let shape = RoundedRectangle(cornerRadius: Theme.Radius.control, style: .continuous)
+            row
+                .padding(3)
+                .background(Theme.inset, in: shape)
+                .overlay(shape.strokeBorder(Theme.border, lineWidth: 1))
+        } else {
+            row
         }
     }
 

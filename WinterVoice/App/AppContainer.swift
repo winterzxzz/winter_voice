@@ -65,6 +65,13 @@ final class AppContainer {
             usage: usageStats
         )
         let router = AppRouter()
+        // Dev affordance: `open WinterVoice.app --args -WVOpenPage settings`
+        // jumps straight to a shell page on launch.
+        let arguments = ProcessInfo.processInfo.arguments
+        if let flagIndex = arguments.firstIndex(of: "-WVOpenPage"),
+           let destination = AppShellDestination(rawValue: arguments.dropFirst(flagIndex + 1).first ?? "") {
+            router.navigate(to: destination)
+        }
         let presenter = DictationPresenter(
             interactor: interactor,
             relay: relay,

@@ -1,3 +1,4 @@
+import AppKit
 import AVFoundation
 import ServiceManagement
 import SwiftUI
@@ -17,6 +18,9 @@ struct AppSettingsView: View {
     @ObservedObject private var widgetPreferences: WidgetPreferences
     @StateObject private var launchAtLogin = LaunchAtLoginModel()
     @State private var activeMicrophoneName: String?
+    /// A preset chip the user tapped whose model is still downloading; selected
+    /// automatically once the install lands.
+    @State private var pendingPresetModelID: String?
 
     init(presenter: AppShellPresenter, reopenOnboarding: (() -> Void)? = nil) {
         self.presenter = presenter
@@ -37,15 +41,8 @@ struct AppSettingsView: View {
         ) {
             transcriptionSection
             microphoneSection
-
-            // fixedSize(vertical:) makes the row settle at the taller card's
-            // height, then both cards stretch to fill it — equal heights.
-            HStack(alignment: .top, spacing: Theme.Space.md) {
-                behaviorSection
-                widgetSection
-            }
-            .fixedSize(horizontal: false, vertical: true)
-
+            behaviorSection
+            widgetSection
             permissionsSection
             privacySection
         }
@@ -54,12 +51,32 @@ struct AppSettingsView: View {
             refreshMicrophone()
             launchAtLogin.refresh()
         }
+        .onChange(of: models.installed) { _, installed in
+            guard let id = pendingPresetModelID,
+                  installed.contains(where: { $0.id == id }) else { return }
+            pendingPresetModelID = nil
+            Task { await models.select(id) }
+        }
+        .onChange(of: models.downloadingModelIDs) { _, downloading in
+            // A cancelled or failed preset download must not auto-select later.
+            guard let id = pendingPresetModelID,
+                  !downloading.contains(id),
+                  !models.installingModelIDs.contains(id),
+                  !models.installed.contains(where: { $0.id == id }) else { return }
+            pendingPresetModelID = nil
+        }
     }
 
     // MARK: Transcription
 
     private var transcriptionSection: some View {
-        sectionCard("Transcription") {
+        sectionCard("Transcription", trailing: {
+            WVStatusPill(
+                text: status.stateLabel,
+                color: status.isReady ? Theme.success : Theme.warning,
+                filled: true
+            )
+        }) {
             HStack(spacing: 12) {
                 WVChipPicker(
                     selection: Binding(
@@ -68,7 +85,8 @@ struct AppSettingsView: View {
                     ),
                     options: ProviderMode.allCases,
                     label: { $0 == .local ? "Local" : "Cloud" },
-                    icon: { $0 == .local ? "cpu" : "cloud" }
+                    icon: { $0 == .local ? "cpu" : "cloud" },
+                    grouped: true
                 )
                 Text(configuration.mode == .local
                     ? "Private and offline — audio never leaves your computer."
@@ -76,11 +94,6 @@ struct AppSettingsView: View {
                     .font(.wvCaption)
                     .foregroundStyle(Theme.textSecondary)
                 Spacer(minLength: 0)
-                WVStatusPill(
-                    text: status.stateLabel,
-                    color: status.isReady ? Theme.success : Theme.warning,
-                    filled: true
-                )
             }
 
             if configuration.mode == .local {
@@ -93,10 +106,27 @@ struct AppSettingsView: View {
 
     @ViewBuilder
     private var localModelRows: some View {
-        if let active = activeModelName {
-            Text("Using \(active) — pick a different one under All models.")
+        HStack(spacing: 12) {
+            WVChipPicker(
+                selection: Binding(
+                    get: { activePreset },
+                    set: { applyPreset($0) }
+                ),
+                options: ModelPreset.allCases,
+                label: { $0.title }
+            )
+            if let id = pendingPresetModelID,
+               models.downloadingModelIDs.contains(id) || models.installingModelIDs.contains(id) {
+                ProgressView(value: models.downloadProgress[id])
+                    .progressViewStyle(.linear)
+                    .tint(Theme.accent)
+                    .frame(width: 72)
+            }
+            Text(presetCaption)
                 .font(.wvCaption)
                 .foregroundStyle(Theme.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+            Spacer(minLength: 0)
         }
         if let error = models.lastError {
             Text(error).font(.wvCaption).foregroundStyle(Theme.danger)
@@ -143,6 +173,62 @@ struct AppSettingsView: View {
         guard let id = models.activeModelID else { return nil }
         return models.installed.first { $0.id == id }?.displayName
             ?? models.catalog.first { $0.id == id }?.displayName
+    }
+
+    // MARK: Model presets
+
+    /// The reference quality chips. Each named preset maps to a multilingual
+    /// whisper.cpp model; `custom` lights up when the active model was picked
+    /// under All models (e.g. an English-only variant).
+    private enum ModelPreset: CaseIterable, Hashable {
+        case fast, balanced, accurate, custom
+
+        var title: String {
+            switch self {
+            case .fast: "Fast"
+            case .balanced: "Balanced"
+            case .accurate: "Accurate"
+            case .custom: "Custom"
+            }
+        }
+
+        var modelID: String? {
+            switch self {
+            case .fast: "whisper-tiny"
+            case .balanced: "whisper-base"
+            case .accurate: "whisper-small"
+            case .custom: nil
+            }
+        }
+    }
+
+    private var activePreset: ModelPreset {
+        ModelPreset.allCases.first {
+            $0.modelID != nil && $0.modelID == models.activeModelID
+        } ?? .custom
+    }
+
+    private func applyPreset(_ preset: ModelPreset) {
+        guard let id = preset.modelID, id != models.activeModelID else { return }
+        if models.installed.contains(where: { $0.id == id }) {
+            pendingPresetModelID = nil
+            Task { await models.select(id) }
+        } else if let descriptor = models.catalog.first(where: { $0.id == id }) {
+            pendingPresetModelID = id
+            models.install(descriptor)
+        }
+    }
+
+    private var presetCaption: String {
+        if let id = pendingPresetModelID,
+           models.downloadingModelIDs.contains(id) || models.installingModelIDs.contains(id),
+           let name = models.catalog.first(where: { $0.id == id })?.displayName {
+            return "Downloading \(name)…"
+        }
+        if let active = activeModelName {
+            return "Using \(active) — pick a different one under All models."
+        }
+        return "No model yet — tap a preset to download one."
     }
 
     private var storageSummary: String {
@@ -265,21 +351,14 @@ struct AppSettingsView: View {
     // MARK: Microphone
 
     private var microphoneSection: some View {
-        sectionCard("Microphone") {
-            HStack(spacing: 10) {
-                Text("System Default")
-                    .font(.system(size: 13, weight: .medium))
-                    .foregroundStyle(Theme.textPrimary)
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 7)
-                    .background(
-                        Theme.inset,
-                        in: RoundedRectangle(cornerRadius: Theme.Radius.control, style: .continuous)
-                    )
-                    .overlay(
-                        RoundedRectangle(cornerRadius: Theme.Radius.control, style: .continuous)
-                            .strokeBorder(Theme.border, lineWidth: 1)
-                    )
+        sectionCard("Microphone", trailing: {
+            Button { refreshMicrophone() } label: {
+                Label("Refresh", systemImage: "arrow.triangle.2.circlepath")
+            }
+            .buttonStyle(.wvGhost)
+        }) {
+            HStack(spacing: 12) {
+                microphonePicker
                 if let activeMicrophoneName {
                     WVStatusPill(text: "Active: \(activeMicrophoneName)", color: Theme.success)
                 } else {
@@ -288,15 +367,47 @@ struct AppSettingsView: View {
                         .foregroundStyle(Theme.warning)
                 }
                 Spacer(minLength: 0)
-                Button { refreshMicrophone() } label: {
-                    Label("Refresh", systemImage: "arrow.triangle.2.circlepath")
-                }
-                .buttonStyle(.wvGhost)
             }
-            Text("WinterVoice records from the input device selected in macOS Sound settings.")
-                .font(.wvCaption)
-                .foregroundStyle(Theme.textTertiary)
+            WVDisclosureCard(label: "Advanced") {
+                Text("WinterVoice records from the input device selected in macOS Sound settings. Change the device there — dictation follows the system default automatically.")
+                    .font(.wvCaption)
+                    .foregroundStyle(Theme.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
         }
+    }
+
+    /// Looks like the reference device dropdown; the app always follows the
+    /// system default, so the menu says so and links to macOS Sound settings.
+    private var microphonePicker: some View {
+        let shape = RoundedRectangle(cornerRadius: Theme.Radius.control, style: .continuous)
+        return Menu {
+            Toggle("System Default", isOn: .constant(true))
+            Divider()
+            Button("Open macOS Sound Settings…") {
+                if let url = URL(string: "x-apple.systempreferences:com.apple.Sound-Settings.extension") {
+                    NSWorkspace.shared.open(url)
+                }
+            }
+        } label: {
+            HStack(spacing: 10) {
+                Text("System Default")
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundStyle(Theme.textPrimary)
+                Image(systemName: "chevron.down")
+                    .font(.system(size: 9, weight: .semibold))
+                    .foregroundStyle(Theme.textTertiary)
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .background(Theme.inset, in: shape)
+            .overlay(shape.strokeBorder(Theme.border, lineWidth: 1))
+            .contentShape(Rectangle())
+        }
+        .menuStyle(.button)
+        .buttonStyle(.plain)
+        .menuIndicator(.hidden)
+        .fixedSize()
     }
 
     private func refreshMicrophone() {
@@ -307,17 +418,10 @@ struct AppSettingsView: View {
 
     private var behaviorSection: some View {
         sectionCard("Behavior") {
-            HStack(alignment: .top, spacing: Theme.Space.sm) {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Launch at login")
-                        .font(.wvRowTitle)
-                        .foregroundStyle(Theme.textPrimary)
-                    Text("Start WinterVoice automatically when you log in, ready in the menu bar.")
-                        .font(.wvCaption)
-                        .foregroundStyle(Theme.textSecondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-                Spacer(minLength: Theme.Space.sm)
+            settingRow(
+                title: "Launch at login",
+                caption: "Start WinterVoice automatically when you log in, ready in the menu bar."
+            ) {
                 Toggle("", isOn: $launchAtLogin.isEnabled)
                     .toggleStyle(.wv)
                     .labelsHidden()
@@ -326,32 +430,50 @@ struct AppSettingsView: View {
                 Text(error).font(.wvCaption).foregroundStyle(Theme.danger)
             }
         }
-        .frame(maxWidth: .infinity, alignment: .topLeading)
     }
 
     // MARK: Floating widget
 
     private var widgetSection: some View {
         sectionCard("Floating Widget") {
-            VStack(alignment: .leading, spacing: 2) {
-                Text("Show widget")
-                    .font(.wvRowTitle)
-                    .foregroundStyle(Theme.textPrimary)
-                Text("The pill that shows recording status.")
-                    .font(.wvCaption)
-                    .foregroundStyle(Theme.textSecondary)
+            settingRow(
+                title: "Show widget",
+                caption: "The pill that shows recording status."
+            ) {
+                WVChipPicker(
+                    selection: $widgetPreferences.visibility,
+                    options: WidgetVisibility.allCases,
+                    label: { $0.title }
+                )
             }
-            WVChipPicker(
-                selection: $widgetPreferences.visibility,
-                options: WidgetVisibility.allCases,
-                label: { $0.title }
-            )
+            WVDivider()
             Text("Drag the pill to move it. Press Cmd + Shift + Space to bring it to the front.")
                 .font(.wvCaption)
                 .foregroundStyle(Theme.textTertiary)
                 .fixedSize(horizontal: false, vertical: true)
         }
-        .frame(maxWidth: .infinity, alignment: .topLeading)
+    }
+
+    /// A reference settings row: title + caption on the left, the control on
+    /// the right edge of the card.
+    private func settingRow(
+        title: String,
+        caption: String,
+        @ViewBuilder trailing: () -> some View
+    ) -> some View {
+        HStack(alignment: .center, spacing: Theme.Space.sm) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.wvRowTitle)
+                    .foregroundStyle(Theme.textPrimary)
+                Text(caption)
+                    .font(.wvCaption)
+                    .foregroundStyle(Theme.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            Spacer(minLength: Theme.Space.md)
+            trailing()
+        }
     }
 
     // MARK: Permissions
@@ -397,24 +519,35 @@ struct AppSettingsView: View {
         subtitle: String? = nil,
         @ViewBuilder content: () -> some View
     ) -> some View {
+        sectionCard(title, subtitle: subtitle, trailing: { EmptyView() }, content: content)
+    }
+
+    private func sectionCard(
+        _ title: String,
+        subtitle: String? = nil,
+        @ViewBuilder trailing: () -> some View,
+        @ViewBuilder content: () -> some View
+    ) -> some View {
         WVCard {
             VStack(alignment: .leading, spacing: 14) {
-                VStack(alignment: .leading, spacing: 3) {
-                    Text(title)
-                        .font(.wvHeadline)
-                        .foregroundStyle(Theme.textPrimary)
-                    if let subtitle {
-                        Text(subtitle)
-                            .font(.wvCaption)
-                            .foregroundStyle(Theme.textSecondary)
-                            .fixedSize(horizontal: false, vertical: true)
+                HStack(alignment: .center, spacing: Theme.Space.sm) {
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text(title)
+                            .font(.wvHeadline)
+                            .foregroundStyle(Theme.textPrimary)
+                        if let subtitle {
+                            Text(subtitle)
+                                .font(.wvCaption)
+                                .foregroundStyle(Theme.textSecondary)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
                     }
+                    Spacer(minLength: 0)
+                    trailing()
                 }
                 content()
             }
-            // Fills the height a side-by-side row proposes so paired cards
-            // match; inert in a plain vertical flow.
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            .frame(maxWidth: .infinity, alignment: .topLeading)
         }
     }
 }
