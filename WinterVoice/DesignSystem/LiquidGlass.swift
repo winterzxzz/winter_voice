@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 
 /// Liquid Glass adoption for macOS 26 (Tahoe).
@@ -38,4 +39,36 @@ extension View {
                 }
         }
     }
+}
+
+/// The sidebar + titlebar rail background. On macOS 26+ the window behind the
+/// rail is transparent, so this renders the system sidebar material — desktop
+/// blurring through — washed with the theme's rail color to keep its tone.
+/// Pre-26 the window stays opaque and this is the classic flat rail.
+struct WVRailBackground: View {
+    var body: some View {
+        if #available(macOS 26.0, *) {
+            BehindWindowBlur(material: .sidebar)
+                .overlay(Theme.sidebar.opacity(0.25))
+        } else {
+            Theme.sidebar
+        }
+    }
+}
+
+/// An `NSVisualEffectView` blurring whatever is behind the window. SwiftUI's
+/// `Material` styles only blur content within the window, so the AppKit view
+/// is required for the desktop show-through.
+private struct BehindWindowBlur: NSViewRepresentable {
+    let material: NSVisualEffectView.Material
+
+    func makeNSView(context: Context) -> NSVisualEffectView {
+        let view = NSVisualEffectView()
+        view.material = material
+        view.blendingMode = .behindWindow
+        view.state = .followsWindowActiveState
+        return view
+    }
+
+    func updateNSView(_ view: NSVisualEffectView, context: Context) {}
 }

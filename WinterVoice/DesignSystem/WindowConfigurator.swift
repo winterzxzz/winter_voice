@@ -42,7 +42,15 @@ struct WindowConfigurator: NSViewRepresentable {
         window.titleVisibility = .hidden
         window.styleMask.insert(.fullSizeContentView)
         window.isMovableByWindowBackground = true
-        window.backgroundColor = Theme.windowBackground
+        if #available(macOS 26.0, *) {
+            // Transparent window so the rail's behind-window material and the
+            // Liquid Glass surfaces have the desktop to refract; every content
+            // pane paints its own opaque background.
+            window.isOpaque = false
+            window.backgroundColor = .clear
+        } else {
+            window.backgroundColor = Theme.windowBackground
+        }
         window.appearance = NSAppearance(named: Theme.mode == .black ? .darkAqua : .aqua)
         installBrandAccessory(in: window)
     }

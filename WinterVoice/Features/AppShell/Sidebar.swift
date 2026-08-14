@@ -114,7 +114,7 @@ struct WVSidebar: View {
         }
         .frame(width: isExpanded ? SidebarVisibility.expandedWidth : SidebarVisibility.railWidth)
         .frame(maxHeight: .infinity)
-        .background(Theme.sidebar)
+        .background(WVRailBackground().ignoresSafeArea())
         .overlay(alignment: .trailing) {
             Rectangle().fill(Theme.separator).frame(width: 1)
         }

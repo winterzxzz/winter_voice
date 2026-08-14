@@ -20,6 +20,19 @@ struct AppShellView: View {
                 // The background must respect the top safe area so the titlebar
                 // strip above the content stays pure black like the reference.
                 .background(Theme.canvas, ignoresSafeAreaEdges: [])
+                // The titlebar is transparent and the window is
+                // full-size-content, so scrolled content would otherwise slide
+                // up into the strip and collide with the brand accessory. This
+                // zero-height overlay paints the rail color into the top safe
+                // area *in front of* the scroll content, keeping the strip
+                // opaque while the titlebar accessory stays above it.
+                .overlay(alignment: .top) {
+                    Color.clear
+                        .frame(height: 0)
+                        .background {
+                            WVRailBackground().ignoresSafeArea(edges: .top)
+                        }
+                }
         }
         .animation(.spring(response: 0.28, dampingFraction: 0.95), value: sidebarExpanded)
         .frame(minWidth: 860, minHeight: 560)
