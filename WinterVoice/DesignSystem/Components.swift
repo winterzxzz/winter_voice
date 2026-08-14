@@ -223,6 +223,15 @@ struct WVToggleStyle: ToggleStyle {
                         glassTint: configuration.isOn ? Theme.emphasis : nil,
                         interactive: true
                     )
+                    // At this control size the emphasis glass tint reads as
+                    // neutral dark glass, which leaves the `textOnEmphasis`
+                    // knob invisible against it — the on-state track must be
+                    // painted solid over the glass.
+                    .overlay {
+                        if configuration.isOn {
+                            Capsule().fill(Theme.emphasis)
+                        }
+                    }
                     .overlay(alignment: configuration.isOn ? .trailing : .leading) {
                         Circle()
                             .fill(configuration.isOn ? Theme.textOnEmphasis : Theme.toggleKnobOff)
