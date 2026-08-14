@@ -59,8 +59,20 @@ hdiutil create \
   -ov -format UDRW \
   "$RW_DMG"
 
+# A stale mounted volume makes the fresh image mount as "WinterVoice 1"
+# and the Finder styling hits the wrong disk — eject leftovers first, then
+# take the mount point hdiutil actually reports.
 MOUNT_POINT="/Volumes/$VOLUME_NAME"
-hdiutil attach "$RW_DMG" -readwrite -noverify -noautoopen >/dev/null
+if [[ -d "$MOUNT_POINT" ]]; then
+  hdiutil detach "$MOUNT_POINT" -force >/dev/null 2>&1 || true
+fi
+MOUNT_POINT="$(hdiutil attach "$RW_DMG" -readwrite -noverify -noautoopen \
+  | awk -F'\t' '/\/Volumes\//{print $NF; exit}')"
+if [[ "$MOUNT_POINT" != "/Volumes/$VOLUME_NAME" ]]; then
+  echo "error: image mounted at '$MOUNT_POINT' instead of /Volumes/$VOLUME_NAME" >&2
+  hdiutil detach "$MOUNT_POINT" -force >/dev/null 2>&1 || true
+  exit 1
+fi
 SetFile -a C "$MOUNT_POINT" 2>/dev/null || true
 
 osascript <<OSA
