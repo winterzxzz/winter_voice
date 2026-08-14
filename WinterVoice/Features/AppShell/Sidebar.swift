@@ -132,43 +132,70 @@ struct WVSidebar: View {
 
     private var listening: Bool { dictationPresenter.hotkeyHealth == .listening }
 
-    /// Surfaces the launch-time update discovery without the user having to
-    /// visit Settings; clicking lands on the Updates section, which offers
-    /// Download / View Release / Skip.
+    /// Notification card for the launch-time update discovery: title, blurb,
+    /// a direct Download action, and a dismiss that skips this version — no
+    /// Settings visit needed.
     private func updateBanner(_ update: AvailableUpdate) -> some View {
-        Button { presenter.navigate(to: .settings) } label: {
-            HStack(spacing: 8) {
-                Image(systemName: "arrow.down.circle.fill")
-                    .font(.system(size: 14, weight: .medium))
-                    .foregroundStyle(Theme.accent)
-                    .frame(width: 19)
-                VStack(alignment: .leading, spacing: 1) {
-                    Text("Update available")
-                        .font(.wv(12.5, .semibold))
-                        .foregroundStyle(Theme.textPrimary)
-                    Text("Version \(update.version)")
-                        .font(.wv(11))
-                        .foregroundStyle(Theme.textSecondary)
-                }
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(alignment: .top, spacing: 8) {
+                WVBrandMark(size: 20)
+                Text("New version available")
+                    .font(.wv(12.5, .semibold))
+                    .foregroundStyle(Theme.textPrimary)
                 Spacer(minLength: 0)
+                Button { updates.skip(update) } label: {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 9, weight: .semibold))
+                        .foregroundStyle(Theme.textTertiary)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .focusEffectDisabled()
+                .help("Skip this version")
             }
-            .padding(.horizontal, 10)
-            .padding(.vertical, 8)
-            .background {
-                RoundedRectangle(cornerRadius: Theme.Radius.control, style: .continuous)
-                    .fill(Theme.accent.opacity(0.12))
+
+            Text("Version \(update.version) is ready to download.")
+                .font(.wv(11))
+                .foregroundStyle(Theme.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            Button { updates.download(update) } label: {
+                HStack(spacing: 4) {
+                    Text("Download")
+                    Image(systemName: "arrow.right")
+                        .font(.system(size: 9, weight: .semibold))
+                }
+                .font(.wv(11.5, .semibold))
+                .foregroundStyle(Theme.accent)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 5)
+                .background {
+                    RoundedRectangle(cornerRadius: Theme.Radius.chip, style: .continuous)
+                        .fill(Theme.accent.opacity(0.14))
+                }
+                .contentShape(Rectangle())
             }
-            .contentShape(Rectangle())
+            .buttonStyle(.plain)
+            .focusEffectDisabled()
+            .padding(.top, 2)
         }
-        .buttonStyle(.plain)
-        .focusEffectDisabled()
+        .padding(10)
+        .background {
+            RoundedRectangle(cornerRadius: Theme.Radius.row, style: .continuous)
+                .fill(Theme.surfaceElevated)
+                .overlay {
+                    RoundedRectangle(cornerRadius: Theme.Radius.row, style: .continuous)
+                        .strokeBorder(Theme.border, lineWidth: 1)
+                }
+        }
         .padding(.horizontal, 10)
         .padding(.bottom, 8)
     }
 
-    /// Collapsed-rail version of the update banner: just the accent glyph.
+    /// Collapsed-rail version of the update banner: just the accent glyph;
+    /// clicking starts the download directly, same as the expanded card.
     private func collapsedUpdateBadge(_ update: AvailableUpdate) -> some View {
-        Button { presenter.navigate(to: .settings) } label: {
+        Button { updates.download(update) } label: {
             Image(systemName: "arrow.down.circle.fill")
                 .font(.system(size: 16, weight: .medium))
                 .foregroundStyle(Theme.accent)
