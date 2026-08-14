@@ -46,7 +46,6 @@ struct AppSettingsView: View {
             widgetSection
             themeSection
             permissionsSection
-            privacySection
         }
         .onAppear {
             controller.loadRemoteDraft()
@@ -674,27 +673,6 @@ struct AppSettingsView: View {
                 showsIntroduction: false,
                 reopenOnboarding: reopenOnboarding
             )
-        }
-    }
-
-    // MARK: Privacy
-
-    private var privacySection: some View {
-        sectionCard("Privacy") {
-            HStack(alignment: .top, spacing: Theme.Space.sm) {
-                WVIconBadge(systemImage: "lock.shield", tint: Theme.success, size: 30)
-                VStack(alignment: .leading, spacing: 6) {
-                    Text(status.privacySummary)
-                        .font(.wvBody)
-                        .foregroundStyle(Theme.textSecondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                    Text("Audio is held in memory only. Inserted text is saved locally in History; audio and API keys are never logged. Text dictated into a detected password field is never saved.")
-                        .font(.wvCaption)
-                        .foregroundStyle(Theme.textTertiary)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-                Spacer(minLength: 0)
-            }
         }
     }
 
