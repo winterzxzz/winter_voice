@@ -4,6 +4,9 @@ struct RecordingPanelView: View {
     @ObservedObject var presenter: DictationPresenter
     let levelMeter: AudioLevelMeter
     var style: WidgetStyle = .labeled
+    /// `ImageRenderer` snapshots cannot draw `ProgressView`'s AppKit-backed
+    /// spinner; the `-WVWidgetFrames` shoot swaps in a drawn arc instead.
+    var usesSnapshotSpinner = false
     var onToggle: () -> Void = {}
     var onDragMoved: () -> Void = {}
     var onDragEnded: () -> Void = {}
@@ -32,9 +35,7 @@ struct RecordingPanelView: View {
             idlePill
         case .preparing:
             pill {
-                ProgressView()
-                    .controlSize(.small)
-                    .tint(.white)
+                spinner
                 statusText("Preparing…")
             }
         case .recording:
@@ -46,9 +47,7 @@ struct RecordingPanelView: View {
             }
         case .processing:
             pill {
-                ProgressView()
-                    .controlSize(.small)
-                    .tint(.white)
+                spinner
                 statusText("Transcribing…")
             }
         case .inserting:
@@ -99,6 +98,17 @@ struct RecordingPanelView: View {
         }
         .opacity(0.95)
         .help("Double-click to start dictation. \(presenter.hotkeyInstruction).")
+    }
+
+    @ViewBuilder
+    private var spinner: some View {
+        if usesSnapshotSpinner {
+            SnapshotSpinner()
+        } else {
+            ProgressView()
+                .controlSize(.small)
+                .tint(.white)
+        }
     }
 
     private func pill(@ViewBuilder body: () -> some View) -> some View {
@@ -152,6 +162,26 @@ struct RecordingPanelView: View {
         Text(value)
             .font(.wv(13, .medium))
             .foregroundStyle(.white)
+    }
+}
+
+/// A drawn indeterminate spinner for `ImageRenderer` shoots, where the
+/// AppKit-backed `ProgressView` renders as a missing-view placeholder.
+private struct SnapshotSpinner: View {
+    var body: some View {
+        TimelineView(.animation) { timeline in
+            let turn = timeline.date.timeIntervalSinceReferenceDate
+                .truncatingRemainder(dividingBy: 1)
+            Circle()
+                .trim(from: 0, to: 0.72)
+                .stroke(
+                    Color.white.opacity(0.9),
+                    style: StrokeStyle(lineWidth: 2, lineCap: .round)
+                )
+                .frame(width: 13, height: 13)
+                .rotationEffect(.degrees(turn * 360))
+        }
+        .frame(width: 20, height: 20)
     }
 }
 

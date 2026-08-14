@@ -1,5 +1,7 @@
-import Foundation
+import AppKit
 import Combine
+import Foundation
+import SwiftUI
 
 @MainActor
 final class PermissionHotkeyReconciler {
@@ -83,6 +85,37 @@ final class AppContainer {
                 store.mode = store.mode == .black ? .light : .black
             }
         }
+        // Dev affordance: `-WVWidgetDemo` loops the widget through the
+        // dictation states with synthetic voice levels, so the recording
+        // waveform is filmable without microphone or hotkey permissions.
+        if arguments.contains("-WVWidgetDemo") {
+            let demoLevelMeter = audioRecorder.levelMeter
+            Task { @MainActor in
+                try? await Task.sleep(nanoseconds: 2_000_000_000)
+                while !Task.isCancelled {
+                    relay.publish(.preparing)
+                    try? await Task.sleep(nanoseconds: 800_000_000)
+                    relay.publish(.recording)
+                    let recordingStart = Date()
+                    while Date().timeIntervalSince(recordingStart) < 4.2 {
+                        let time = Date().timeIntervalSinceReferenceDate
+                        // Bursts separated by pauses so the bars read as speech.
+                        let speaking = sin(time * 1.9) > -0.35
+                        let level = speaking
+                            ? Float(0.2 + 0.65 * abs(sin(time * 9.3) * sin(time * 3.7)))
+                            : Float(0.04)
+                        demoLevelMeter.update(level)
+                        try? await Task.sleep(nanoseconds: 40_000_000)
+                    }
+                    relay.publish(.processing)
+                    try? await Task.sleep(nanoseconds: 1_500_000_000)
+                    relay.publish(.inserting)
+                    try? await Task.sleep(nanoseconds: 1_000_000_000)
+                    relay.publish(.idle)
+                    try? await Task.sleep(nanoseconds: 2_500_000_000)
+                }
+            }
+        }
         let presenter = DictationPresenter(
             interactor: interactor,
             relay: relay,
@@ -129,6 +162,66 @@ final class AppContainer {
         )
         panelController = panel
         hotkey.onShowWidget = { [weak panel] in panel?.showWidget() }
+        // Dev affordance: `-WVWidgetFrames <dir>` renders the widget's state
+        // cycle to numbered PNG frames offscreen and exits — asset shoots
+        // never depend on live screen capture or the cursor-following panel.
+        if let flagIndex = arguments.firstIndex(of: "-WVWidgetFrames"),
+           let framesPath = arguments.dropFirst(flagIndex + 1).first {
+            let demoLevelMeter = audioRecorder.levelMeter
+            let framesPresenter = presenter
+            Task { @MainActor in
+                try? await Task.sleep(nanoseconds: 1_000_000_000)
+                let directory = URL(fileURLWithPath: framesPath, isDirectory: true)
+                try? FileManager.default.createDirectory(
+                    at: directory, withIntermediateDirectories: true
+                )
+                let fps = 10.0
+                let schedule: [(DictationState, Double)] = [
+                    (.idle, 1.2), (.preparing, 0.8), (.recording, 4.0),
+                    (.processing, 1.5), (.inserting, 1.0), (.idle, 1.5),
+                ]
+                var frame = 0
+                for (state, duration) in schedule {
+                    relay.publish(state)
+                    for _ in 0..<Int(duration * fps) {
+                        let time = Date().timeIntervalSinceReferenceDate
+                        if state == .recording {
+                            let speaking = sin(time * 1.9) > -0.35
+                            demoLevelMeter.update(
+                                speaking
+                                    ? Float(0.2 + 0.65 * abs(sin(time * 9.3) * sin(time * 3.7)))
+                                    : Float(0.04)
+                            )
+                        }
+                        let scene = ZStack {
+                            LinearGradient(
+                                colors: [Color(hex: 0x101014), Color(hex: 0x1C1C22)],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                            RecordingPanelView(
+                                presenter: framesPresenter,
+                                levelMeter: demoLevelMeter,
+                                usesSnapshotSpinner: true
+                            )
+                        }
+                        .frame(width: 360, height: 110)
+                        let renderer = ImageRenderer(content: scene)
+                        renderer.scale = 2
+                        if let image = renderer.nsImage,
+                           let tiff = image.tiffRepresentation,
+                           let rep = NSBitmapImageRep(data: tiff),
+                           let png = rep.representation(using: .png, properties: [:]) {
+                            let name = String(format: "f%04d.png", frame)
+                            try? png.write(to: directory.appendingPathComponent(name))
+                        }
+                        frame += 1
+                        try? await Task.sleep(nanoseconds: UInt64(1_000_000_000 / fps))
+                    }
+                }
+                exit(0)
+            }
+        }
     }
 
     func start() {
