@@ -142,6 +142,11 @@ Bản build chưa được notarize. Chuột phải vào app → <b>Open</b> →
 </details>
 
 <details>
+<summary><b>Có cách nào dùng nhận dạng cloud nhanh mà miễn phí không?</b></summary>
+Có — chạy một router API chuẩn OpenAI trên máy như 9router rồi trỏ tới nhà cung cấp có gói STT free (ví dụ Groq whisper-large-v3-turbo). Hướng dẫn đầy đủ: <a href="docs/free-cloud-stt-9router.md">Cloud STT miễn phí với 9router</a>.
+</details>
+
+<details>
 <summary><b>Có những model Whisper nào?</b></summary>
 Tiny, Base và Small — mỗi loại có bản đa ngôn ngữ (gồm tiếng Việt) và bản chỉ tiếng Anh, tải từ nguồn whisper.cpp chính thức và kiểm SHA-256.
 </details>

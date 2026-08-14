@@ -142,6 +142,11 @@ Yes — that's the headline use case. WinterVoice inserts text wherever your cur
 </details>
 
 <details>
+<summary><b>Can I get fast cloud transcription for free?</b></summary>
+Yes — run a local OpenAI-compatible router like 9router and point it at a provider with a free STT tier (e.g. Groq's whisper-large-v3-turbo). Full walkthrough: <a href="docs/free-cloud-stt-9router.md">Free cloud STT with 9router</a>.
+</details>
+
+<details>
 <summary><b>Which Whisper models are available?</b></summary>
 Tiny, Base, and Small — each in multilingual (incl. Vietnamese) and English-only variants, downloaded from official whisper.cpp sources and verified against published SHA-256 checksums.
 </details>
