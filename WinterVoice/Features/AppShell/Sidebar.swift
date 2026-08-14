@@ -188,7 +188,11 @@ struct WVSidebar: View {
     }
 
     private var avatar: some View {
-        WVBrandMark(size: 32)
+        // Oversize the mark slightly so the artwork's rounded corners stay
+        // outside the circle and the clip has no transparent notches.
+        WVBrandMark(size: 38)
+            .frame(width: 32, height: 32)
+            .clipShape(Circle())
     }
 }
 
