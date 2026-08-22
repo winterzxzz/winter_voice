@@ -148,6 +148,12 @@ Yes — run a local OpenAI-compatible router like 9router and point it at a prov
 The built-in catalog ships English Tiny, Base, and Small, downloaded from official whisper.cpp sources and verified against published SHA-256 checksums. For every other language — or bigger brains — use <b>Import Model…</b> in Settings → Transcription to bring any ggml whisper <code>.bin</code>: multilingual Medium, Large-v3, quantized builds, fine-tunes.
 </details>
 
+## 📸 Also from the same maker
+
+**[WinterShot](https://github.com/winterzxzz/winter_shot)** — free, open-source screenshots and screen recording for macOS. Freeze the screen, annotate, beautify, and record with a Screen Studio-style editor that zooms where you click. 100% on-device.
+
+> Same house style, same privacy stance: native SwiftUI, on-device, no account. **Dictate with WinterVoice, screenshot with WinterShot.**
+
 ## 🤝 Contributing
 
 Stars, issues, and PRs are all welcome — if WinterVoice saves you typing, **give it a ⭐ so more people find it**.
